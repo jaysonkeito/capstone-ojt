@@ -1,0 +1,87 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
+/**
+ * Bulk-imports interns from database/data/interns.csv — generated from the
+ * Registrar's "Official List of Students" (CAS, BSCS & BSINT, 1st Sem SY 2026-2027).
+ *
+ * Login: Student ID or email ({student_id}@norsubscojt.online)
+ * Default password: the intern's last name (e.g. "Teope").
+ * Default track: Internship OJT (500 target hours) — adjust per-intern from the Admin panel.
+ */
+class InternRosterSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $path = database_path('data/interns.csv');
+
+        if (! file_exists($path)) {
+            $this->command?->warn("Roster file not found at {$path} — skipping bulk import.");
+
+            return;
+        }
+
+        $handle = fopen($path, 'r');
+        $header = fgetcsv($handle); // student_id,last_name,suffix,first_name,sex,course,year_level
+
+        $now = now();
+        $rows = [];
+        $hashedNames = []; // cache password hashes per unique last name to avoid re-hashing 597 times
+
+        while (($data = fgetcsv($handle)) !== false) {
+            $record = array_combine($header, $data);
+
+            $studentId = trim($record['student_id']);
+            $lastName = trim($record['last_name']);
+            $firstName = trim($record['first_name']);
+            $suffix = trim($record['suffix'] ?? '');
+
+            if ($studentId === '' || $lastName === '') {
+                continue;
+            }
+
+            $fullFirstName = $suffix !== '' ? "{$firstName} {$suffix}" : $firstName;
+
+            if (! isset($hashedNames[$lastName])) {
+                $hashedNames[$lastName] = Hash::make($lastName);
+            }
+
+            $rows[] = [
+                'role' => 'intern',
+                'ojt_track' => 'internship',
+                'ojt_status' => 'active',
+                'department' => trim($record['course'] ?? '') ?: null,
+                'student_id' => $studentId,
+                'first_name' => $fullFirstName,
+                'last_name' => $lastName,
+                'email' => "{$studentId}@norsubscojt.online",
+                'password' => $hashedNames[$lastName],
+                'target_hours' => 500, // Internship OJT standard
+                'is_active' => true,
+                // Roster interns are provisioned accounts — skip the gate.
+                'profile_completed_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+
+        }
+
+        fclose($handle);
+
+        // Insert in chunks and skip duplicates (e.g. if the seeder is re-run).
+        foreach (array_chunk($rows, 200) as $chunk) {
+            DB::table('users')->upsert(
+                $chunk,
+                ['student_id'],
+                ['first_name', 'last_name', 'email', 'ojt_track', 'ojt_status', 'department', 'target_hours', 'is_active', 'updated_at']
+            );
+        }
+
+        $this->command?->info(count($rows).' interns imported/updated from the CAS roster.');
+    }
+}

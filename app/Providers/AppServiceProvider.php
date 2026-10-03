@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Providers;
+
+use App\Models\User;
+use App\Policies\InternPolicy;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        // Policy naming convention maps models to same-named policies; the
+        // monitor-role rules live on InternPolicy, keyed to the User model.
+        Gate::policy(User::class, InternPolicy::class);
+
+        // The layout's Notifications link needs the recipient's recent
+        // notifications and unread count on every page that renders it.
+        View::composer('layouts.app', function ($view) {
+            $user = auth()->user();
+
+            $view->with('unreadNotificationCount', $user ? $user->unreadNotifications()->count() : 0);
+        });
+    }
+}

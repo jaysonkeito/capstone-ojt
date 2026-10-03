@@ -1,0 +1,119 @@
+# |--------------------------------------------------------------------------
+# | OJT Tracker — production stack for the MIS Office Ubuntu server
+# |--------------------------------------------------------------------------
+# |
+# |   db         MySQL 8 with a named volume (all intern data lives here)
+# |   app        php-fpm from this repo's Dockerfile (Laravel code + assets)
+# |   web        Nginx in front of app:9000, serving the shared public volume
+# |   queue      Laravel queue worker (review notifications, exports)
+# |   scheduler  Laravel scheduler (schedule:work)
+# |
+# | Optional profiles — see docs/deploy-docker.md:
+# |   --profile tunnel   cloudflared, for servers with no public IP (also
+# |                      terminates HTTPS; no Certbot needed)
+# |   --profile tls      Certbot renewal loop, for servers with a public IP
+# |                      (pair with docker-compose.tls.yml once certs exist)
+# |
+# | All configuration comes from the .env file next to this file; the MySQL
+# | container reuses the same DB_* variables the app uses.
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    # DB_USERNAME must not be "root" — the MySQL image refuses MYSQL_USER=root
+    # and the stack will not come up. The runbook's production .env uses "ojt".
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Manila
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    image: ojt-tracker-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: Asia/Manila
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - app-storage:/var/www/storage/app
+      - public-www:/var/www/public
+      - certbot-www:/var/www/public/.well-known
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - public-www:/var/www/public:ro
+      - certbot-www:/var/www/public/.well-known:ro
+
+  queue:
+    image: ojt-tracker-app
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["php", "artisan", "queue:listen", "--tries=3", "--timeout=300"]
+    volumes:
+      - app-storage:/var/www/storage/app
+
+  scheduler:
+    image: ojt-tracker-app
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["php", "artisan", "schedule:work"]
+
+  # ------------------------------------------------------------ profile: tls
+  # Renewal loop for the public-IP deployment. Issue the first certificate
+  # once with:  docker compose run --rm certbot certonly --webroot
+  #   -w /var/www/public -d norsubscojt.online -d www.norsubscojt.online
+  # then bring up the stack with docker-compose.tls.yml (443 + TLS vhost).
+  certbot:
+    image: certbot/certbot
+    profiles: ["tls"]
+    restart: unless-stopped
+    volumes:
+      - certbot-certs:/etc/letsencrypt
+      - certbot-www:/var/www/public
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/public --quiet; sleep 12h & wait $${!}; done'
+
+  # --------------------------------------------------------- profile: tunnel
+  # For servers behind campus NAT with no port forwarding: create a
+  # remotely-managed tunnel in the Cloudflare dashboard for
+  # norsubscojt.online -> http://web:80, put its token in .env as
+  # CLOUDFLARE_TUNNEL_TOKEN, then `docker compose --profile tunnel up -d`.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      - web
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+
+volumes:
+  db-data:
+  app-storage:
+  public-www:
+  certbot-www:
+  certbot-certs:

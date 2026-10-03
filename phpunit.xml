@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <!-- force="true" is essential here: without it these values are only
+             applied when the variable isn't already set, and on Windows/Git Bash
+             a `php artisan test` run has already booted the app (loading .env)
+             by the time PHPUnit applies phpunit.xml — so DB_CONNECTION would
+             silently stay "mysql" and RefreshDatabase would wipe the real
+             database. Forcing them keeps tests locked to an isolated SQLite. -->
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="mysql" force="true"/>
+        <env name="DB_DATABASE" value="cas_ojt_management_test" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <!-- Git Bash exports a SESSION_PATH variable pointing at its own install
+             dir, which collides with Laravel's session cookie path config and
+             500s every CLI request; force a valid value here. -->
+        <env name="SESSION_PATH" value="/" force="true"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- DANGER ZONE: the <env> entries above set putenv()/$_ENV only —
+             PHPUnit never touches $_SERVER. But Laravel's env repository reads
+             $_SERVER first (ServerConstAdapter is checked before EnvConstAdapter),
+             and when run via `php artisan test` on Windows/Git Bash the test
+             subprocess inherits $_SERVER['DB_DATABASE']='cas_ojt_management'
+             from the parent's .env boot — so RefreshDatabase would wipe the
+             REAL database. Mirroring the values into $_SERVER via <server>
+             (set unconditionally by PHPUnit) is what actually locks tests onto
+             the isolated cas_ojt_management_test database. Do not remove the
+             <server> entries, and never point DB_DATABASE back at
+             cas_ojt_management. -->
+        <server name="APP_ENV" value="testing"/>
+        <server name="DB_CONNECTION" value="mysql"/>
+        <server name="DB_DATABASE" value="cas_ojt_management_test"/>
+        <server name="SESSION_PATH" value="/"/>
+    </php>
+</phpunit>

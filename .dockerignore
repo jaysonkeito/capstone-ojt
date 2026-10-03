@@ -1,0 +1,24 @@
+# Never bake local/development state into the production image.
+node_modules
+vendor
+android
+assets
+cap-www
+.zcode
+.github
+tests
+.phpunit.result.cache
+.env
+.env.backup
+storage/app
+storage/logs
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/framework/testing
+bootstrap/cache/*.php
+public/build
+public/hot
+public/storage
+docs
+.gitignore

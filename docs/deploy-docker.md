@@ -1,0 +1,164 @@
+# OJT Tracker — Docker deployment runbook (MIS Office, NORSU-BSC)
+
+Target: **norsubscojt.online** on the MIS Office Ubuntu server, deployed as Docker
+containers — Nginx, PHP-FPM (this repo's image), MySQL, the queue worker, and the scheduler
+all run as one `docker compose` stack. This is the office's chosen path; the bare-metal
+variant stays in `docs/deploy-ubuntu.md` for reference.
+
+Everything the stack needs lives in the repo: `Dockerfile`, `docker-compose.yml`,
+`docker-compose.tls.yml` (HTTPS override), `docker/nginx/`, `docker/php/`,
+`docker/app/entrypoint.sh`.
+
+```
+                 ┌──────────────── docker compose ────────────────┐
+  interns' app ──┤  web (nginx) → app (php-fpm) → db (MySQL 8)    │
+  kiosk PC     ──┤        │           ├─ queue (worker)           │
+  browser ───────┘        └─ public volume   └─ scheduler           │
+                 └──────────── volumes: db-data, app-storage ──────┘
+```
+
+The Android app and kiosk both load `https://norsubscojt.online` — this one server serves
+them plus the browser UI.
+
+---
+
+## 0. Server prerequisites (Ubuntu 22.04/24.04)
+
+```bash
+# Docker Engine + Compose plugin:
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER     # log out/in afterwards
+docker compose version            # sanity check
+```
+
+No PHP, Node, or Nginx install needed on the host — those are in the containers.
+
+## 1. DNS (Z.com client area)
+
+| Type | Host | Value | TTL |
+|---|---|---|---|
+| A | `@` | *office server's public IPv4* | 3600 |
+| A | `www` | *same IPv4* | 3600 |
+
+`nslookup norsubscojt.online` must return the office IP before doing the HTTPS step.
+**If the campus has no public IP / no port forwarding**, skip Certbot entirely and use the
+Cloudflare Tunnel path in §5 — it needs no DNS A record at all (Cloudflare manages it).
+
+## 2. Put the code + .env on the server
+
+```bash
+sudo mkdir -p /opt/ojt-tracker && sudo chown $USER /opt/ojt-tracker
+# copy the project folder over (rsync/scp/USB — everything except node_modules,
+# vendor, android). Then:
+cd /opt/ojt-tracker
+cp .env.example .env   # or copy the project's .env and edit it
+```
+
+Edit `.env` for production:
+
+```ini
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://norsubscojt.online
+DB_CONNECTION=mysql
+DB_HOST=db                  # ← the compose service name, not 127.0.0.1
+DB_DATABASE=cas_ojt_management
+DB_USERNAME=ojt
+DB_PASSWORD=<strong password>
+SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+```
+
+## 3. Build + first run
+
+```bash
+docker compose build                      # builds the app image (assets + vendor baked in)
+
+docker compose up -d db                   # start the database first
+docker compose run --rm app php artisan key:generate
+docker compose run --rm app php artisan migrate --force
+docker compose run --rm app php artisan db:seed --force     # first deployment only
+docker compose up -d                      # brings up app, web, queue, scheduler
+```
+
+The entrypoint (`docker/app/entrypoint.sh`) seeds the Nginx volume, waits for MySQL, caches
+config/routes/views, and fixes permissions on every start — migrations stay a deliberate
+manual step so the team controls schema changes.
+
+**Check:** `docker compose ps` shows db healthy + 4 services running; open
+`http://norsubscojt.online` → the login page.
+
+## 4. HTTPS — two paths, pick one
+
+### Path A — public IP + Let's Encrypt (Certbot profile)
+
+```bash
+# with the stack still on HTTP (default.conf answers the ACME challenges):
+docker compose --profile tls up -d certbot
+docker compose run --rm certbot certonly --webroot -w /var/www/public \
+  -d norsubscojt.online -d www.norsubscojt.online \
+  --email mis@norsu.edu.ph --agree-tos --no-eff-email
+
+# switch Nginx to the TLS vhost (adds 443, mounts the certs):
+docker compose -f docker-compose.yml -f docker-compose.tls.yml --profile tls up -d web
+```
+
+Certbot renews automatically every 12 h; renewal rewrites the live certs and Nginx picks
+them up within its 30 s window (or `docker compose exec web nginx -s reload`).
+
+### Path B — Cloudflare Tunnel (no public IP, HTTPS included)
+
+1. Add the domain to Cloudflare (free): at Z.com switch the nameservers to Cloudflare's.
+2. In the Cloudflare dashboard → Zero Trust → Networks → Tunnels: create a tunnel for
+   `norsubscojt.online` → service `http://web:80`, copy the token.
+3. Add `CLOUDFLARE_TUNNEL_TOKEN=<token>` to `.env`, then:
+   ```bash
+   docker compose --profile tunnel up -d cloudflared
+   ```
+   No ports open on the office router; HTTPS terminates at Cloudflare's edge. Remove the
+   `ports: 80:80` exposure if the office wants the site reachable only through the tunnel.
+
+Either way the app URL stays `https://norsubscojt.online`.
+
+## 5. Deploying an update
+
+```bash
+cd /opt/ojt-tracker
+# replace the source (git pull / rsync), then:
+docker compose build
+docker compose run --rm app php artisan migrate --force    # when migrations exist
+docker compose up -d                                       # restarts on the new image
+```
+
+## 6. Backups (do not skip)
+
+Nightly cron as root (`sudo crontab -e`):
+
+```
+30 2 * * * docker compose -f /opt/ojt-tracker/docker-compose.yml exec -T db sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" cas_ojt_management' | gzip > /var/backups/ojt-$(date +\%F).sql.gz
+45 2 * * * docker run --rm -v ojt-tracker_app-storage:/data -v /var/backups:/backup alpine tar czf /backup/ojt-storage-$(date +\%F).tgz -C /data .
+0 3 * * * find /var/backups -name 'ojt-*' -mtime +14 -delete
+```
+
+The second line captures intern photos and uploaded templates (the `app-storage` volume).
+
+## 7. Useful commands
+
+| Task | Command |
+|---|---|
+| Tail app logs | `docker compose logs -f app queue` |
+| Artisan/tinker | `docker compose run --rm app php artisan tinker` |
+| Sync intern passwords after name corrections | `docker compose run --rm app php artisan ojt:sync-intern-passwords` |
+| Restart after config change | `docker compose restart app queue scheduler` |
+| Enter MySQL | `docker compose exec db mysql -uojt -p cas_ojt_management` |
+
+## 8. First-login checklist after go-live
+
+1. Log in as admin → Settings: working hours, working days, OJT period start.
+2. Templates: download each starter, re-upload the customized ones.
+3. Staff: create the real coordinator/supervisor accounts (default password = last name).
+4. Kiosk PC: `KIOSK_URL=https://norsubscojt.online/admin/kiosk` in `kiosk-station.bat`,
+   scan a test QR four times (AM In → AM Out → PM In → PM Out).
+5. Install the APK on a phone, run the offline test from `docs/mobile-app.md`.

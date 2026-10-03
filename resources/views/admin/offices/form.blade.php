@@ -1,0 +1,64 @@
+@extends('layouts.app')
+
+@section('title', $office->exists ? 'Edit Office' : 'Add Office')
+
+@section('content')
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <a href="{{ route('admin.offices.index') }}" class="text-xs font-medium text-gray-400 hover:text-gray-700">← Offices</a>
+        <h1 class="text-xl font-semibold tracking-tight text-gray-900 mt-1">{{ $office->exists ? 'Edit Office' : 'Add Office' }}</h1>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-xl p-6 sm:p-8">
+        <form method="POST" action="{{ $office->exists ? route('admin.offices.update', $office) : route('admin.offices.store') }}" class="space-y-5">
+            @csrf
+            @if($office->exists) @method('PUT') @endif
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Office Name</label>
+                    <input type="text" name="name" value="{{ old('name', $office->name) }}" required placeholder="e.g. MIS Office, City Mayor's Office"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    @error('name') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
+                    <select name="type" required class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                        <option value="internal" {{ old('type', $office->type ?? 'internal') === 'internal' ? 'selected' : '' }}>Internal (on-campus)</option>
+                        <option value="external" {{ old('type', $office->type) === 'external' ? 'selected' : '' }}>External</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Address <span class="text-gray-400 font-normal text-xs">(optional)</span></label>
+                <input type="text" name="address" value="{{ old('address', $office->address) }}" placeholder="Building / street / city"
+                    class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Contact Person</label>
+                    <input type="text" name="contact_person" value="{{ old('contact_person', $office->contact_person) }}"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Contact Email</label>
+                    <input type="email" name="contact_email" value="{{ old('contact_email', $office->contact_email) }}"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone</label>
+                    <input type="text" name="contact_phone" value="{{ old('contact_phone', $office->contact_phone) }}"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">{{ $office->exists ? 'Save Changes' : 'Create Office' }}</button>
+                <a href="{{ route('admin.offices.index') }}" class="text-sm font-medium px-4 py-2 rounded-lg text-gray-500 hover:bg-gray-100 transition">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection

@@ -1,0 +1,18 @@
+# |--------------------------------------------------------------------------
+# | TLS override — use together with docker-compose.yml once Let's Encrypt
+# | certificates have been issued (the default.conf vhost answers the ACME
+# | challenges first; see docs/deploy-docker.md, path A).
+# |
+# |   docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d web
+# |
+
+services:
+  web:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/tls.conf:/etc/nginx/conf.d/default.conf:ro
+      - public-www:/var/www/public:ro
+      - certbot-www:/var/www/public/.well-known:ro
+      - certbot-certs:/etc/letsencrypt:ro
