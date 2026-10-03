@@ -329,5 +329,7 @@
         }
     </script>
     @stack('scripts')
+    <a href="{{ route('privacy') }}"
+       class="fixed bottom-3 inset-x-0 text-center text-[11px] text-gray-400 hover:text-gray-500">Privacy Policy</a>
 </body>
 </html>

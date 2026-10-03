@@ -48,3 +48,4 @@ Thumbs.db
 /.claude/
 ~$*.docx
 pest-out.txt
+/android/keystore.properties

@@ -61,6 +61,10 @@ Route::get('/', function () {
 | Guest / Authentication routes
 |--------------------------------------------------------------------------
 */
+
+// Privacy policy — public by design (the Play Store listing links to it).
+Route::view('/privacy', 'privacy')->name('privacy');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])->name('login.store');

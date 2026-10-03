@@ -108,3 +108,27 @@ passwords out of the repo), then `./gradlew assembleRelease`. Play Store wants a
 - Requests, requirements downloads, and journal editing/archiving are online-only by design.
 - Push notifications (FCM) are the natural next addition — the Capacitor shell is ready for it.
 - iOS would need a Mac + Apple Developer account; the same web layer works unchanged there.
+
+## Play Store readiness
+
+The signed release build is wired: `android/keystore.properties` (git-ignored — holds the
+passwords) points at the keystore outside the repo. **Back that keystore file up** — losing
+it means a new app identity for everyone.
+
+- Build: `cd android && ./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk`
+  (verify: `apksigner verify --print-certs ...`). For Play upload: `./gradlew bundleRelease` (`.aab`).
+- **Listing**: app name "OJT Tracker"; short description ("Time in, journals, and
+  requirements for NORSU CAS student interns." — 80 chars max); full description from
+  README.md's role table; category *Productivity*; tags: #education #school.
+- **Privacy policy URL**: `https://norsubscojt.online/privacy` (public route ships with the
+  app; also linked from the login page footer).
+- **Data safety form**: collects account info (student ID, name), app activity (attendance,
+  journals), and photos; data is encrypted in transit (HTTPS), no data sold or shared with
+  third parties; deletion on request via the MIS Office.
+- **Screenshots**: phone screenshots of Dashboard, My QR Code, My Journal, Notifications
+  (take them from the app once the server is live Tuesday).
+- **Content rating**: questionnaire → Everyone; no ads, no user-generated sharing between
+  interns beyond journals visible to staff only.
+- **Rollout**: start on the *Internal testing* track (email-list testers) until the office
+  verifies the flows in `docs/mobile-app.md`'s test matrix, then promote to production.
+- Bump `versionCode`/`versionName` in `android/app/build.gradle` for every release.
