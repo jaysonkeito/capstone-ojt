@@ -69,6 +69,7 @@ class SettingsController extends Controller
             'training_starts_on' => ['nullable', 'date'],
             'working_days' => ['array'],
             'working_days.*' => ['integer', 'min:0', 'max:6'],
+            'college_name' => ['required', 'string', 'max:120'],
         ]);
 
         $validated['working_days'] = $validated['working_days'] ?? [];

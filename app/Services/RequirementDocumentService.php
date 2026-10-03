@@ -170,6 +170,7 @@ class RequirementDocumentService
             'coordinator_position' => (string) ($coordinator?->position ?? ''),
             'coordinator_contact' => (string) ($coordinator?->staffProfile?->mobile_number ?? ''),
             'target_hours' => (string) $targetHours,
+            'college_name' => (string) (OjtSetting::current()->college_name ?: 'College of Arts and Sciences'),
             'date_today' => now()->format('F j, Y'),
             'letter_date' => now()->format('d F Y'),
             // The month the intern's own OJT set begins, used by the shipped

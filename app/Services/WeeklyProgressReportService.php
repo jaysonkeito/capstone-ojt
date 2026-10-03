@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DocumentTemplate;
 use App\Models\OjtLog;
+use App\Models\OjtSetting;
 use App\Models\User;
 use App\Support\RenderedDocument;
 use Illuminate\Support\Carbon;
@@ -139,6 +140,7 @@ class WeeklyProgressReportService
         $year = $logs->isNotEmpty() ? $logs->max('date')->year : now()->year;
 
         $globals = [
+            'college_name' => (string) (OjtSetting::current()->college_name ?: 'College of Arts and Sciences'),
             'intern_name' => (string) $intern->full_name,
             'cooperating_agency' => (string) ($intern->office?->name ?? ''),
             'course_name' => (string) $intern->course_name,

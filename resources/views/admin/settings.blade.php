@@ -61,11 +61,19 @@
         <section class="bg-white border border-gray-200 rounded-xl p-6 sm:p-7">
             <h2 class="text-sm font-semibold text-gray-900 mb-5">OJT Training Period</h2>
 
-            <div class="max-w-xs">
-                <label class="block text-xs font-medium text-gray-500 mb-1.5">Default Training Start</label>
-                <input type="date" name="training_starts_on" value="{{ old('training_starts_on', $settings->training_starts_on?->format('Y-m-d')) }}"
-                    class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
-                <p class="text-[11px] text-gray-400 mt-1">Pre-fills new interns' records and prints as the start month in application letters. Each intern can override theirs.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">Default Training Start</label>
+                    <input type="date" name="training_starts_on" value="{{ old('training_starts_on', $settings->training_starts_on?->format('Y-m-d')) }}"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <p class="text-[11px] text-gray-400 mt-1">Pre-fills new interns' records and prints as the start month in application letters. Each intern can override theirs.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">College Name</label>
+                    <input type="text" name="college_name" value="{{ old('college_name', $settings->college_name) }}" maxlength="120"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <p class="text-[11px] text-gray-400 mt-1">Printed on the Training Agreement, In-plant Agreements, and Weekly Progress Report. Change this when onboarding another college.</p>
+                </div>
             </div>
         </section>
 

@@ -25,6 +25,7 @@ test('the OJT period start is configurable from Settings', function () {
             'pm_time_out' => '17:00',
             'grace_period_minutes' => 15,
             'working_days' => [1, 2, 3, 4, 5],
+            'college_name' => 'College of Arts and Sciences',
             'training_starts_on' => '2026-08-01',
         ])
         ->assertRedirect()
@@ -51,6 +52,7 @@ test('creating an intern records their training start date', function () {
             'office_id' => '',
             'coordinator_id' => '',
             'password' => '',
+            'college_name' => 'College of Arts and Sciences',
             'training_starts_on' => '2026-09-01',
         ])
         ->assertRedirect(route('admin.interns.index'))
@@ -80,7 +82,8 @@ test('the application letter start month follows the intern enrollment start', f
 });
 
 test('the letter falls back to the configured period start when no enrollment start exists', function () {
-    OjtSetting::current()->update(['training_starts_on' => '2026-08-01']);
+    OjtSetting::current()->update(['college_name' => 'College of Arts and Sciences',
+            'training_starts_on' => '2026-08-01']);
 
     // makeIntern does not create an enrollment — no start date on file.
     $intern = makeIntern(['first_name' => 'Ben', 'last_name' => 'Reyes', 'student_id' => '202388888']);

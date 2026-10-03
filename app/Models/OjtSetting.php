@@ -22,6 +22,7 @@ class OjtSetting extends Model
         'geofence_latitude',
         'geofence_longitude',
         'geofence_radius_meters',
+        'college_name',
     ];
 
     protected function casts(): array
