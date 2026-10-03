@@ -22,6 +22,9 @@
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased min-h-screen">
 
+@include('partials.app-install-banner')
+
+
 @auth
     @php
         $u = auth()->user();

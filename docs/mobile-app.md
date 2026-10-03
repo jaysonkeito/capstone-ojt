@@ -83,6 +83,23 @@ In `android/app/build.gradle` add the signing config with that keystore (keep th
 passwords out of the repo), then `./gradlew assembleRelease`. Play Store wants an `.aab`
 (`bundleRelease`); for direct distribution to interns the signed APK is enough.
 
+## Distributing the app through the website
+
+The website is the primary access — interns get a link (norsubscojt.online) and use it in
+any browser. On **Android phones in a normal browser**, a slim install banner appears
+(`partials/app-install-banner.blade.php`, included in both layouts) linking to the public
+`/download` page, which streams the APK or — once published — redirects to the Play Store
+listing (`APP_APK_URL` in `.env`).
+
+- Requests from inside the app carry the `OJTTrackerApp/1.0` user-agent marker
+  (`capacitor.config.ts` → `server.appendUserAgent`), so the banner never shows in the app,
+  and never on desktop or iOS (no iOS build yet).
+- To post a build on the server: copy `app-release.apk` to
+  `/var/www/ojt-tracker/public/downloads/ojt-tracker.apk` (the folder is git-ignored).
+  Inside the Docker stack, `public/` is a shared volume seeded from the image — place the
+  APK on the host and `docker cp` it into the `app` container at
+  `/var/www/public/downloads/`, or rebuild the image with the APK included.
+
 ## Store / version updates
 
 - Version name/code: `android/app/build.gradle` (`versionCode`, `versionName`).

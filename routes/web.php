@@ -18,6 +18,7 @@ use App\Http\Controllers\Intern\DashboardController as InternDashboardController
 use App\Http\Controllers\Intern\PersonalInformationController as InternPersonalInformationController;
 use App\Http\Controllers\Intern\RequestController as InternRequestController;
 use App\Http\Controllers\Intern\RequirementController as InternRequirementController;
+use App\Http\Controllers\AppDownloadController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\Monitor\RequestController as MonitorRequestController;
@@ -64,6 +65,9 @@ Route::get('/', function () {
 
 // Privacy policy — public by design (the Play Store listing links to it).
 Route::view('/privacy', 'privacy')->name('privacy');
+
+// Android app download — the target of the mobile-browser install banner.
+Route::get('/download', [AppDownloadController::class, 'show'])->name('app.download');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');

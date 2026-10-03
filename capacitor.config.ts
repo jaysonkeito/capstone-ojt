@@ -23,6 +23,10 @@ const config: CapacitorConfig = {
   server: {
     url: devServerUrl ?? 'https://norsubscojt.online',
     cleartext: devServerUrl?.startsWith('http://') ?? false,
+    // Marks every request from the app so the web side can tell the native
+    // app apart from a mobile browser (the "install the app" banner must
+    // never show inside the app itself).
+    appendUserAgent: 'OJTTrackerApp/1.0',
   },
   android: {
     allowMixedContent: false,

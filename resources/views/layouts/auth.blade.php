@@ -284,6 +284,9 @@
 @endphp
 <body class="auth-body {{ $hasWelcomePanel ? 'has-split' : '' }}">
 
+@include('partials.app-install-banner')
+
+
     {{-- Success flashes + validation summaries float in as auto-dismissing
          toasts instead of banners that shove the card around. Field-level
          @error messages remain next to their inputs on the forms themselves. --}}

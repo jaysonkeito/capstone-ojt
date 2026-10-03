@@ -42,4 +42,10 @@ return [
         'credentials' => env('FIREBASE_CREDENTIALS'),
     ],
 
+    // Android app distribution — where /download sends people when no APK
+    // is placed at public/downloads. Later: the Play Store listing URL.
+    'app' => [
+        'apk_url' => env('APP_APK_URL'),
+    ],
+
 ];
