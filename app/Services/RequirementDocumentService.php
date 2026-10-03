@@ -161,6 +161,12 @@ class RequirementDocumentService
             'batch' => (string) ($intern->batch ?? ''),
             'company_name' => (string) ($intern->office?->name ?? ''),
             'company_address' => (string) ($intern->office?->address ?? ''),
+            // Structured letterhead lines (Certification header) — composed
+            // from the host office's address fields, "City, Province" and
+            // "Postal, Philippines" as single lines.
+            'company_agency' => (string) ($intern->office?->agency ?? ''),
+            'company_city_line' => trim(($intern->office?->city ?? '').', '.($intern->office?->province ?? ''), ', '),
+            'company_postal_line' => trim((($intern->office?->postal ?? '').', Philippines'), ', '),
             'supervisor_name' => (string) ($supervisor?->display_name_with_middle_initial ?? ''),
             'supervisor_honorific' => $this->honorific($supervisorGender),
             'supervisor_title' => (string) ($supervisor?->title ?? ''),
