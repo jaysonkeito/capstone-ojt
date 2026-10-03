@@ -50,6 +50,25 @@ test('the requirements page lists the school forms for an intern', function () {
         ->assertSee("Student Intern's Performance Appraisal");
 });
 
+test('the Acceptance Form addresses the intern as Mr. or Ms. from their Personal Info sex', function () {
+    $office = makeOffice();
+    $female = makeIntern(['first_name' => 'Juana', 'last_name' => 'Cruz', 'student_id' => 'T-HON-1', 'office_id' => $office->id]);
+    $female->personalInfo()->create(['sex' => 'Female']);
+    $male = makeIntern(['first_name' => 'Juan', 'last_name' => 'Cruz', 'student_id' => 'T-HON-2', 'office_id' => $office->id]);
+    $male->personalInfo()->create(['sex' => 'Male']);
+
+    $ms = $this->actingAs($female)
+        ->get(route('intern.requirements.download', DocumentTemplate::TYPE_ACCEPTANCE_FORM));
+    $mr = $this->actingAs($male)
+        ->get(route('intern.requirements.download', DocumentTemplate::TYPE_ACCEPTANCE_FORM));
+
+    $ms->assertOk();
+    $mr->assertOk();
+
+    expect(docxDocumentXml($ms->getContent()))->toContain('Ms. Juana Cruz')
+        ->and(docxDocumentXml($mr->getContent()))->toContain('Mr. Juan Cruz');
+});
+
 test('the Endorsement Letter is generated per intern even without an uploaded template', function () {
     $intern = makeIntern(['first_name' => 'Juan', 'last_name' => 'Cruz']);
     $coordinator = makeCoordinator();

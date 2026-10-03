@@ -31,6 +31,7 @@ class InternRosterSeeder extends Seeder
 
         $now = now();
         $rows = [];
+        $sexByStudentId = []; // roster sex -> Personal Info rows (drives Mr./Ms. on documents)
         $hashedNames = []; // cache password hashes per unique last name to avoid re-hashing 597 times
 
         while (($data = fgetcsv($handle)) !== false) {
@@ -46,6 +47,9 @@ class InternRosterSeeder extends Seeder
             }
 
             $fullFirstName = $suffix !== '' ? "{$firstName} {$suffix}" : $firstName;
+
+            $sex = strtoupper(trim($record['sex'] ?? ''));
+            $sexByStudentId[$studentId] = $sex === 'M' ? 'Male' : ($sex === 'F' ? 'Female' : null);
 
             if (! isset($hashedNames[$lastName])) {
                 $hashedNames[$lastName] = Hash::make($lastName);
@@ -80,6 +84,21 @@ class InternRosterSeeder extends Seeder
                 ['student_id'],
                 ['first_name', 'last_name', 'email', 'ojt_track', 'ojt_status', 'department', 'target_hours', 'is_active', 'updated_at']
             );
+        }
+
+        // Personal Information rows carrying the roster's sex, so generated
+        // documents address every intern correctly (Mr./Ms.) from day one.
+        $ids = User::whereIn('student_id', array_keys($sexByStudentId))->pluck('id', 'student_id');
+        $personalRows = [];
+        foreach ($sexByStudentId as $studentId => $sex) {
+            if ($sex && isset($ids[$studentId])) {
+                $personalRows[] = ['user_id' => $ids[$studentId], 'sex' => $sex];
+            }
+        }
+        if ($personalRows !== []) {
+            foreach (array_chunk($personalRows, 200) as $chunk) {
+                DB::table('intern_personal_infos')->upsert($chunk, ['user_id'], ['sex']);
+            }
         }
 
         $this->command?->info(count($rows).' interns imported/updated from the CAS roster.');

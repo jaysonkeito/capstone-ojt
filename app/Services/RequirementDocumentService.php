@@ -141,6 +141,10 @@ class RequirementDocumentService
         return [
             // Academic & placement — derivable from the core roster.
             'intern_name' => (string) $intern->display_name,
+            // Mr./Ms. from the intern's Personal Information sex — the forms
+            // read "certify that Mr. Juan..." / "permit Ms. Juan...". When
+            // no sex is on file the combined form keeps the sentence intact.
+            'intern_honorific' => $this->internHonorific($info?->sex),
             'intern_name_formal' => (string) $intern->display_name_with_middle_initial,
             'training_start_date' => $enrollment?->started_at?->format('F d, Y') ?? '',
             'full_name' => (string) $intern->full_name,
@@ -230,6 +234,21 @@ class RequirementDocumentService
             // ONLY use guardian_name - do NOT fall back to contact numbers
             'parent_name' => (string) ($info?->guardian_name ?? ''),
         ];
+    }
+
+    /**
+     * "Mr." / "Ms." for the intern, from their Personal Information sex.
+     * Falls back to the combined "Mr./Ms." when no sex is on file.
+     */
+    private function internHonorific(?string $sex): string
+    {
+        $initial = strtoupper(substr(trim((string) $sex), 0, 1));
+
+        return match ($initial) {
+            'M' => 'Mr.',
+            'F' => 'Ms.',
+            default => 'Mr./Ms.',
+        };
     }
 
     /**
