@@ -358,6 +358,12 @@ class User extends Authenticatable
         $middleName = $this->staffProfile?->middle_name;
 
         if (! $middleName) {
+            // Interns keep their middle name on the Personal Information
+            // sheet rather than a staff profile.
+            $middleName = $this->personalInfo?->middle_name;
+        }
+
+        if (! $middleName) {
             return $this->display_name;
         }
 

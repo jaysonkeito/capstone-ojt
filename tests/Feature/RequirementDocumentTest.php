@@ -79,17 +79,17 @@ test('the Endorsement Letter is generated per intern even without an uploaded te
 test('an intern downloads a requirement form as the blank official copy when no template is uploaded', function () {
     $intern = makeIntern(['first_name' => 'Juan', 'last_name' => 'Cruz']);
 
-    // The Acceptance Form has no built-in filled design, so it still ships
+    // The Clearance form has no built-in filled design, so it still ships
     // as the school's blank official copy.
     $response = $this->actingAs($intern)
-        ->get(route('intern.requirements.download', DocumentTemplate::TYPE_ACCEPTANCE_FORM));
+        ->get(route('intern.requirements.download', DocumentTemplate::TYPE_CLEARANCE));
 
     $response->assertOk()
         ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 
     expect($response->headers->get('Content-Disposition'))
         ->toContain('attachment')
-        ->toContain('Acceptance_Form_Cruz_Juan.docx');
+        ->toContain('Clearance_Cruz_Juan.docx');
 
     // A real .docx came back (the shipped starter), not an empty body.
     expect(strlen($response->getContent()))->toBeGreaterThan(0);

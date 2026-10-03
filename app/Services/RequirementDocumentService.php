@@ -141,6 +141,8 @@ class RequirementDocumentService
         return [
             // Academic & placement — derivable from the core roster.
             'intern_name' => (string) $intern->display_name,
+            'intern_name_formal' => (string) $intern->display_name_with_middle_initial,
+            'training_start_date' => $enrollment?->started_at?->format('F d, Y') ?? '',
             'full_name' => (string) $intern->full_name,
             'first_name' => (string) $intern->first_name,
             'middle_name' => (string) ($info?->middle_name ?? ''),

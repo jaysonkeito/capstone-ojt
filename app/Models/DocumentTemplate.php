@@ -153,7 +153,10 @@ class DocumentTemplate extends Model
         self::TYPE_ACCEPTANCE_FORM => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => 'Acceptance Form',
-            'starter' => '8_Acceptance-Form.docx',
+            // Macroized: the certificate of acceptance merges the intern,
+            // course, college, hours, and training start per intern.
+            'starter' => 'acceptance-form-template.docx',
+            'autofill' => true,
         ],
         self::TYPE_CLEARANCE => [
             'category' => self::CATEGORY_REQUIREMENT,
