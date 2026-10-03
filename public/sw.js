@@ -64,9 +64,13 @@ self.addEventListener('fetch', (event) => {
 
     // Staff tooling and the kiosk are online-only; caching them would risk
     // stale shared pages on somebody else's phone.
+    // The app always boots at "/" (server.url). Offline, that maps to the
+    // intern's cached dashboard, so a device that has signed in before opens
+    // straight into the app — no login wall, no dead end. Uncached pages fall
+    // back to offline.html.
     const path = url.pathname;
     const cacheable = CACHEABLE_PAGES.some((p) => path === p || path.startsWith(p + '/'));
-    if (!cacheable && path !== OFFLINE_URL) {
+    if (!cacheable && path !== OFFLINE_URL && path !== '/') {
         return;
     }
 
@@ -76,12 +80,15 @@ self.addEventListener('fetch', (event) => {
             const fresh = await fetch(request);
             // Only cache real pages — logins, redirects and errors would
             // poison the offline copy.
-            if (fresh.ok && !fresh.redirected) {
+            if (fresh.ok && !fresh.redirected && cacheable) {
                 cache.put(request, fresh.clone());
             }
             return fresh;
         } catch (offlineError) {
-            const cached = await cache.match(request, { ignoreSearch: path === '/intern/dashboard' ? true : false });
+            const fallbackKey = path === '/'
+                ? new URL('/intern/dashboard', self.location.origin).href
+                : request;
+            const cached = await cache.match(fallbackKey, { ignoreSearch: path === '/intern/dashboard' });
             if (cached) {
                 return cached;
             }

@@ -281,6 +281,95 @@ window.addEventListener('load', () => {
         .catch(() => {});
 });
 
+// ------------------------------------------------- offline action feedback
+//
+// While offline, every action that would need the server — saving a form,
+// opening a page that isn't cached, downloading a file — is stopped at the
+// moment it happens and explained with a modal, so the intern immediately
+// understands nothing went through instead of staring at a browser error.
+
+const OfflineModal = {
+    el: null,
+    show() {
+        if (this.el) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'fixed inset-0 z-[90] flex items-center justify-center bg-gray-900/40 px-6';
+        wrap.innerHTML = `
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-sm text-center p-6">
+                <div class="mx-auto w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v2"/><path d="M5 11a9 9 0 0 1 14 0"/><path d="M8.5 14.5a5 5 0 0 1 7 0"/><path d="M12 19h.01"/><path d="m2 2 20 20"/></svg>
+                </div>
+                <h2 class="mt-3 text-base font-semibold text-gray-900">You're offline</h2>
+                <p class="mt-1.5 text-xs text-gray-500 leading-relaxed">Please turn on your internet connection to proceed. Nothing was submitted — anything you typed is still on this screen.</p>
+                <div class="mt-4 flex gap-2">
+                    <button type="button" data-ojt-reload class="flex-1 inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">Try again</button>
+                    <button type="button" data-ojt-dismiss class="flex-1 inline-flex items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white hover:bg-brand-700">Got it</button>
+                </div>
+            </div>`;
+        wrap.addEventListener('click', (event) => {
+            if (event.target === wrap || event.target.closest('[data-ojt-dismiss]')) {
+                wrap.remove();
+                OfflineModal.el = null;
+            }
+            if (event.target.closest('[data-ojt-reload]')) {
+                wrap.remove();
+                OfflineModal.el = null;
+                window.location.reload();
+            }
+        });
+        document.body.appendChild(wrap);
+        this.el = wrap;
+    },
+};
+
+// Forms that would need the server are blocked with the modal. The one
+// offline-capable exception is the journal queue, which handles its own
+// submit and stores the draft on the device.
+document.addEventListener('submit', (event) => {
+    if (!isOffline) return;
+    const form = event.target;
+    if (form instanceof Element && form.matches('form[data-offline-queue]')) return;
+    if (form.matches('form[data-allow-offline]')) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    OfflineModal.show();
+}, true);
+
+// Same-origin link taps while offline: go straight to the page when it's
+// cached, explain with the modal when it isn't (downloads, exports, pages
+// never visited online).
+document.addEventListener('click', (event) => {
+    if (!isOffline || event.defaultPrevented) return;
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null;
+    if (!anchor) return;
+    if (anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+
+    let url;
+    try {
+        url = new URL(anchor.getAttribute('href'), window.location.href);
+    } catch {
+        return;
+    }
+    if (url.origin !== window.location.origin || url.pathname === window.location.pathname && url.hash) return;
+    if (!/^https?:$/.test(url.protocol)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    caches.match(url.href, { ignoreSearch: url.pathname === '/intern/dashboard' })
+        .then((cached) => {
+            if (cached) {
+                window.location.href = url.href;
+            } else {
+                OfflineModal.show();
+            }
+        })
+        .catch(() => OfflineModal.show());
+}, true);
+
 // ------------------------------------------------------------- push (FCM)
 //
 // The Android app registers its Firebase token after login; the server then
