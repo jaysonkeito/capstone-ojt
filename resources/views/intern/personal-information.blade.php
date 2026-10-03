@@ -197,6 +197,34 @@
             </div>
         </div>
 
+        {{-- Mirrors the school sheet's "In case of an emergency" block; left
+             blank it falls back to the guardian / parents details above. --}}
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 class="text-sm font-semibold text-gray-900 mb-4">In case of an emergency, please notify</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="{{ $labelClass }}">Name</label>
+                    <input type="text" name="emergency_name" value="{{ $v('emergency_name') }}" placeholder="{{ $info?->guardian_name }}" class="{{ $inputClass }}">
+                    @error('emergency_name') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="{{ $labelClass }}">Relationship</label>
+                    <input type="text" name="emergency_relationship" value="{{ $v('emergency_relationship') }}" placeholder="e.g. Mother" class="{{ $inputClass }}">
+                    @error('emergency_relationship') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="{{ $labelClass }}">Address</label>
+                    <input type="text" name="emergency_address" value="{{ $v('emergency_address') }}" placeholder="{{ $info?->parents_address }}" class="{{ $inputClass }}">
+                    @error('emergency_address') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="{{ $labelClass }}">Contact No.</label>
+                    <input type="text" name="emergency_contact" value="{{ $v('emergency_contact') }}" placeholder="{{ $info?->parents_contact }}" class="{{ $inputClass }}">
+                    @error('emergency_contact') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+        </div>
+
         <div class="flex items-center gap-3">
             <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Save Personal Information</button>
             <a href="{{ route('intern.requirements.index') }}" class="text-sm text-gray-500 hover:text-gray-900 transition">Back to Requirements</a>

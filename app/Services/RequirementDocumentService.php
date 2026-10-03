@@ -205,6 +205,13 @@ class RequirementDocumentService
             'parents_contact' => (string) ($info?->parents_contact ?? ''),
             'guardian_name' => (string) ($info?->guardian_name ?? ''),
             'guardian_contact' => (string) ($info?->guardian_contact ?? ''),
+            // The sheet's "In case of an emergency" block — the intern's own
+            // entry, falling back to the guardian and parents details when
+            // they left it blank so the block never prints empty.
+            'emergency_name' => (string) ($info?->emergency_name ?: $info?->guardian_name ?? ''),
+            'emergency_relationship' => (string) ($info?->emergency_relationship ?? ''),
+            'emergency_address' => (string) ($info?->emergency_address ?: $info?->parents_address ?? ''),
+            'emergency_contact' => (string) ($info?->emergency_contact ?: $info?->parents_contact ?: $info?->guardian_contact ?? ''),
             // Alias for training agreement template - parent/guardian name
             // ONLY use guardian_name - do NOT fall back to contact numbers
             'parent_name' => (string) ($info?->guardian_name ?? ''),

@@ -111,6 +111,9 @@ test("the Personal Information sheet is filled with the intern's own details eve
         'father_occupation' => 'Farmer',
         'mother_name' => 'Maria Dela Cruz',
         'mother_occupation' => 'Teacher',
+        'emergency_name' => 'Carmen Santos',
+        'emergency_relationship' => 'Aunt',
+        'emergency_contact' => '09170000000',
     ]);
 
     $response = $this->actingAs($intern)
@@ -135,6 +138,10 @@ test("the Personal Information sheet is filled with the intern's own details eve
         ->and($xml)->toContain('Bachelor of Science in Information Technology')
         ->and($xml)->toContain('Fourth')
         ->and($xml)->toContain('0917-555-1234') // coordinator contact from their staff record
+        // The sheet's emergency block prints the intern's own emergency entry.
+        ->and($xml)->toContain('Carmen Santos')
+        ->and($xml)->toContain('Aunt')
+        ->and($xml)->toContain('09170000000')
         // Fields the intern left blank print as N/A on this data sheet.
         ->and($xml)->toContain('N/A')
         // …and none of the shipped sample intern's baked-in data survives…

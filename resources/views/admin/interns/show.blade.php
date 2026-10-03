@@ -198,6 +198,17 @@
                                 {{ $info->guardian_name ?: '—' }}@if($info->guardian_contact) · {{ $info->guardian_contact }}@endif
                             </dd>
                         </div>
+                        <div>
+                            <dt class="text-[11px] font-medium uppercase tracking-widest text-gray-400">Emergency contact</dt>
+                            <dd class="text-sm text-gray-900 mt-0.5">
+                                {{ $info->emergency_name ?: $info->guardian_name ?: '—' }}@if($info->emergency_relationship) · {{ $info->emergency_relationship }}@endif
+                                @if($info->emergency_contact)
+                                    · {{ $info->emergency_contact }}
+                                @elseif($info->emergency_address)
+                                    · {{ $info->emergency_address }}
+                                @endif
+                            </dd>
+                        </div>
                     </dl>
                 @else
                     <p class="text-sm text-gray-400">No personal information on file yet — the intern fills this in from their

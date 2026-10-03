@@ -136,6 +136,21 @@
 
                     <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Save Profile</button>
                 </form>
+
+                @if($user->isIntern())
+                    {{-- The account page holds only sign-in identity; the data
+                         behind the school's Personal Information sheet lives on
+                         the intern's Personal Info page. --}}
+                    <div class="mt-6 rounded-lg bg-brand-50 border border-brand-100 px-4 py-3 flex items-start gap-2.5">
+                        <svg class="shrink-0 mt-0.5 text-brand-600" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8h.01"/><path d="M12 12v4"/><circle cx="12" cy="12" r="9"/></svg>
+                        <p class="text-xs text-gray-600 leading-relaxed">
+                            This page is your sign-in identity only. Your birth details, addresses, family background, and
+                            emergency contact — everything printed on the
+                            <span class="font-medium text-gray-700">Student Intern's Personal Information</span> sheet — are
+                            maintained under <a href="{{ route('intern.personal-information.edit') }}" class="font-medium text-brand-600 hover:underline">Personal Info</a>.
+                        </p>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

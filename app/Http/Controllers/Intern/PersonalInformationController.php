@@ -57,6 +57,10 @@ class PersonalInformationController extends Controller
             'parents_contact' => ['nullable', 'string', 'max:255'],
             'guardian_name' => ['nullable', 'string', 'max:255'],
             'guardian_contact' => ['nullable', 'string', 'max:255'],
+            'emergency_name' => ['nullable', 'string', 'max:255'],
+            'emergency_relationship' => ['nullable', 'string', 'max:60'],
+            'emergency_address' => ['nullable', 'string', 'max:255'],
+            'emergency_contact' => ['nullable', 'string', 'max:255'],
         ]);
 
         // The hasOne relation scopes the match to this intern, so an empty
