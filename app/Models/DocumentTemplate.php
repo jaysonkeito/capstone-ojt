@@ -161,27 +161,35 @@ class DocumentTemplate extends Model
         self::TYPE_CLEARANCE => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => "Student Trainee's Clearance",
-            'starter' => '9_Student-Trainees_Clearance.docx',
+            'starter' => 'clearance-template.docx',
+            'autofill' => true,
         ],
         self::TYPE_CERTIFICATION => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => 'Certification',
-            'starter' => '10_Certification.docx',
+            'starter' => 'certification-template.docx',
+            'autofill' => true,
         ],
         self::TYPE_INTERN_FEEDBACK => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => "Student Intern's Feedback Form",
-            'starter' => '11_Student-Interns-Feedback-Form.docx',
+            // Macroized: filled per intern without an uploaded design.
+            'starter' => 'intern-feedback-template.docx',
+            'autofill' => true,
         ],
         self::TYPE_SUPERVISOR_FEEDBACK => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => "Training Supervisor's Feedback Form",
-            'starter' => '12_Training-Supervisors-Feedback-Form.docx',
+            // Macroized: filled per intern without an uploaded design.
+            'starter' => 'supervisor-feedback-template.docx',
+            'autofill' => true,
         ],
         self::TYPE_PERFORMANCE_APPRAISAL => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => "Student Intern's Performance Appraisal",
-            'starter' => '13_Student-Interns-Performance-Appraisal-Form.docx',
+            // Macroized: filled per intern without an uploaded design.
+            'starter' => 'performance-appraisal-template.docx',
+            'autofill' => true,
         ],
     ];
 

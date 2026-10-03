@@ -162,6 +162,7 @@ class RequirementDocumentService
             'company_name' => (string) ($intern->office?->name ?? ''),
             'company_address' => (string) ($intern->office?->address ?? ''),
             'supervisor_name' => (string) ($supervisor?->display_name_with_middle_initial ?? ''),
+            'supervisor_honorific' => $this->honorific($supervisorGender),
             'supervisor_title' => (string) ($supervisor?->title ?? ''),
             'supervisor_position' => (string) ($supervisor?->position ?? ''),
             // Application-letter recipient — the supervisor at the intern's
