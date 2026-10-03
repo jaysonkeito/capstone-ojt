@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Firebase Cloud Messaging — push notifications to the Android app.
+    // 'credentials' is the path to the Firebase service-account JSON; leave
+    // unset and the fcm channel silently no-ops (see docs/push-notifications.md).
+    'fcm' => [
+        'credentials' => env('FIREBASE_CREDENTIALS'),
+    ],
+
 ];

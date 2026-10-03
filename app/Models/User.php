@@ -4,10 +4,12 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -559,5 +561,25 @@ class User extends Authenticatable
     public function scopeBatch($query, ?string $batch)
     {
         return $batch ? $query->where('batch', $batch) : $query;
+    }
+
+    /**
+     * The phones this user has signed into the Android app from. Every push
+     * notification fans out to all of them (a user may hold two devices).
+     */
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
+    /**
+     * Firebase channel route — the registration tokens to deliver this
+     * notification to. An empty list simply means nothing to push to.
+     *
+     * @return list<string>
+     */
+    public function routeNotificationForFcm(Notification $notification): array
+    {
+        return $this->deviceTokens()->pluck('token')->all();
     }
 }

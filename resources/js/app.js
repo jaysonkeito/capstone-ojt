@@ -280,3 +280,67 @@ window.addEventListener('load', () => {
         })
         .catch(() => {});
 });
+
+// ------------------------------------------------------------- push (FCM)
+//
+// The Android app registers its Firebase token after login; the server then
+// pushes review decisions and request updates to this device. The native
+// plugin is optional at build time: this module no-ops until
+// @capacitor/push-notifications is installed (docs/push-notifications.md
+// walks through enabling it), so the same bundle works before and after.
+async function registerPushNotifications() {
+    if (!Capacitor.isNativePlatform() || !csrfToken()) return;
+
+    let PushNotifications;
+    try {
+        ({ PushNotifications } = await import(/* @vite-ignore */ '@capacitor/push-notifications'));
+    } catch {
+        return; // plugin not installed yet — pushes stay disabled
+    }
+
+    try {
+        const status = await PushNotifications.checkPermissions();
+        if (status.receive !== 'granted') {
+            const requested = await PushNotifications.requestPermissions();
+            if (requested.receive !== 'granted') return;
+        }
+
+        await PushNotifications.register();
+
+        PushNotifications.addListener('registration', ({ value }) => {
+            fetch('/devices', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ token: value, platform: Capacitor.getPlatform() }),
+            }).catch(() => {});
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+            console.warn('Push registration failed', error);
+        });
+
+        // A push arriving while the app is open doesn't become a system
+        // notification — surface it as the same toast the sync flow uses.
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            toast(notification.title ? `${notification.title} — ${notification.body}` : (notification.body ?? 'You have a new update'));
+        });
+
+        // Tapping a system notification opens the app: follow its deep link.
+        PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
+            const url = notification?.data?.url;
+            if (typeof url === 'string' && url.startsWith('/')) {
+                window.location.href = url;
+            }
+        });
+    } catch (error) {
+        console.warn('Push notifications unavailable', error);
+    }
+}
+
+window.addEventListener('load', registerPushNotifications);

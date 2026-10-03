@@ -18,6 +18,7 @@ use App\Http\Controllers\Intern\DashboardController as InternDashboardController
 use App\Http\Controllers\Intern\PersonalInformationController as InternPersonalInformationController;
 use App\Http\Controllers\Intern\RequestController as InternRequestController;
 use App\Http\Controllers\Intern\RequirementController as InternRequirementController;
+use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\Monitor\RequestController as MonitorRequestController;
 use App\Http\Controllers\NotificationController;
@@ -229,6 +230,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+
+    // Android app push registration — the FCM token the device expects
+    // notifications on. Same session auth as everything else.
+    Route::post('/devices', [DeviceTokenController::class, 'store'])->name('devices.store');
+    Route::delete('/devices', [DeviceTokenController::class, 'destroy'])->name('devices.destroy');
 });
 
 /*
