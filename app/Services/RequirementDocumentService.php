@@ -171,6 +171,15 @@ class RequirementDocumentService
             'coordinator_contact' => (string) ($coordinator?->staffProfile?->mobile_number ?? ''),
             'target_hours' => (string) $targetHours,
             'college_name' => (string) (OjtSetting::current()->college_name ?: 'College of Arts and Sciences'),
+            // In-Plant Training Agreement period: the start month from the
+            // intern's own OJT set, the duration nearest CAS's average pacing
+            // (~150 logged hours per month — 500h semester ≈ 3 months, 300h
+            // summer ≈ 2 months), and the end month that duration lands in.
+            'training_start' => $enrollment?->started_at?->format('F Y') ?? '',
+            'months_count' => (string) ($targetHours ? (int) round($targetHours / 150) : ''),
+            'training_end' => $enrollment?->started_at && $targetHours
+                ? $enrollment->started_at->copy()->addMonths((int) round($targetHours / 150) - 1)->format('F Y')
+                : '',
             'college_dean' => (string) (OjtSetting::current()->college_dean ?: 'JEAN CARREM R. ESPARCIA, Ph.D.'),
             'internship_term' => $this->internshipTerm($enrollment?->started_at),
             'date_today' => now()->format('F j, Y'),
