@@ -188,6 +188,8 @@ class RequirementDocumentService
                 ? $enrollment->started_at->copy()->addMonths((int) round($targetHours / 150) - 1)->format('F Y')
                 : '',
             'college_dean' => (string) (OjtSetting::current()->college_dean ?: 'JEAN CARREM R. ESPARCIA, Ph.D.'),
+            'campus_name' => (string) (OjtSetting::current()->campus_name ?: 'Negros Oriental State University – Bayawan-Sta. Catalina Campus'),
+            'year_level_ordinal' => $this->yearLevelOrdinal($intern->year_level),
             'internship_term' => $this->internshipTerm($enrollment?->started_at),
             'date_today' => now()->format('F j, Y'),
             'letter_date' => now()->format('d F Y'),
@@ -235,6 +237,21 @@ class RequirementDocumentService
             // ONLY use guardian_name - do NOT fall back to contact numbers
             'parent_name' => (string) ($info?->guardian_name ?? ''),
         ];
+    }
+
+    /**
+     * The year level as a compact ordinal ("1st"…"4th") for forms that use
+     * the numeral style ("4th Year") instead of the word style.
+     */
+    private function yearLevelOrdinal(int|string|null $level): string
+    {
+        return match ((int) $level) {
+            1 => '1st',
+            2 => '2nd',
+            3 => '3rd',
+            4 => '4th',
+            default => (string) ($level ?? ''),
+        };
     }
 
     /**

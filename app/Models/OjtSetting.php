@@ -25,6 +25,7 @@ class OjtSetting extends Model
         'college_name',
         'college_dean',
         'college_code',
+        'campus_name',
     ];
 
     protected function casts(): array

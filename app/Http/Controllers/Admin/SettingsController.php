@@ -72,6 +72,7 @@ class SettingsController extends Controller
             'college_name' => ['required', 'string', 'max:120'],
             'college_dean' => ['required', 'string', 'max:120'],
             'college_code' => ['required', 'string', 'max:20', 'regex:/^[a-z0-9_-]+$/'],
+            'campus_name' => ['required', 'string', 'max:160'],
         ]);
 
         $validated['working_days'] = $validated['working_days'] ?? [];

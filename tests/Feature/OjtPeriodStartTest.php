@@ -28,6 +28,7 @@ test('the OJT period start is configurable from Settings', function () {
             'college_name' => 'College of Arts and Sciences',
             'college_dean' => 'JEAN CARREM R. ESPARCIA, Ph.D.',
             'college_code' => 'cas',
+            'campus_name' => 'Negros Oriental State University – Bayawan-Sta. Catalina Campus',
             'training_starts_on' => '2026-08-01',
         ])
         ->assertRedirect()
@@ -57,6 +58,7 @@ test('creating an intern records their training start date', function () {
             'college_name' => 'College of Arts and Sciences',
             'college_dean' => 'JEAN CARREM R. ESPARCIA, Ph.D.',
             'college_code' => 'cas',
+            'campus_name' => 'Negros Oriental State University – Bayawan-Sta. Catalina Campus',
             'training_starts_on' => '2026-09-01',
         ])
         ->assertRedirect(route('admin.interns.index'))
@@ -89,6 +91,7 @@ test('the letter falls back to the configured period start when no enrollment st
     OjtSetting::current()->update(['college_name' => 'College of Arts and Sciences',
             'college_dean' => 'JEAN CARREM R. ESPARCIA, Ph.D.',
             'college_code' => 'cas',
+            'campus_name' => 'Negros Oriental State University – Bayawan-Sta. Catalina Campus',
             'training_starts_on' => '2026-08-01']);
 
     // makeIntern does not create an enrollment — no start date on file.

@@ -81,6 +81,12 @@
                     <p class="text-[11px] text-gray-400 mt-1">Signs the Endorsement Letter and the Personal Information sheet as College Dean. Update here — no document editing needed.</p>
                 </div>
                 <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">Campus Name</label>
+                    <input type="text" name="campus_name" value="{{ old('campus_name', $settings->campus_name) }}" maxlength="160"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <p class="text-[11px] text-gray-400 mt-1">Printed on the Certification letterhead and establishment line.</p>
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-gray-500 mb-1.5">College Code</label>
                     <input type="text" name="college_code" value="{{ old('college_code', $settings->college_code) }}" maxlength="20" pattern="[a-z0-9_-]+"
                         class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
