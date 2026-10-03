@@ -114,7 +114,7 @@ class DocumentTemplate extends Model
             // The shipped starter is macroized, so even without an uploaded
             // design the sheet comes back filled with the intern's own details
             // (birth, addresses, family) — anything still blank prints N/A.
-            'starter' => "Student Intern's Personal Information Template.docx",
+            'starter' => 'templates/personal-information-template.docx',
             'autofill' => true,
         ],
         self::TYPE_TRAINING_AGREEMENT => [
