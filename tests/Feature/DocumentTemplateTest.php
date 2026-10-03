@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\DocumentTemplate;
+use App\Services\DocumentTemplateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -33,13 +34,16 @@ function activateTemplate(string $type, ?string $source = null): DocumentTemplat
 {
     $path = "document-templates/{$type}.docx";
 
+    $service = app(DocumentTemplateService::class);
+
     Storage::disk('local')->put(
         $path,
-        (string) file_get_contents(public_path('documents/'.($source ?? DocumentTemplate::TYPES[$type]['starter']))),
+        (string) file_get_contents($source ?? $service->starterPath($type)),
     );
 
     return DocumentTemplate::create([
         'type' => $type,
+        'college_code' => 'cas',
         'disk' => 'local',
         'path' => $path,
         'original_name' => 'Custom '.$type.'.docx',
@@ -236,7 +240,7 @@ test('a template uploaded into the wrong slot redirects with a fix-it notice ins
     // form's file stored as this type's template — a valid .docx, so nothing
     // rejects it at upload time, but its design lacks the repeating
     // placeholder (${date} row / ${week} block) the merge clones.
-    activateTemplate($slotType, DocumentTemplate::TYPES[$sourceType]['starter']);
+    activateTemplate($slotType, app(DocumentTemplateService::class)->starterPath($sourceType));
 
     $response = $this->actingAs($intern)->get(route($downloadRoute));
 

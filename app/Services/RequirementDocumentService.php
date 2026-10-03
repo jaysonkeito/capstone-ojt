@@ -171,6 +171,8 @@ class RequirementDocumentService
             'coordinator_contact' => (string) ($coordinator?->staffProfile?->mobile_number ?? ''),
             'target_hours' => (string) $targetHours,
             'college_name' => (string) (OjtSetting::current()->college_name ?: 'College of Arts and Sciences'),
+            'college_dean' => (string) (OjtSetting::current()->college_dean ?: 'JEAN CARREM R. ESPARCIA, Ph.D.'),
+            'internship_term' => $this->internshipTerm($enrollment?->started_at),
             'date_today' => now()->format('F j, Y'),
             'letter_date' => now()->format('d F Y'),
             // The month the intern's own OJT set begins, used by the shipped
@@ -217,6 +219,30 @@ class RequirementDocumentService
             // ONLY use guardian_name - do NOT fall back to contact numbers
             'parent_name' => (string) ($info?->guardian_name ?? ''),
         ];
+    }
+
+    /**
+     * The OJT cohort label for the intern's set. Summer OJT (April-May,
+     * taken before fourth-year enrollment) reads "Summer {school year}" —
+     * e.g. "Summer 2026-2027" — while the semester track reads
+     * "Internship {starting year}", e.g. "Internship 2026".
+     */
+    private function internshipTerm(?Carbon $startedAt): string
+    {
+        $start = $startedAt ?? OjtSetting::current()->training_starts_on;
+
+        if (! $start) {
+            return '';
+        }
+
+        if (in_array($start->month, [4, 5])) {
+            // A summer cohort labels itself by the school year it proceeds
+            // into (April 2026 summer -> "Summer 2026-2027"), per the OJT
+            // office's convention.
+            return 'Summer '.$start->year.'-'.($start->year + 1);
+        }
+
+        return 'Internship '.$start->year;
     }
 
     /**

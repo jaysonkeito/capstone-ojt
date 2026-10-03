@@ -72,7 +72,19 @@
                     <label class="block text-xs font-medium text-gray-500 mb-1.5">College Name</label>
                     <input type="text" name="college_name" value="{{ old('college_name', $settings->college_name) }}" maxlength="120"
                         class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
-                    <p class="text-[11px] text-gray-400 mt-1">Printed on the Training Agreement, In-plant Agreements, and Weekly Progress Report. Change this when onboarding another college.</p>
+                    <p class="text-[11px] text-gray-400 mt-1">Printed on the Training Agreement, In-plant Agreements, Endorsement Letter, and Weekly Progress Report.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">College Dean</label>
+                    <input type="text" name="college_dean" value="{{ old('college_dean', $settings->college_dean) }}" maxlength="120"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <p class="text-[11px] text-gray-400 mt-1">Signs the Endorsement Letter and the Personal Information sheet as College Dean. Update here — no document editing needed.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">College Code</label>
+                    <input type="text" name="college_code" value="{{ old('college_code', $settings->college_code) }}" maxlength="20" pattern="[a-z0-9_-]+"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <p class="text-[11px] text-gray-400 mt-1">Lowercase folder code (e.g. cas, cba) — scopes which template folder serves the forms. Changing it after templates exist requires moving those folders to match.</p>
                 </div>
             </div>
         </section>

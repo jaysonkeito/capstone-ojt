@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\TemplateMismatchException;
 use App\Models\DocumentTemplate;
+use App\Models\OjtSetting;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -43,7 +44,19 @@ class DocumentTemplateService
      */
     public function active(string $type): ?DocumentTemplate
     {
-        return DocumentTemplate::query()->where('type', $type)->first();
+        return DocumentTemplate::query()
+            ->where('type', $type)
+            ->where('college_code', $this->collegeCode())
+            ->first();
+    }
+
+    /**
+     * The college this installation serves — scopes which template folder
+     * and which uploaded designs the forms resolve to (e.g. 'cas', 'cba').
+     */
+    private function collegeCode(): string
+    {
+        return (string) (OjtSetting::current()->college_code ?: 'cas');
     }
 
     /**
@@ -68,7 +81,7 @@ class DocumentTemplateService
      */
     public function starterPath(string $type): string
     {
-        return public_path('documents/'.DocumentTemplate::TYPES[$type]['starter']);
+        return public_path('documents/templates/'.$this->collegeCode().'/'.DocumentTemplate::TYPES[$type]['starter']);
     }
 
     /**
@@ -83,7 +96,7 @@ class DocumentTemplateService
         $file = DocumentTemplate::TYPES[$type]['fallback']
             ?? DocumentTemplate::TYPES[$type]['starter'];
 
-        return public_path('documents/'.$file);
+        return public_path('documents/'.$this->collegeCode().'/'.$file);
     }
 
     /**
@@ -103,7 +116,7 @@ class DocumentTemplateService
         Storage::disk($disk)->putFileAs('document-templates', $file, "{$type}.docx");
 
         return DocumentTemplate::updateOrCreate(
-            ['type' => $type],
+            ['type' => $type, 'college_code' => $this->collegeCode()],
             [
                 'disk' => $disk,
                 'path' => $path,

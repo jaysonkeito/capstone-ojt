@@ -76,12 +76,12 @@ class DocumentTemplate extends Model
         self::TYPE_WEEKLY_PROGRESS_REPORT => [
             'category' => self::CATEGORY_REPORT,
             'label' => 'Weekly Progress Report',
-            'starter' => 'templates/weekly-progress-report-template.docx',
+            'starter' => 'weekly-progress-report-template.docx',
         ],
         self::TYPE_TIMESHEET => [
             'category' => self::CATEGORY_REPORT,
             'label' => 'Timesheet',
-            'starter' => 'templates/timesheet-template.docx',
+            'starter' => 'timesheet-template.docx',
         ],
         self::TYPE_COVER_PAGE => [
             'category' => self::CATEGORY_REQUIREMENT,
@@ -93,13 +93,13 @@ class DocumentTemplate extends Model
             // fixed copy carrying another student's name. The untouched
             // official binder (1_cover-page.docx) remains on disk as the
             // source this design was built from.
-            'starter' => 'templates/cover-page-template.docx',
+            'starter' => 'cover-page-template.docx',
             'autofill' => true,
         ],
         self::TYPE_APPLICATION_LETTER => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => 'Internship Application Letter',
-            'starter' => 'templates/application-letter-template.docx',
+            'starter' => 'application-letter-template.docx',
             // The shipped starter is fully macroized, so even without an
             // uploaded design the letter is generated per intern (addressed to
             // their assigned supervisor at their office). The sample letter is
@@ -114,7 +114,7 @@ class DocumentTemplate extends Model
             // The shipped starter is macroized, so even without an uploaded
             // design the sheet comes back filled with the intern's own details
             // (birth, addresses, family) — anything still blank prints N/A.
-            'starter' => 'templates/personal-information-template.docx',
+            'starter' => 'personal-information-template.docx',
             'autofill' => true,
         ],
         self::TYPE_TRAINING_AGREEMENT => [
@@ -124,7 +124,7 @@ class DocumentTemplate extends Model
             // design the agreement comes back filled with the intern's own
             // name and ID — never a blank form with [Student Name] still
             // in the text.
-            'starter' => 'templates/training-agreement-template.docx',
+            'starter' => 'training-agreement-template.docx',
             'autofill' => true,
         ],
         self::TYPE_APPROVED_COMPANIES => [
@@ -139,7 +139,7 @@ class DocumentTemplate extends Model
             // design the agreement comes back filled with the intern's own
             // name — never a blank form with [Student Name] still
             // in the text.
-            'starter' => 'templates/inplant-agreement-template.docx',
+            'starter' => 'inplant-agreement-template.docx',
             'autofill' => true,
         ],
         self::TYPE_ENDORSEMENT_LETTER => [
@@ -147,7 +147,7 @@ class DocumentTemplate extends Model
             'label' => 'Endorsement Letter',
             // Macroized: the shipped starter is filled per intern (addressee,
             // company, intern, coordinator, college) without an uploaded design.
-            'starter' => 'templates/endorsement-letter-template.docx',
+            'starter' => 'endorsement-letter-template.docx',
             'autofill' => true,
         ],
         self::TYPE_ACCEPTANCE_FORM => [
