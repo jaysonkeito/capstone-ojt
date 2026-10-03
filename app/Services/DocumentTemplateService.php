@@ -96,7 +96,7 @@ class DocumentTemplateService
         $file = DocumentTemplate::TYPES[$type]['fallback']
             ?? DocumentTemplate::TYPES[$type]['starter'];
 
-        return public_path('documents/'.$this->collegeCode().'/'.$file);
+        return public_path('documents/templates/'.$this->collegeCode().'/'.$file);
     }
 
     /**

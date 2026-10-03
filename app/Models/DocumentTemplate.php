@@ -102,10 +102,7 @@ class DocumentTemplate extends Model
             'starter' => 'application-letter-template.docx',
             // The shipped starter is fully macroized, so even without an
             // uploaded design the letter is generated per intern (addressed to
-            // their assigned supervisor at their office). The sample letter is
-            // kept on disk only as an offline reference for new-cooperating-
-            // agency cases.
-            'fallback' => '2_Internship-Application-Letter_IF-NEW-COOPERATING-AGENCY.docx',
+            // their assigned supervisor at their office).
             'autofill' => true,
         ],
         self::TYPE_PERSONAL_INFORMATION => [
@@ -130,7 +127,7 @@ class DocumentTemplate extends Model
         self::TYPE_APPROVED_COMPANIES => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => 'Board-Approved Companies List',
-            'starter' => '5_List-of-Companies_Industries-Approved-by-the-Board-of-Regents.docx',
+            'starter' => 'approved-companies-template.docx',
         ],
         self::TYPE_INPLANT_AGREEMENT => [
             'category' => self::CATEGORY_REQUIREMENT,
