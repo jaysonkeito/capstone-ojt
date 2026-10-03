@@ -259,8 +259,20 @@ class DocumentTemplateService
         array $profile,
         array $perFieldEmpty = [],
         string $globalEmptyValue = '',
+        array $images = [],
     ): string {
         $processor = new TemplateProcessor($templatePath);
+
+        // Image markers (e.g. the ${profile_picture} box on the Personal
+        // Information sheet) are swapped for real picture files before the
+        // text pass, so the trailing unknown-variable cleanup never sees
+        // them. Templates without a marker simply skip it, which keeps
+        // uploaded designs that omit the picture box working.
+        foreach ($images as $marker => $spec) {
+            if (in_array($marker, $processor->getVariables(), true)) {
+                $processor->setImageValue($marker, $spec + ['ratio' => false]);
+            }
+        }
 
         foreach ($profile as $key => $value) {
             $processor->setValue($key, $this->xmlValue($value !== '' ? $value : ($perFieldEmpty[$key] ?? $globalEmptyValue)));

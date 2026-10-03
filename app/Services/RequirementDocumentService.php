@@ -8,6 +8,7 @@ use App\Models\OjtSetting;
 use App\Models\User;
 use App\Support\RenderedDocument;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -89,6 +90,7 @@ class RequirementDocumentService
                 $profile,
                 $emptyValues,
                 $globalEmptyValue,
+                $this->profileImages($intern),
             );
 
             return RenderedDocument::word($binary, $filename);
@@ -104,6 +106,7 @@ class RequirementDocumentService
                 $profile,
                 $emptyValues,
                 $globalEmptyValue,
+                $this->profileImages($intern),
             );
 
             return RenderedDocument::word($binary, $filename);
@@ -216,6 +219,39 @@ class RequirementDocumentService
             // ONLY use guardian_name - do NOT fall back to contact numbers
             'parent_name' => (string) ($info?->guardian_name ?? ''),
         ];
+    }
+
+    /**
+     * Image markers the requirement-form merge can fill. The Personal
+     * Information sheet carries a 1x1 ID-picture box (${profile_picture});
+     * the intern's profile photo is placed there, falling back to a neutral
+     * placeholder silhouette when they haven't uploaded one.
+     *
+     * @return array<string, array{path: string, width: int, height: int}>
+     */
+    private function profileImages(User $intern): array
+    {
+        return [
+            'profile_picture' => [
+                'path' => $this->profilePicturePath($intern),
+                'width' => 115,
+                'height' => 115,
+            ],
+        ];
+    }
+
+    /**
+     * The intern's profile photo as an absolute path for the Word merge —
+     * the uploaded avatar when one is on disk, otherwise the placeholder
+     * silhouette shipped with the app.
+     */
+    public function profilePicturePath(User $intern): string
+    {
+        if ($intern->avatar_path && Storage::disk('public')->exists($intern->avatar_path)) {
+            return Storage::disk('public')->path($intern->avatar_path);
+        }
+
+        return public_path('images/id-photo-placeholder.png');
     }
 
     /**
