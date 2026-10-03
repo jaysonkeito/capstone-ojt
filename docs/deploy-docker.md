@@ -33,6 +33,41 @@ docker compose version            # sanity check
 
 No PHP, Node, or Nginx install needed on the host — those are in the containers.
 
+## 0b. Server access: Tailscale (MIS Office requirement)
+
+The MIS Office reaches servers through **Tailscale** — a private mesh VPN that gives every
+device a stable `100.x.y.z` address reachable from any network the owner logs into. Set it
+up on both ends the morning of the deployment:
+
+**On the Ubuntu server** (needs outbound internet; run on-site Tuesday):
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+# prints a login URL — open it and sign in with the MIS tailnet account
+tailscale ip -4        # note the server's 100.x.y.z address
+```
+
+**On the Windows laptop** (install from tailscale.com, sign in to the same tailnet):
+
+```bash
+ssh <user>@100.x.y.z            # or the MagicDNS name, e.g. ojt-server
+```
+
+After that you can administer the server from home too — same-internet is only needed for
+the first login if the tailnet isn't set up yet. Management traffic (SSH) never touches the
+public internet, which is exactly why MIS prefers it.
+
+Two practical notes for this project:
+
+- **The app itself still serves publicly** via `norsubscojt.online` (DNS + Certbot, or the
+  Cloudflare Tunnel in §4). Tailscale is for *administering* the server, not for serving
+  the app.
+- **Testing the Android app against the office server before DNS/HTTPS is live**: rebuild a
+  dev APK pointed at the server's tailnet IP —
+  `CAP_SERVER_URL=http://100.x.y.z npx cap sync android` then `./gradlew assembleDebug`.
+  The config enables cleartext HTTP for exactly this dev case.
+
 ## 1. DNS (Z.com client area)
 
 | Type | Host | Value | TTL |
