@@ -145,7 +145,10 @@ class DocumentTemplate extends Model
         self::TYPE_ENDORSEMENT_LETTER => [
             'category' => self::CATEGORY_REQUIREMENT,
             'label' => 'Endorsement Letter',
-            'starter' => '7_Endorsement-Letter.docx',
+            // Macroized: the shipped starter is filled per intern (addressee,
+            // company, intern, coordinator, college) without an uploaded design.
+            'starter' => 'templates/endorsement-letter-template.docx',
+            'autofill' => true,
         ],
         self::TYPE_ACCEPTANCE_FORM => [
             'category' => self::CATEGORY_REQUIREMENT,

@@ -50,12 +50,14 @@ test('the requirements page lists the school forms for an intern', function () {
         ->assertSee("Student Intern's Performance Appraisal");
 });
 
-test('an intern downloads a requirement form as the blank official copy when no template is uploaded', function () {
+test('the Endorsement Letter is generated per intern even without an uploaded template', function () {
     $intern = makeIntern(['first_name' => 'Juan', 'last_name' => 'Cruz']);
+    $coordinator = makeCoordinator();
+    $intern->update(['coordinator_id' => $coordinator->id]);
 
-    // The Endorsement Letter is a requirement form with no built-in filled
-    // design, so it still ships as the school's blank official copy.
-    $response = $this->actingAs($intern)
+    // The Endorsement Letter is macroized: the request letter to the host
+    // company is generated per intern — their coordinator signs it.
+    $response = $this->actingAs($intern->fresh())
         ->get(route('intern.requirements.download', DocumentTemplate::TYPE_ENDORSEMENT_LETTER));
 
     $response->assertOk()
@@ -65,6 +67,30 @@ test('an intern downloads a requirement form as the blank official copy when no 
         ->toContain('attachment')
         ->toContain('Endorsement_Letter_Cruz_Juan.docx');
 
+    $xml = docxDocumentXml($response->getContent());
+
+    expect($xml)
+        ->toContain($coordinator->display_name_with_middle_initial) // the signing coordinator
+        ->toContain('College of Arts and Sciences') // from Settings
+        // …and no raw placeholder macros reach the letter.
+        ->not->toContain('${');
+});
+
+test('an intern downloads a requirement form as the blank official copy when no template is uploaded', function () {
+    $intern = makeIntern(['first_name' => 'Juan', 'last_name' => 'Cruz']);
+
+    // The Acceptance Form has no built-in filled design, so it still ships
+    // as the school's blank official copy.
+    $response = $this->actingAs($intern)
+        ->get(route('intern.requirements.download', DocumentTemplate::TYPE_ACCEPTANCE_FORM));
+
+    $response->assertOk()
+        ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+    expect($response->headers->get('Content-Disposition'))
+        ->toContain('attachment')
+        ->toContain('Acceptance_Form_Cruz_Juan.docx');
+
     // A real .docx came back (the shipped starter), not an empty body.
     expect(strlen($response->getContent()))->toBeGreaterThan(0);
 });
@@ -72,10 +98,10 @@ test('an intern downloads a requirement form as the blank official copy when no 
 test('the Cover Page and Application Letter are listed as filled even without an uploaded design', function () {
     $intern = makeIntern();
 
-    // The Cover Page and the Application Letter are generated per intern out
-    // of the box, so they show the filled badge while forms without a
-    // macroized starter (e.g. the Endorsement Letter) are still listed as
-    // blank official copies.
+    // The Cover Page, the Application Letter, and the Endorsement Letter are
+    // generated per intern out of the box, so they show the filled badge;
+    // forms without a macroized starter are still listed as blank official
+    // copies.
     $this->actingAs($intern)
         ->get(route('intern.requirements.index'))
         ->assertOk()
@@ -85,7 +111,7 @@ test('the Cover Page and Application Letter are listed as filled even without an
             'Internship Application Letter',
             'Filled with your info',
             'Endorsement Letter',
-            'Blank official form',
+            'Filled with your info',
         ]);
 });
 
