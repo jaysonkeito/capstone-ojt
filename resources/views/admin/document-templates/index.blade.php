@@ -69,13 +69,29 @@
     <div class="flex items-center gap-3 mb-4 mt-12">
         <h2 class="text-sm font-semibold text-gray-900">Requirement Forms</h2>
         <span class="h-px flex-1 bg-gray-100"></span>
+        <button type="button" onclick="openPlaceholderModal()"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>
+            Placeholders you can use
+        </button>
     </div>
     <p class="text-xs text-gray-500 -mt-2 mb-4">The school's required forms. Interns download these pre-filled with their own information; a form with no uploaded design is served as the blank official copy — except the Internship Application Letter and Student Intern's Personal Information, which are always generated per intern from their built-in designs.</p>
 
-    {{-- Placeholder reference for the requirement forms --}}
-    <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50/70 p-5 sm:p-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-1">Placeholders you can use</h3>
-        <p class="text-xs text-gray-500 mb-4">Type any of these into a requirement form; each is replaced with the intern's data. Anything you leave out prints as a blank to fill in by hand.</p>
+    {{-- Placeholder reference modal --}}
+    <div id="placeholderModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/25 px-4"
+        onclick="if(event.target === this) closePlaceholderModal()">
+        <div class="bg-white border border-gray-200 rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900">Placeholders you can use</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Type any of these into a requirement form; each is replaced with the intern's data. Anything you leave out prints as a blank to fill in by hand.</p>
+                </div>
+                <button type="button" onclick="closePlaceholderModal()"
+                    class="shrink-0 rounded-md p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="px-5 py-4 overflow-y-auto">
 
         @php
             $placeholderGroups = [
@@ -156,7 +172,21 @@
                 </div>
             @endforeach
         </div>
+        </div>
     </div>
+</div>
+
+<script>
+    function openPlaceholderModal() {
+        document.getElementById('placeholderModal').classList.remove('hidden');
+    }
+    function closePlaceholderModal() {
+        document.getElementById('placeholderModal').classList.add('hidden');
+    }
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') closePlaceholderModal();
+    });
+</script>
 
     <div class="space-y-6">
         @foreach($requirements as $t)
