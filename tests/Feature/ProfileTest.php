@@ -126,6 +126,21 @@ test('interns cannot edit their names but staff can', function () {
         ->and($supervisor->last_name)->toBe('McNewface');
 });
 
+test('the profile shows the middle name and the header carries the middle initial', function () {
+    $intern = makeIntern(['first_name' => 'Juana', 'last_name' => 'Cruz']);
+    $intern->personalInfo()->create(['middle_name' => 'Santos']);
+
+    $response = $this->actingAs($intern)->get(route('profile'));
+
+    $response->assertOk()
+        ->assertSee('Cruz, Juana S.') // header: formal name with the initial
+        ->assertSee('value="Juana"', false) // Profile Details fields
+        ->assertSee('value="Santos"', false); // the middle name field
+
+    expect($intern->middle_name)->toBe('Santos')
+        ->and($intern->middle_initial)->toBe('S.');
+});
+
 test('email must stay unique', function () {
     $other = makeIntern();
     $intern = makeIntern(['student_id' => 'T-1002']);

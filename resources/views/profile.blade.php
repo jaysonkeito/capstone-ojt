@@ -16,7 +16,7 @@
                 <div class="flex items-center gap-4">
                     @include('partials.avatar', ['user' => $user, 'class' => 'w-16 h-16 text-xl'])
                     <div class="min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $user->full_name }}</p>
+                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $user->full_name_with_middle_initial }}</p>
                         <p class="text-xs text-gray-400 mt-0.5">{{ $user->role_label }}@if($user->isIntern()) · {{ $user->student_id }}@endif
                         @if($user->office) · {{ $user->office->name }}@endif</p>
                         <p class="text-xs text-gray-400 mt-0.5 break-all">{{ $user->email }}</p>
@@ -99,10 +99,15 @@
                                     class="w-full px-3 py-2 rounded-lg border-gray-100 bg-gray-50 text-sm text-gray-400">
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Middle Name</label>
+                                <input type="text" value="{{ $user->middle_name }}" disabled
+                                    class="w-full px-3 py-2 rounded-lg border-gray-100 bg-gray-50 text-sm text-gray-400">
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
                                 <input type="text" value="{{ $user->last_name }}" disabled
                                     class="w-full px-3 py-2 rounded-lg border-gray-100 bg-gray-50 text-sm text-gray-400">
-                                <p class="text-[11px] text-gray-400 mt-1">Names come from the Registrar's roster — contact the admin for corrections.</p>
+                                <p class="text-[11px] text-gray-400 mt-1">Names come from the Registrar's roster; the middle name is from the Personal Info sheet — contact the admin for corrections.</p>
                             </div>
                         @else
                             <div>

@@ -349,25 +349,39 @@ class User extends Authenticatable
     }
 
     /**
+     * The middle name from whichever record carries it — staff profiles for
+     * employees, the Personal Information sheet for interns.
+     */
+    public function getMiddleNameAttribute(): ?string
+    {
+        return $this->staffProfile?->middle_name ?: $this->personalInfo?->middle_name;
+    }
+
+    /**
+     * The middle name reduced to its initial with a trailing period ("P."),
+     * or null when no middle name is on file.
+     */
+    public function getMiddleInitialAttribute(): ?string
+    {
+        if (! $this->middle_name) {
+            return null;
+        }
+
+        return strtoupper(substr(trim($this->middle_name), 0, 1)).'.';
+    }
+
+    /**
      * Full name with middle initial — "Firstname M. Lastname" — used in
      * documents where a middle initial is preferred over the full middle
      * name. Falls back to display_name when no middle name is on file.
      */
     public function getDisplayNameWithMiddleInitialAttribute(): string
     {
-        $middleName = $this->staffProfile?->middle_name;
+        $middleInitial = $this->middle_initial;
 
-        if (! $middleName) {
-            // Interns keep their middle name on the Personal Information
-            // sheet rather than a staff profile.
-            $middleName = $this->personalInfo?->middle_name;
-        }
-
-        if (! $middleName) {
+        if (! $middleInitial) {
             return $this->display_name;
         }
-
-        $middleInitial = strtoupper(substr(trim($middleName), 0, 1));
 
         if (! $this->last_name) {
             return "{$this->first_name} {$middleInitial}";
@@ -377,7 +391,26 @@ class User extends Authenticatable
             return "{$middleInitial} {$this->last_name}";
         }
 
-        return "{$this->first_name} {$middleInitial}. {$this->last_name}";
+        return "{$this->first_name} {$middleInitial} {$this->last_name}";
+    }
+
+    /**
+     * Formal sorting format with the middle initial — "Lastname, Firstname M."
+     * — used on profile pages and rosters.
+     */
+    public function getFullNameWithMiddleInitialAttribute(): string
+    {
+        $middleInitial = $this->middle_initial;
+
+        if (! $middleInitial) {
+            return $this->full_name;
+        }
+
+        if (! $this->last_name || ! $this->first_name) {
+            return $this->full_name;
+        }
+
+        return "{$this->last_name}, {$this->first_name} {$middleInitial}";
     }
 
     public function getOjtTrackLabelAttribute(): string

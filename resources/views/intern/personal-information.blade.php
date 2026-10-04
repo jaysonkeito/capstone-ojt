@@ -35,6 +35,12 @@
                         class="w-full px-3 py-2 rounded-lg border-gray-100 bg-gray-50 text-sm text-gray-400">
                 </div>
                 <div>
+                    <label class="{{ $labelClass }}">Middle Name</label>
+                    <input type="text" value="{{ $info?->middle_name }}" disabled
+                        class="w-full px-3 py-2 rounded-lg border-gray-100 bg-gray-50 text-sm text-gray-400">
+                    <p class="text-[11px] text-gray-400 mt-1">From your Personal Details below.</p>
+                </div>
+                <div>
                     <label class="{{ $labelClass }}">Last Name</label>
                     <input type="text" value="{{ $intern->last_name }}" disabled
                         class="w-full px-3 py-2 rounded-lg border-gray-100 bg-gray-50 text-sm text-gray-400">
