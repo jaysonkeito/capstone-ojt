@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\InternPersonalInfo;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -32,6 +33,7 @@ class InternRosterSeeder extends Seeder
         $now = now();
         $rows = [];
         $sexByStudentId = []; // roster sex -> Personal Info rows (drives Mr./Ms. on documents)
+        $middleInitialByStudentId = []; // roster middle initials -> Personal Info middle_name
         $hashedNames = []; // cache password hashes per unique last name to avoid re-hashing 597 times
 
         while (($data = fgetcsv($handle)) !== false) {
@@ -46,10 +48,22 @@ class InternRosterSeeder extends Seeder
                 continue;
             }
 
+            // The roster's first_name column carries a trailing middle
+            // initial ("Jayson P") — split it off so first_name stays the
+            // given name and the initial lands in Personal Info instead.
+            $middleInitial = null;
+            if (preg_match('/^(.*?)\s+([A-Za-z])\.?$/', $firstName, $m)) {
+                $firstName = $m[1];
+                $middleInitial = strtoupper($m[2]);
+            }
+
             $fullFirstName = $suffix !== '' ? "{$firstName} {$suffix}" : $firstName;
 
             $sex = strtoupper(trim($record['sex'] ?? ''));
             $sexByStudentId[$studentId] = $sex === 'M' ? 'Male' : ($sex === 'F' ? 'Female' : null);
+            if ($middleInitial !== null) {
+                $middleInitialByStudentId[$studentId] = $middleInitial;
+            }
 
             if (! isset($hashedNames[$lastName])) {
                 $hashedNames[$lastName] = Hash::make($lastName);
@@ -95,6 +109,21 @@ class InternRosterSeeder extends Seeder
                 $personalRows[] = ['user_id' => $ids[$studentId], 'sex' => $sex];
             }
         }
+        // Middle initials from the roster fill any Personal Info row that has
+        // no middle name yet — an intern-entered full middle name always wins.
+        foreach ($middleInitialByStudentId as $studentId => $initial) {
+            if (! isset($ids[$studentId])) {
+                continue;
+            }
+            $info = InternPersonalInfo::withTrashed()->firstOrNew(['user_id' => $ids[$studentId]]);
+            if ($info->middle_name) {
+                continue;
+            }
+            $info->user_id = $ids[$studentId];
+            $info->middle_name = $initial;
+            $info->save();
+        }
+
         if ($personalRows !== []) {
             foreach (array_chunk($personalRows, 200) as $chunk) {
                 DB::table('intern_personal_infos')->upsert($chunk, ['user_id'], ['sex']);
