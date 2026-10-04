@@ -3,7 +3,7 @@
 @section('title', 'Templates')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div>
     <div class="mb-8">
         <h1 class="text-xl font-semibold tracking-tight text-gray-900">Document Templates</h1>
         <p class="text-sm text-gray-500 mt-0.5">Design each printable form in Word and the system fills it with every intern's data.</p>

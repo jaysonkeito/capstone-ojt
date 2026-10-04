@@ -3,7 +3,7 @@
 @section('title', 'Notifications')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div>
 <div class="flex flex-wrap items-end justify-between gap-3 mb-8">
     <div>
         <h1 class="text-xl font-semibold tracking-tight text-gray-900">Notifications</h1>
