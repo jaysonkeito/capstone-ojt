@@ -70,17 +70,17 @@
         <h2 class="text-sm font-semibold text-gray-900">Requirement Forms</h2>
         <span class="h-px flex-1 bg-gray-100"></span>
         <button type="button" onclick="openPlaceholderModal()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>
+            class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 transition">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></svg>
             Placeholders you can use
         </button>
     </div>
     <p class="text-xs text-gray-500 -mt-2 mb-4">The school's required forms. Interns download these pre-filled with their own information; a form with no uploaded design is served as the blank official copy — except the Internship Application Letter and Student Intern's Personal Information, which are always generated per intern from their built-in designs.</p>
 
     {{-- Placeholder reference modal --}}
-    <div id="placeholderModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/25 px-4"
+    <div id="placeholderModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/50 p-4"
         onclick="if(event.target === this) closePlaceholderModal()">
-        <div class="bg-white border border-gray-200 rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+        <div class="bg-white border border-gray-200 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
             <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
                 <div>
                     <h3 class="text-sm font-semibold text-gray-900">Placeholders you can use</h3>
@@ -178,10 +178,14 @@
 
 <script>
     function openPlaceholderModal() {
-        document.getElementById('placeholderModal').classList.remove('hidden');
+        const modal = document.getElementById('placeholderModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
     }
     function closePlaceholderModal() {
-        document.getElementById('placeholderModal').classList.add('hidden');
+        const modal = document.getElementById('placeholderModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
     }
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') closePlaceholderModal();
