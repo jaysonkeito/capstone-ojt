@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\College;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +21,7 @@ class StaffProfile extends Model
 
     protected $fillable = [
         'user_id',
+        'college_code',
         'middle_name',
         'prefix_title',
         'suffix_title',
@@ -45,6 +48,11 @@ class StaffProfile extends Model
     /**
      * The staff account these details belong to.
      */
+    public function college()
+    {
+        return $this->belongsTo(College::class, 'college_code', 'code');
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

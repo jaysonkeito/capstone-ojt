@@ -22,7 +22,16 @@
                         <option value="coordinator" {{ old('role', $staff->role) === 'coordinator' ? 'selected' : '' }}>OJT Coordinator — monitors the interns assigned to them</option>
                         <option value="supervisor" {{ old('role', $staff->role) === 'supervisor' ? 'selected' : '' }}>Supervisor — monitors the interns at their office</option>
                     </select>
-                </div>
+                
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5 mt-3">College</label>
+                    <select name="college_code" required class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                        @foreach($colleges ?? [] as $college)
+                            <option value="{{ $college->code }}" {{ old('college_code', $staff->staffProfile?->college_code ?? 'cas') === $college->code ? 'selected' : '' }}>
+                                {{ $college->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="text-[11px] text-gray-400 mt-1">Scopes which college's document templates this staff member manages.</p></div>
             @endunless
 
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">

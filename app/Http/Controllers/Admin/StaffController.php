@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\College;
 use App\Models\Office;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ class StaffController extends Controller
     public function create()
     {
         return view('admin.staff.form', [
+            'colleges' => College::orderBy('name')->get(),
             'staff' => new User(['role' => 'coordinator']),
             'offices' => Office::orderBy('name')->get(),
         ]);
@@ -58,6 +60,7 @@ class StaffController extends Controller
             // A supervisor represents exactly one office; coordinators
             // don't belong to one.
             'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
+            'college_code' => ['required', 'string', 'exists:colleges,code'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
@@ -81,10 +84,11 @@ class StaffController extends Controller
             'profile_completed_at' => now(),
         ]);
 
-        // Save middle name to staff profile
-        if (!empty($validated['middle_name'])) {
-            $user->staffProfile()->create(['middle_name' => $validated['middle_name']]);
-        }
+        // Save middle name + college to the staff profile
+        $user->staffProfile()->create([
+            'middle_name' => $validated['middle_name'] ?? null,
+            'college_code' => $validated['college_code'],
+        ]);
 
         $label = $validated['role'] === 'supervisor' ? 'Supervisor' : 'OJT Coordinator';
 
@@ -98,6 +102,7 @@ class StaffController extends Controller
         return view('admin.staff.form', [
             'staff' => $staff,
             'offices' => Office::orderBy('name')->get(),
+            'colleges' => College::orderBy('name')->get(),
         ]);
     }
 
@@ -113,6 +118,7 @@ class StaffController extends Controller
             'position' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($staff->id)],
             'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
+            'college_code' => ['required', 'string', 'exists:colleges,code'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
@@ -127,9 +133,10 @@ class StaffController extends Controller
             'approved_at' => now(),
         ]);
 
-        // Update middle name in staff profile
+        // Update middle name + college in the staff profile
         $profile = $staff->staffProfile ?? $staff->staffProfile()->create([]);
         $profile->middle_name = $validated['middle_name'] ?? null;
+        $profile->college_code = $validated['college_code'];
         $profile->save();
 
         return redirect()->route('admin.staff.index')->with('status', "{$staff->role_label} {$staff->full_name} updated.");

@@ -9,23 +9,28 @@
         <p class="text-sm text-gray-500 mt-0.5">Design each printable form in Word and the system fills it with every intern's data.</p>
     </div>
 
-    {{-- Per-college tabs: each college owns its own template set. --}}
+    {{-- Per-college tabs (System Admin) — coordinators are locked to their
+         own college and see it as a plain heading. --}}
     <div class="mb-8">
-        <nav class="flex gap-1 overflow-x-auto border-b border-gray-200" aria-label="Colleges">
-            @foreach($colleges as $college)
-                <a href="{{ route('admin.document-templates.college', $college->code) }}"
-                    class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition
-                        {{ $college->code === $selectedCollege->code
-                            ? 'border-brand-600 text-brand-700'
-                            : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300' }}">
-                    {{ $college->name }}
-                    @if($college->code === \App\Models\OjtSetting::current()->college_code)
-                        <span class="ml-1.5 inline-block rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-700">active</span>
-                    @endif
-                </a>
-            @endforeach
-        </nav>
-        <p class="text-xs text-gray-400 mt-2">Interns generate documents from the college marked <span class="font-medium text-brand-700">active</span> under Settings — the other tabs let you prepare a college's set before it goes live.</p>
+        @if(auth()->user()->isCoordinator())
+            <p class="text-sm font-medium text-gray-700">{{ $selectedCollege->name }}</p>
+        @else
+            <nav class="flex gap-1 overflow-x-auto border-b border-gray-200" aria-label="Colleges">
+                @foreach($colleges as $college)
+                    <a href="{{ route('admin.document-templates.college', $college->code) }}"
+                        class="px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition
+                            {{ $college->code === $selectedCollege->code
+                                ? 'border-brand-600 text-brand-700'
+                                : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300' }}">
+                        {{ $college->name }}
+                        @if($college->code === \App\Models\OjtSetting::current()->college_code)
+                            <span class="ml-1.5 inline-block rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-medium text-brand-700">active</span>
+                        @endif
+                    </a>
+                @endforeach
+            </nav>
+            <p class="text-xs text-gray-400 mt-2">Interns generate documents from the college marked <span class="font-medium text-brand-700">active</span> under Settings — the other tabs let you prepare a college's set before it goes live.</p>
+        @endif
     </div>
 
     {{-- How it works — the download → edit → upload loop --}}

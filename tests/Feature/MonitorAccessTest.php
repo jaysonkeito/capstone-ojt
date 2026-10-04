@@ -1,10 +1,15 @@
 <?php
 
 use App\Models\Office;
+use App\Models\College;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    College::firstOrCreate(['code' => 'cas'], ['name' => 'College of Arts and Sciences']);
+});
 
 /*
  * Offices, staff accounts, and the two read-only monitoring roles:
@@ -72,6 +77,7 @@ test('admin manages offices and staff accounts', function () {
         'last_name' => 'Dela Cruz',
         'email' => 'juan@norsubscojt.online',
         'password' => 'password123',
+        'college_code' => 'cas',
     ])->assertRedirect(route('admin.staff.index'));
     expect(User::where('email', 'juan@norsubscojt.online')->where('role', 'coordinator')->exists())->toBeTrue();
 
@@ -84,6 +90,7 @@ test('admin manages offices and staff accounts', function () {
         'last_name' => 'Santos',
         'email' => 'maria@norsubscojt.online',
         'password' => 'password123',
+        'college_code' => 'cas',
         'office_id' => $office->id,
     ])->assertRedirect(route('admin.staff.index'));
     expect(User::where('email', 'maria@norsubscojt.online')->where('office_id', $office->id)->exists())->toBeTrue();
@@ -102,6 +109,7 @@ test('supervisor requires an office at creation', function () {
         'last_name' => 'Office',
         'email' => 'nooffice@norsubscojt.online',
         'password' => 'password123',
+        'college_code' => 'cas',
         // office_id missing
     ])->assertSessionHasErrors('office_id');
 });
@@ -115,6 +123,7 @@ test('admin sets and updates a staff position', function () {
         'last_name' => 'Abequibel',
         'email' => 'franco@norsubscojt.online',
         'password' => 'password123',
+        'college_code' => 'cas',
         'position' => 'MIS, Campus Director',
     ])->assertRedirect(route('admin.staff.index'));
 
@@ -127,6 +136,7 @@ test('admin sets and updates a staff position', function () {
         'first_name' => 'Franco',
         'last_name' => 'Abequibel',
         'email' => 'franco@norsubscojt.online',
+        'college_code' => 'cas',
         'position' => 'Registrar',
     ])->assertRedirect(route('admin.staff.index'));
 
@@ -135,12 +145,14 @@ test('admin sets and updates a staff position', function () {
 
 test('admin can clear a staff position', function () {
     $admin = makeStaff(['role' => 'admin']);
-    $staff = makeCoordinator(['position' => 'MIS, Campus Director']);
+    $staff = makeCoordinator(['college_code' => 'cas',
+        'position' => 'MIS, Campus Director']);
 
     $this->actingAs($admin)->put(route('admin.staff.update', $staff), [
         'first_name' => $staff->first_name,
         'last_name' => $staff->last_name,
         'email' => $staff->email,
+        'college_code' => 'cas',
         'position' => '',
     ])->assertRedirect(route('admin.staff.index'));
 

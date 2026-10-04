@@ -27,16 +27,19 @@ class DocumentTemplateController extends Controller
      * List the form types with their current template state for one college,
      * split into the log-driven reports and the school's requirement forms.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return $this->renderManager(College::where('code', $this->defaultCollege())->first());
+        return $this->renderManager($this->collegeFor($request->user()));
     }
 
     /**
-     * The same manager for a specific college tab.
+     * The same manager for a specific college tab. Coordinators are locked
+     * to the college they belong to; the System Admin sees every tab.
      */
-    public function show(College $college)
+    public function show(Request $request, College $college)
     {
+        $this->assertCollegeAccess($request->user(), $college);
+
         return $this->renderManager($college);
     }
 
@@ -44,8 +47,9 @@ class DocumentTemplateController extends Controller
      * Download the shipped starter template for a form type — the blank the
      * admin edits in Word before uploading.
      */
-    public function starter(College $college, string $type): BinaryFileResponse
+    public function starter(Request $request, College $college, string $type): BinaryFileResponse
     {
+        $this->assertCollegeAccess($request->user(), $college);
         $this->assertKnownType($type);
 
         $downloadName = DocumentTemplate::TYPES[$type]['label'].' Template.docx';
@@ -58,6 +62,7 @@ class DocumentTemplateController extends Controller
      */
     public function store(Request $request, College $college, string $type): RedirectResponse
     {
+        $this->assertCollegeAccess($request->user(), $college);
         $this->assertKnownType($type);
 
         $request->validate([
@@ -91,6 +96,7 @@ class DocumentTemplateController extends Controller
      */
     public function destroy(Request $request, College $college, string $type): RedirectResponse
     {
+        $this->assertCollegeAccess($request->user(), $college);
         $this->assertKnownType($type);
 
         $this->service->delete($type, $college->code);
@@ -111,6 +117,32 @@ class DocumentTemplateController extends Controller
     private function assertKnownType(string $type): void
     {
         abort_unless(array_key_exists($type, DocumentTemplate::TYPES), 404);
+    }
+
+    /**
+     * The college a manager belongs to: their staff profile's college, or
+     * the installation's default when none is recorded.
+     */
+    private function collegeFor(User $user): College
+    {
+        $code = $user->isCoordinator()
+            ? ($user->staffProfile?->college_code ?: $this->defaultCollege())
+            : $this->defaultCollege();
+
+        return College::where('code', $code)->first() ?? College::orderBy('id')->firstOr(fn () => new College(['code' => $code, 'name' => 'College']));
+    }
+
+    /**
+     * Coordinators may only manage their own college's templates; the System
+     * Admin manages every college.
+     */
+    private function assertCollegeAccess(User $user, College $college): void
+    {
+        if ($user->isCoordinator()) {
+            $own = $user->staffProfile?->college_code ?: $this->defaultCollege();
+
+            abort_unless($college->code === $own, 403);
+        }
     }
 
     private function renderManager(?College $college)

@@ -429,6 +429,33 @@ test('the System Admin changing a template stays silent', function () {
     expect($coordinator->fresh()->notifications()->count())->toBe(0);
 });
 
+test('a coordinator is locked to their own college templates', function () {
+    College::firstOrCreate(['code' => 'cba'], ['name' => 'College of Business Administration']);
+    $coordinator = makeStaff(['role' => 'coordinator']);
+    $coordinator->staffProfile()->update(['college_code' => 'cas']);
+
+    // Own college: the manager opens and the tabs are hidden.
+    $this->actingAs($coordinator)->get(route('admin.document-templates.college', 'cas'))
+        ->assertOk()
+        ->assertSee('College of Arts and Sciences')
+        ->assertDontSee('College of Business Administration');
+
+    // Another college's tab, upload, and removal are all forbidden.
+    $this->actingAs($coordinator)->get(route('admin.document-templates.college', 'cba'))->assertForbidden();
+    $this->actingAs($coordinator)->post(route('admin.document-templates.store', ['college' => 'cba', 'type' => DocumentTemplate::TYPE_TIMESHEET]), [
+        'template' => UploadedFile::fake()->create('Timesheet Template.docx'),
+    ])->assertForbidden();
+    $this->actingAs($coordinator)->delete(route('admin.document-templates.destroy', ['college' => 'cba', 'type' => DocumentTemplate::TYPE_TIMESHEET]))->assertForbidden();
+});
+
+test('a coordinator without a recorded college defaults to the active college', function () {
+    // makeStaff creates coordinators without a staff profile — they fall
+    // back to the installation's default college instead of being locked out.
+    $coordinator = makeStaff(['role' => 'coordinator']);
+
+    $this->actingAs($coordinator)->get(route('admin.document-templates.college', 'cas'))->assertOk();
+});
+
 test('the templates manager is closed to interns', function () {
     $intern = makeIntern();
 
