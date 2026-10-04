@@ -78,10 +78,11 @@
     <p class="text-xs text-gray-500 -mt-2 mb-4">The school's required forms. Interns download these pre-filled with their own information; a form with no uploaded design is served as the blank official copy — except the Internship Application Letter and Student Intern's Personal Information, which are always generated per intern from their built-in designs.</p>
 
     {{-- Placeholder reference modal --}}
-    <div id="placeholderModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/50 p-4"
+    <div id="placeholderModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-gray-900/50 p-4"
         onclick="if(event.target === this) closePlaceholderModal()">
-        <div class="bg-white border border-gray-200 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
-            <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+        <div class="relative mx-auto my-6 w-full max-w-3xl bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col"
+            style="max-height: calc(100vh - 3rem);">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3 shrink-0">
                 <div>
                     <h3 class="text-sm font-semibold text-gray-900">Placeholders you can use</h3>
                     <p class="text-xs text-gray-500 mt-0.5">Type any of these into a requirement form; each is replaced with the intern's data. Anything you leave out prints as a blank to fill in by hand.</p>
@@ -91,7 +92,7 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
             </div>
-            <div class="px-5 py-4 overflow-y-auto">
+            <div class="px-5 py-4 overflow-y-auto" style="min-height: 0;">
 
         @php
             $placeholderGroups = [
@@ -178,14 +179,10 @@
 
 <script>
     function openPlaceholderModal() {
-        const modal = document.getElementById('placeholderModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        document.getElementById('placeholderModal').classList.remove('hidden');
     }
     function closePlaceholderModal() {
-        const modal = document.getElementById('placeholderModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        document.getElementById('placeholderModal').classList.add('hidden');
     }
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') closePlaceholderModal();
