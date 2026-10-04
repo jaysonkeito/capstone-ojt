@@ -3,7 +3,7 @@
 @section('title', 'My Profile')
 
 @section('content')
-<div class="max-w-5xl mx-auto">
+<div>
     <div class="mb-8">
         <h1 class="text-xl font-semibold tracking-tight text-gray-900">My Profile</h1>
         <p class="text-sm text-gray-500 mt-0.5">Your photo and details — the admin, your supervisor, and your coordinator see these.</p>
