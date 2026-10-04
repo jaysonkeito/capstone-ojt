@@ -48,6 +48,7 @@ class DatabaseSeeder extends Seeder
 
         // --- Full CAS intern roster (from the Registrar's official list) --
         // Comment this out if you only want the single test account above.
+        $this->call(CollegeSeeder::class);
         $this->call(InternRosterSeeder::class);
 
         // --- Offices + monitoring staff (coordinator / supervisors) -------

@@ -39,6 +39,7 @@ class FcmChannel
         'attendance_request_submitted' => 'Attendance request',
         'attendance_request_decided' => 'Attendance request decided',
         'timesheet_certified' => 'Timesheet certified',
+        'template_changed' => 'Document template changed',
     ];
 
     public function send($notifiable, Notification $notification): void
@@ -123,6 +124,7 @@ class FcmChannel
             'attendance_request_submitted' => ($data['intern'] ?? 'An intern').' submitted an attendance request.',
             'attendance_request_decided' => 'Your attendance request was '.($data['decision'] ?? 'decided').'.',
             'timesheet_certified' => ($data['certified_by'] ?? 'Your supervisor').' certified '.($data['period'] ?? 'a timesheet period').'.',
+            'template_changed' => ($data['by'] ?? 'A coordinator').' '.$data['action'].' the '.($data['form'] ?? 'document').' template for '.($data['college'] ?? 'your college').'.',
             default => 'You have a new update in OJT Tracker.',
         };
     }

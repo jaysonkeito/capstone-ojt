@@ -209,11 +209,15 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
 
         // Document templates — download the starter, upload an edited Word
         // design, or remove it (the form is then unavailable until a new
-        // template is uploaded).
-        Route::get('/document-templates', [DocumentTemplateController::class, 'index'])->name('document-templates.index');
-        Route::get('/document-templates/{type}/starter', [DocumentTemplateController::class, 'starter'])->name('document-templates.starter');
-        Route::post('/document-templates/{type}', [DocumentTemplateController::class, 'store'])->name('document-templates.store');
-        Route::delete('/document-templates/{type}', [DocumentTemplateController::class, 'destroy'])->name('document-templates.destroy');
+        // template is uploaded). Scoped per college (tabs on the manager);
+        // Coordinator + System Admin only — supervisors don't manage them.
+        Route::middleware('role:admin,coordinator')->group(function () {
+            Route::get('/document-templates', [DocumentTemplateController::class, 'index'])->name('document-templates.index');
+            Route::get('/document-templates/{college}', [DocumentTemplateController::class, 'show'])->name('document-templates.college');
+            Route::get('/document-templates/{college}/{type}/starter', [DocumentTemplateController::class, 'starter'])->name('document-templates.starter');
+            Route::post('/document-templates/{college}/{type}', [DocumentTemplateController::class, 'store'])->name('document-templates.store');
+            Route::delete('/document-templates/{college}/{type}', [DocumentTemplateController::class, 'destroy'])->name('document-templates.destroy');
+        });
     });
 
 /*

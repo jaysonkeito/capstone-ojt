@@ -82,15 +82,14 @@
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
             ],
             // Supervisors run their office's program: the scoped dashboard,
-            // their interns, the logbook and office kiosk, plus the shared
-            // templates and settings.
+            // their interns, the logbook and office kiosk. Templates stay
+            // with the Coordinator and the System Admin.
             $u->isSupervisor() => [
                 ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
                 ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns'],
                 ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook'],
                 ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Kiosk'],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'badge' => $pendingMonitorRequests ?: null],
-                ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
             ],
             // Coordinators run the school-side program: their interns, the

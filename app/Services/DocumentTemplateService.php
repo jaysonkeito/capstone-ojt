@@ -42,11 +42,11 @@ class DocumentTemplateService
     /**
      * The active template row for a form type, or null when none is uploaded.
      */
-    public function active(string $type): ?DocumentTemplate
+    public function active(string $type, ?string $college = null): ?DocumentTemplate
     {
         return DocumentTemplate::query()
             ->where('type', $type)
-            ->where('college_code', $this->collegeCode())
+            ->where('college_code', $college ?? $this->collegeCode())
             ->first();
     }
 
@@ -79,9 +79,9 @@ class DocumentTemplateService
      * Absolute path to the starter file the admin downloads to edit — the
      * macroized design shipped in public/documents, ready to upload as-is.
      */
-    public function starterPath(string $type): string
+    public function starterPath(string $type, ?string $college = null): string
     {
-        return public_path('documents/templates/'.$this->collegeCode().'/'.DocumentTemplate::TYPES[$type]['starter']);
+        return public_path('documents/templates/'.($college ?? $this->collegeCode()).'/'.DocumentTemplate::TYPES[$type]['starter']);
     }
 
     /**
@@ -103,7 +103,7 @@ class DocumentTemplateService
      * Save an admin-edited .docx as the active template for a type, replacing
      * any previous upload in place.
      */
-    public function store(string $type, UploadedFile $file, User $admin): DocumentTemplate
+    public function store(string $type, UploadedFile $file, User $admin, ?string $college = null): DocumentTemplate
     {
         $disk = 'local';
         $path = "document-templates/{$type}.docx";
@@ -116,7 +116,7 @@ class DocumentTemplateService
         Storage::disk($disk)->putFileAs('document-templates', $file, "{$type}.docx");
 
         return DocumentTemplate::updateOrCreate(
-            ['type' => $type, 'college_code' => $this->collegeCode()],
+            ['type' => $type, 'college_code' => $college ?? $this->collegeCode()],
             [
                 'disk' => $disk,
                 'path' => $path,
@@ -130,9 +130,9 @@ class DocumentTemplateService
      * Remove the active template for a type, leaving that form unavailable to
      * interns until a new template is uploaded.
      */
-    public function delete(string $type): void
+    public function delete(string $type, ?string $college = null): void
     {
-        $template = $this->active($type);
+        $template = $this->active($type, $college);
 
         if (! $template) {
             return;

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\College;
 use App\Models\DocumentTemplate;
 use App\Services\DocumentTemplateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,6 +72,8 @@ function docxDocumentXml(string $binary): string
 beforeEach(function () {
     // The uploaded templates live on the local disk; isolate every test.
     Storage::fake('local');
+
+    College::firstOrCreate(['code' => 'cas'], ['name' => 'College of Arts and Sciences']);
 });
 
 /*
@@ -285,7 +288,7 @@ test('an admin can download a starter template', function () {
     $admin = makeStaff(['role' => 'admin']);
 
     $response = $this->actingAs($admin)
-        ->get(route('admin.document-templates.starter', DocumentTemplate::TYPE_TIMESHEET));
+        ->get(route('admin.document-templates.starter', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]));
 
     $response->assertOk();
     $response->assertDownload('Timesheet Template.docx');
@@ -297,7 +300,7 @@ test('an admin can upload an edited template', function () {
     $file = UploadedFile::fake()->create('my-timesheet.docx', 120, DOCX_MIME);
 
     $this->actingAs($admin)
-        ->post(route('admin.document-templates.store', DocumentTemplate::TYPE_TIMESHEET), [
+        ->post(route('admin.document-templates.store', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]), [
             'template' => $file,
         ])
         ->assertRedirect()
@@ -320,7 +323,7 @@ test('uploading over an existing template replaces it in place', function () {
     activateTemplate(DocumentTemplate::TYPE_TIMESHEET);
 
     $this->actingAs($admin)
-        ->post(route('admin.document-templates.store', DocumentTemplate::TYPE_TIMESHEET), [
+        ->post(route('admin.document-templates.store', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]), [
             'template' => UploadedFile::fake()->create('replacement.docx', 90, DOCX_MIME),
         ])
         ->assertRedirect();
@@ -338,7 +341,7 @@ test('uploading a non-Word file is rejected', function () {
 
     $this->actingAs($admin)
         ->from(route('admin.document-templates.index'))
-        ->post(route('admin.document-templates.store', DocumentTemplate::TYPE_TIMESHEET), [
+        ->post(route('admin.document-templates.store', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]), [
             'template' => UploadedFile::fake()->create('notes.txt', 10, 'text/plain'),
         ])
         ->assertSessionHasErrors('template');
@@ -357,7 +360,7 @@ test('removing a template leaves the intern form unavailable until a new upload'
     Storage::disk('local')->assertExists($template->path);
 
     $this->actingAs($admin)
-        ->delete(route('admin.document-templates.destroy', DocumentTemplate::TYPE_WEEKLY_PROGRESS_REPORT))
+        ->delete(route('admin.document-templates.destroy', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_WEEKLY_PROGRESS_REPORT]))
         ->assertRedirect()
         ->assertSessionHas('status');
 
@@ -379,13 +382,60 @@ test('removing a template leaves the intern form unavailable until a new upload'
 |--------------------------------------------------------------------------
 */
 
+test('supervisors are closed out of the templates manager', function () {
+    $supervisor = makeStaff(['role' => 'supervisor']);
+
+    $this->actingAs($supervisor)->get(route('admin.document-templates.index'))->assertForbidden();
+    $this->actingAs($supervisor)->get(route('admin.document-templates.college', 'cas'))->assertForbidden();
+    $this->actingAs($supervisor)->post(route('admin.document-templates.store', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]))->assertForbidden();
+});
+
+test('a coordinator uploading a template notifies the admins and the other coordinators', function () {
+    $coordinator = makeStaff(['role' => 'coordinator']);
+    $otherCoordinator = makeStaff(['role' => 'coordinator']);
+    $admin = makeStaff(['role' => 'admin']);
+
+    $this->actingAs($coordinator)
+        ->post(route('admin.document-templates.store', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]), [
+            'template' => UploadedFile::fake()->create('Timesheet Template.docx'),
+        ])->assertRedirect();
+
+    expect($otherCoordinator->fresh()->notifications()->where('type', 'App\Notifications\TemplateChanged')->count())->toBe(1)
+        ->and($admin->fresh()->notifications()->where('type', 'App\Notifications\TemplateChanged')->count())->toBe(1)
+        ->and($coordinator->fresh()->notifications()->count())->toBe(0); // the actor isn't notified
+});
+
+test('a coordinator removing a template notifies as well', function () {
+    $coordinator = makeStaff(['role' => 'coordinator']);
+    $admin = makeStaff(['role' => 'admin']);
+    activateTemplate(DocumentTemplate::TYPE_WEEKLY_PROGRESS_REPORT);
+
+    $this->actingAs($coordinator)
+        ->delete(route('admin.document-templates.destroy', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_WEEKLY_PROGRESS_REPORT]))
+        ->assertRedirect();
+
+    expect($admin->fresh()->notifications()->where('type', 'App\Notifications\TemplateChanged')->count())->toBe(1);
+});
+
+test('the System Admin changing a template stays silent', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $coordinator = makeStaff(['role' => 'coordinator']);
+
+    $this->actingAs($admin)
+        ->post(route('admin.document-templates.store', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]), [
+            'template' => UploadedFile::fake()->create('Timesheet Template.docx'),
+        ])->assertRedirect();
+
+    expect($coordinator->fresh()->notifications()->count())->toBe(0);
+});
+
 test('the templates manager is closed to interns', function () {
     $intern = makeIntern();
 
     $this->actingAs($intern)->get(route('admin.document-templates.index'))->assertForbidden();
-    $this->actingAs($intern)->get(route('admin.document-templates.starter', DocumentTemplate::TYPE_TIMESHEET))->assertForbidden();
-    $this->actingAs($intern)->post(route('admin.document-templates.store', DocumentTemplate::TYPE_TIMESHEET))->assertForbidden();
-    $this->actingAs($intern)->delete(route('admin.document-templates.destroy', DocumentTemplate::TYPE_TIMESHEET))->assertForbidden();
+    $this->actingAs($intern)->get(route('admin.document-templates.starter', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]))->assertForbidden();
+    $this->actingAs($intern)->post(route('admin.document-templates.store', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]))->assertForbidden();
+    $this->actingAs($intern)->delete(route('admin.document-templates.destroy', ['college' => 'cas', 'type' => DocumentTemplate::TYPE_TIMESHEET]))->assertForbidden();
 });
 
 test('the templates manager requires authentication', function () {
@@ -396,6 +446,6 @@ test('an unknown template type is a 404', function () {
     $admin = makeStaff(['role' => 'admin']);
 
     $this->actingAs($admin)
-        ->get(route('admin.document-templates.starter', 'bogus'))
+        ->get(route('admin.document-templates.starter', ['college' => 'cas', 'type' => 'bogus']))
         ->assertNotFound();
 });

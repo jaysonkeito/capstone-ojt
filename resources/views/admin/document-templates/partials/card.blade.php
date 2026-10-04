@@ -45,14 +45,14 @@
 
     <div class="flex flex-wrap items-center gap-x-6 gap-y-4">
         {{-- Download the starter blank --}}
-        <a href="{{ route('admin.document-templates.starter', $t['type']) }}"
+        <a href="{{ route('admin.document-templates.starter', ['college' => $selectedCollege->code, 'type' => $t['type']]) }}"
            class="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 transition">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 21h14"/></svg>
             Download starter
         </a>
 
         {{-- Upload an edited design --}}
-        <form method="POST" action="{{ route('admin.document-templates.store', $t['type']) }}"
+        <form method="POST" action="{{ route('admin.document-templates.store', ['college' => $selectedCollege->code, 'type' => $t['type']]) }}"
               enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
             @csrf
             <input type="file" name="template" accept=".docx" required
@@ -66,7 +66,7 @@
 
     @if($active)
         <div class="mt-5 pt-5 border-t border-gray-100">
-            <form method="POST" action="{{ route('admin.document-templates.destroy', $t['type']) }}"
+            <form method="POST" action="{{ route('admin.document-templates.destroy', ['college' => $selectedCollege->code, 'type' => $t['type']]) }}"
                   data-confirm-title="Remove template"
                   data-confirm-message="Remove this template? {{ $t['label'] }} will go back to the {{ $builtInFilled ? 'built-in filled design' : ($isRequirement ? 'blank official form' : 'built-in default design') }}."
                   data-confirm-action="Remove"
