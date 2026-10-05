@@ -3,7 +3,7 @@
 @section('title', $office->exists ? 'Edit Office' : 'Add Office')
 
 @section('content')
-<div class="max-w-2xl mx-auto">
+<div>
     <div class="mb-6">
         <a href="{{ route('admin.offices.index') }}" class="text-xs font-medium text-gray-400 hover:text-gray-700">← Offices</a>
         <h1 class="text-xl font-semibold tracking-tight text-gray-900 mt-1">{{ $office->exists ? 'Edit Office' : 'Add Office' }}</h1>

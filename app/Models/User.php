@@ -262,11 +262,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Coordinator or supervisor — the two read-only monitoring roles.
+     * Coordinator or supervisor — the read-only monitoring roles. A dean
+     * who also coordinates a program monitors interns the same way.
      */
     public function isMonitor(): bool
     {
-        return $this->isCoordinator() || $this->isSupervisor();
+        return $this->isCoordinator() || $this->isSupervisor() || $this->isDean();
     }
 
     /**

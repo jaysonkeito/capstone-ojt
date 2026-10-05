@@ -292,7 +292,7 @@ Route::middleware(['auth', 'role:admin,coordinator,supervisor', 'profile-complet
 | and admin corrections remain the authoritative ways times change.
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:coordinator,supervisor', 'profile-completed'])
+Route::middleware(['auth', 'role:coordinator,supervisor,dean', 'profile-completed'])
     ->prefix('monitor')
     ->name('monitor.')
     ->group(function () {

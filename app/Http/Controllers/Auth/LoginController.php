@@ -106,7 +106,11 @@ class LoginController extends Controller
         }
 
         if ($user->isDean()) {
-            return route('admin.approvals.index');
+            // A dean who also coordinates a program lands on their interns;
+            // otherwise straight to the approvals desk.
+            return App\Models\User::where('coordinator_id', $user->id)->exists()
+                ? route('monitor.dashboard')
+                : route('admin.approvals.index');
         }
 
         if ($user->isMonitor()) {

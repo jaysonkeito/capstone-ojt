@@ -112,8 +112,13 @@
                 ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
             ],
+            // Deans: approvals desk, plus the coordinator's monitoring tools
+            // when they also coordinate a program's interns.
             $u->isDean() => [
                 ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'badge' => $pendingApprovals ?: null],
+                ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns'],
+                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook'],
+                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests'],
             ],
             default => [
                 ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard'],
