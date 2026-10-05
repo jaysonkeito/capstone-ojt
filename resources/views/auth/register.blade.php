@@ -98,6 +98,16 @@
             {{-- Username — staff accounts only, sitting above the full name.
                  Interns identify by Student ID instead, so this stays hidden
                  (and cleared) for them. --}}
+            <div class="field {{ $accountType === 'intern' ? 'hidden' : '' }}" id="collegeField">
+                <label for="college_code" class="field-label">College</label>
+                <select id="college_code" name="college_code" class="auth-input">
+                    @foreach($colleges ?? [] as $college)
+                        <option value="{{ $college->code }}" {{ old('college_code', 'cas') === $college->code ? 'selected' : '' }}>{{ $college->name }}</option>
+                    @endforeach
+                </select>
+                <span class="field-error" id="err_college_code">@error('college_code'){{ $message }}@enderror</span>
+            </div>
+
             <div class="field {{ $accountType === 'intern' ? 'hidden' : '' }} @error('username') has-error @enderror" id="usernameField">
                 <label for="username" class="field-label">Username</label>
                 <input type="text" id="username" name="username" class="auth-input"

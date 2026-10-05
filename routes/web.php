@@ -135,12 +135,6 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
         // the account; rejecting removes it so the person can re-apply.
         // Stays with the System Admin: monitors can't approve their own
         // accounts.
-        Route::middleware('role:admin')->group(function () {
-            Route::get('/approvals', [AdminApprovalController::class, 'index'])->name('approvals.index');
-            Route::post('/approvals/{user}/approve', [AdminApprovalController::class, 'approve'])->name('approvals.approve');
-            Route::delete('/approvals/{user}/reject', [AdminApprovalController::class, 'reject'])->name('approvals.reject');
-        });
-
         Route::get('/interns', [InternController::class, 'index'])->name('interns.index');
         Route::get('/interns/create', [InternController::class, 'create'])->name('interns.create');
         Route::post('/interns', [InternController::class, 'store'])->name('interns.store');
@@ -226,6 +220,24 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
             Route::post('/document-templates/{college}/{type}', [DocumentTemplateController::class, 'store'])->name('document-templates.store');
             Route::delete('/document-templates/{college}/{type}', [DocumentTemplateController::class, 'destroy'])->name('document-templates.destroy');
         });
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Account Approvals — pending staff sign-ups. The System Admin sees
+| everything; a College Dean may approve coordinators and supervisors of
+| their college; a coordinator may approve supervisor sign-ups of their
+| college (the controller enforces the per-row permissions). Lives outside
+| the admin group because the dean role must reach it.
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:admin,dean,coordinator', 'profile-completed'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('/approvals', [AdminApprovalController::class, 'index'])->name('approvals.index');
+        Route::post('/approvals/{user}/approve', [AdminApprovalController::class, 'approve'])->name('approvals.approve');
+        Route::delete('/approvals/{user}/reject', [AdminApprovalController::class, 'reject'])->name('approvals.reject');
     });
 
 /*

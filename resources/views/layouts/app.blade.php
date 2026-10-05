@@ -52,7 +52,14 @@
         };
 
         // Pending self-service staff sign-ups awaiting the admin's approval.
-        $pendingApprovals = $u->isAdmin() ? App\Models\User::pendingApproval()->count() : 0;
+        $pendingApprovals = 0;
+        if ($u->isAdmin()) {
+            $pendingApprovals = App\Models\User::pendingApproval()->count();
+        } elseif ($u->isDean()) {
+            $pendingApprovals = App\Models\User::pendingApproval()->where('college_code', $u->collegeCode())->count();
+        } elseif ($u->isCoordinator()) {
+            $pendingApprovals = App\Models\User::pendingApproval()->where('role', 'supervisor')->where('college_code', $u->collegeCode())->count();
+        }
 
         // Pending request-queue counts, per role: what the admin must decide,
         // what a monitor must decide, what an intern has in flight.
@@ -104,6 +111,9 @@
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'badge' => $pendingMonitorRequests ?: null],
                 ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
+            ],
+            $u->isDean() => [
+                ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'badge' => $pendingApprovals ?: null],
             ],
             default => [
                 ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard'],

@@ -48,6 +48,7 @@
                         {{ $applicant->created_at?->diffForHumans() }}
                     </td>
                     <td class="px-5 py-3 text-right whitespace-nowrap">
+                        @if(auth()->user()->mayApprove($applicant))
                         <form method="POST" action="{{ route('admin.approvals.approve', $applicant) }}" class="inline">
                             @csrf
                             <button class="text-xs font-medium text-emerald-600 hover:underline">Approve</button>
@@ -61,6 +62,9 @@
                             @method('DELETE')
                             <button class="text-xs font-medium text-red-500 hover:underline ml-3">Reject</button>
                         </form>
+                        @else
+                        <span class="text-[11px] text-gray-400">Awaiting review</span>
+                        @endif
                     </td>
                 </tr>
             @empty

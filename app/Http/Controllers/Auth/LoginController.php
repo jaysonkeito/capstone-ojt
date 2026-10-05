@@ -105,6 +105,10 @@ class LoginController extends Controller
             return route('profile-completion.edit');
         }
 
+        if ($user->isDean()) {
+            return route('admin.approvals.index');
+        }
+
         if ($user->isMonitor()) {
             return route('monitor.dashboard');
         }

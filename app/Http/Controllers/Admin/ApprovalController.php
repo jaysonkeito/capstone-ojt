@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\Request;
 
 /**
  * Account Approvals — the System Admin's review desk for self-service
@@ -14,11 +15,15 @@ use App\Models\User;
 class ApprovalController extends Controller
 {
     /**
-     * List everyone waiting for approval, newest first.
+     * List the pending sign-ups this manager may act on, newest first. The
+     * System Admin sees everything; deans and coordinators see only the
+     * queue for their college.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $user = $request->user();
         $pending = User::pendingApproval()
+            ->when(! $user->isAdmin(), fn ($q) => $q->where('college_code', $user->collegeCode()))
             ->orderByDesc('created_at')
             ->paginate(30);
 
@@ -29,9 +34,10 @@ class ApprovalController extends Controller
      * Approve a sign-up: the account becomes active and can log in, and
      * moves into the admin's Staff section for normal management.
      */
-    public function approve(User $user)
+    public function approve(Request $request, User $user)
     {
         $this->authorizePending($user);
+        $this->authorizeManager($request->user(), $user);
 
         $user->update([
             'is_active' => true,
@@ -47,9 +53,10 @@ class ApprovalController extends Controller
      * so it is removed for good — the email and full name become available
      * again if the applicant wants to re-apply.
      */
-    public function reject(User $user)
+    public function reject(Request $request, User $user)
     {
         $this->authorizePending($user);
+        $this->authorizeManager($request->user(), $user);
 
         $name = $user->full_name;
         $role = $user->role_label;
@@ -67,5 +74,15 @@ class ApprovalController extends Controller
     protected function authorizePending(User $user): void
     {
         abort_unless($user->isPendingApproval(), 404);
+    }
+
+    /**
+     * Who may act on a pending sign-up: the System Admin everything; a dean
+     * coordinator sign-ups plus supervisor sign-ups of their college; a
+     * coordinator supervisor sign-ups of their college.
+     */
+    protected function authorizeManager(User $manager, User $pending): void
+    {
+        abort_unless($manager->mayApprove($pending), 403);
     }
 }

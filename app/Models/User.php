@@ -38,6 +38,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'role',
+        'college_code',
         'ojt_track',
         'ojt_status',
         'batch',
@@ -192,6 +193,59 @@ class User extends Authenticatable
         return $this->role === 'supervisor';
     }
 
+    public function isDean(): bool
+    {
+        return $this->role === 'dean';
+    }
+
+    /**
+     * The college this staff member belongs to: the account's own code when
+     * recorded (roster import, registration, admin provisioning), else the
+     * staff profile's, else the installation default.
+     */
+    public function collegeCode(): string
+    {
+        return $this->college_code
+            ?? $this->staffProfile?->college_code
+            ?? 'cas';
+    }
+
+    /**
+     * The college a staff member belongs to as a model (for dropdowns).
+     */
+    public function college()
+    {
+        return $this->belongsTo(College::class, 'college_code', 'code');
+    }
+
+    /**
+     * Whether this staff member may approve/reject a pending sign-up:
+     * the System Admin everything; a dean coordinator sign-ups plus
+     * supervisor sign-ups of their college; a coordinator supervisor
+     * sign-ups of their college.
+     */
+    public function mayApprove(User $pending): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if (! in_array($pending->role, ['coordinator', 'supervisor'], true)) {
+            return false;
+        }
+
+        if (! in_array($this->role, ['dean', 'coordinator'], true)) {
+            return false;
+        }
+
+        if ($this->collegeCode() !== $pending->collegeCode()) {
+            return false;
+        }
+
+        // Deans may approve both queues; coordinators only supervisors.
+        return $this->isDean() || $pending->role === 'supervisor';
+    }
+
     /**
      * Coordinator or supervisor — the two read-only monitoring roles.
      */
@@ -227,7 +281,7 @@ class User extends Authenticatable
      */
     public function scopePendingApproval($query)
     {
-        return $query->whereIn('role', ['coordinator', 'supervisor'])
+        return $query->whereIn('role', ['coordinator', 'supervisor', 'dean'])
             ->whereNull('approved_at')
             ->where('is_active', false);
     }
@@ -433,6 +487,7 @@ class User extends Authenticatable
             'intern' => 'Intern',
             'coordinator' => 'OJT Coordinator',
             'supervisor' => 'Supervisor',
+            'dean' => 'College Dean',
             default => ucfirst($this->role),
         };
     }

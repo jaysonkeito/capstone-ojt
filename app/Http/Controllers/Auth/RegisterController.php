@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\College;
 use App\Models\User;
 use App\Support\OjtEnrollmentService;
 use Closure;
@@ -22,7 +23,9 @@ class RegisterController extends Controller
      */
     public function create()
     {
-        return view('auth.register');
+        return view('auth.register', [
+            'colleges' => \App\Models\College::orderBy('name')->get(),
+        ]);
     }
 
     /**
@@ -68,7 +71,10 @@ class RegisterController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'account_type' => ['required', Rule::in(['intern', 'coordinator', 'supervisor'])],
+            'account_type' => ['required', Rule::in(['intern', 'coordinator', 'supervisor', 'dean'])],
+            // Staff sign-ups belong to a college — scoped approvals and
+            // templates hang off it.
+            'college_code' => ['nullable', 'string', 'max:20', 'exists:colleges,code'],
             // Student ID identifies interns (and doubles as a login handle);
             // staff accounts don't have one. Digits only — no letters or
             // punctuation — so it stays a clean numeric handle.
@@ -93,12 +99,15 @@ class RegisterController extends Controller
             'username.required_unless' => 'Choose a username for your account.',
             'username.unique' => 'That username is already taken.',
             'agree_terms.accepted' => 'Please accept the Terms of Use to continue.',
+            
+            'college_code.exists' => 'That college is not recognized.',
         ]);
 
         $isIntern = $validated['account_type'] === 'intern';
 
         $user = User::create([
             'role' => $validated['account_type'],
+            'college_code' => $isIntern ? null : ($validated['college_code'] ?? 'cas'),
             'student_id' => $isIntern ? $validated['student_id'] : null,
             'username' => $isIntern ? null : $validated['username'],
             'first_name' => $validated['first_name'],
@@ -126,7 +135,7 @@ class RegisterController extends Controller
         // accounts can't even sign in yet: their application is under review.
         $status = $isIntern
             ? 'Account created — please sign in to continue.'
-            : 'Application submitted — the System Administrator will review it. You\'ll be able to sign in once your account is approved.';
+            : 'Application submitted — it will be reviewed by the System Admin or your College Dean. You\'ll be able to sign in once your account is approved.';
 
         return redirect()->route('login')->with('status', $status);
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\College;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -33,6 +34,7 @@ function registerStaffAccount(string $role, array $attributes = []): User
         'last_name' => $last,
         'username' => $username,
         'email' => $email,
+        'college_code' => $attributes['college_code'] ?? 'cas',
         'password' => 'DutyDay2026!',
         'password_confirmation' => 'DutyDay2026!',
         'agree_terms' => '1',
@@ -195,10 +197,60 @@ test('intern sign-ups never appear in the approvals queue', function () {
     $this->actingAs(approvalUser('admin'))->get(route('admin.approvals.index'))->assertDontSee('insta@example.com');
 });
 
-test('the approvals section is closed to everyone but admins', function () {
+test('a College Dean can approve coordinator and supervisor sign-ups of their college', function () {
+    College::firstOrCreate(['code' => 'cas'], ['name' => 'College of Arts and Sciences']);
+    $dean = approvalUser('dean');
+    $coordinatorApp = registerStaffAccount('coordinator', ['first_name' => 'Nina', 'last_name' => 'Cole']);
+    $supervisorApp = registerStaffAccount('supervisor', ['first_name' => 'Ned', 'last_name' => 'Supervisor']);
+
+    $this->actingAs($dean)->post(route('admin.approvals.approve', $coordinatorApp))
+        ->assertRedirect(route('admin.approvals.index'));
+    expect($coordinatorApp->fresh()->is_active)->toBeTrue();
+
+    $this->actingAs($dean)->post(route('admin.approvals.approve', $supervisorApp))
+        ->assertRedirect(route('admin.approvals.index'));
+    expect($supervisorApp->fresh()->is_active)->toBeTrue();
+});
+
+test('a coordinator can approve a supervisor sign-up but not a coordinator sign-up', function () {
     $coordinator = approvalUser('coordinator');
+    $coordinatorApp = registerStaffAccount('coordinator', ['first_name' => 'Nina', 'last_name' => 'Cole']);
+    $supervisorApp = registerStaffAccount('supervisor', ['first_name' => 'Ned', 'last_name' => 'Supervisor']);
+
+    $this->actingAs($coordinator)->post(route('admin.approvals.approve', $coordinatorApp))
+        ->assertForbidden();
+    expect($coordinatorApp->fresh()->is_active)->toBeFalse();
+
+    $this->actingAs($coordinator)->post(route('admin.approvals.approve', $supervisorApp))
+        ->assertRedirect(route('admin.approvals.index'));
+    expect($supervisorApp->fresh()->is_active)->toBeTrue();
+});
+
+test('a dean of another college cannot approve a sign-up', function () {
+    College::firstOrCreate(['code' => 'cba'], ['name' => 'College of Business Administration']);
+    $cbaDean = User::create([
+        'role' => 'dean', 'first_name' => 'Other', 'last_name' => 'Dean',
+        'email' => 'cbadean@norsubscojt.online', 'username' => 'cbadean',
+        'password' => 'password123', 'college_code' => 'cba', 'target_hours' => 0,
+        'is_active' => true, 'profile_completed_at' => now(),
+    ]);
+
+    $coordinatorApp = registerStaffAccount('coordinator', ['first_name' => 'Nina', 'last_name' => 'Cole']);
+
+    $this->actingAs($cbaDean)->post(route('admin.approvals.approve', $coordinatorApp))
+        ->assertForbidden();
+    expect($coordinatorApp->fresh()->is_active)->toBeFalse();
+});
+
+test('the approvals section is closed to interns, supervisors, and cross-college staff', function () {
+    $coordinator = approvalUser('coordinator');
+    $supervisor = approvalUser('supervisor');
     $intern = approvalUser('intern');
 
-    $this->actingAs($coordinator)->get(route('admin.approvals.index'))->assertForbidden();
+    // Coordinators may now work the queue for their college...
+    $this->actingAs($coordinator)->get(route('admin.approvals.index'))->assertOk();
+
+    // ...but supervisors and interns never do, and another college is out of bounds.
+    $this->actingAs($supervisor)->get(route('admin.approvals.index'))->assertForbidden();
     $this->actingAs($intern)->get(route('admin.approvals.index'))->assertForbidden();
 });
