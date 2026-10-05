@@ -82,4 +82,12 @@ class CompletionRecommendation extends Model
             default => ['label' => 'Rejected', 'class' => 'bg-red-50 text-red-700'],
         };
     }
+
+    /**
+     * The line the System Admin's activity log shows for this recommendation.
+     */
+    public function auditLabel(): string
+    {
+        return 'Completion recommendation — '.($this->intern?->full_name ?? 'intern #'.$this->user_id);
+    }
 }

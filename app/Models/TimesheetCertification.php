@@ -54,4 +54,12 @@ class TimesheetCertification extends Model
     {
         return $this->period_start->format('F Y');
     }
+
+    /**
+     * The line the System Admin's activity log shows for this certification.
+     */
+    public function auditLabel(): string
+    {
+        return 'Timesheet — '.($this->period_label ?? $this->id).' ('.($this->intern?->full_name ?? 'intern #'.$this->user_id).')';
+    }
 }

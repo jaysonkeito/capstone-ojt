@@ -310,4 +310,12 @@ class OjtLog extends Model
 
         return ['label' => 'On Time', 'class' => 'bg-emerald-50 text-emerald-700'];
     }
+
+    /**
+     * The line the System Admin's activity log shows for this duty entry.
+     */
+    public function auditLabel(): string
+    {
+        return 'Duty log — '.($this->date?->toDateString() ?? $this->date).' ('.($this->user?->full_name ?? 'intern #'.$this->user_id).')';
+    }
 }

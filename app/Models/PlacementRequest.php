@@ -87,4 +87,12 @@ class PlacementRequest extends Model
             default => ['label' => 'Rejected', 'class' => 'bg-red-50 text-red-700'],
         };
     }
+
+    /**
+     * The line the System Admin's activity log shows for this proposal.
+     */
+    public function auditLabel(): string
+    {
+        return 'Placement proposal — '.($this->intern?->full_name ?? 'intern #'.$this->user_id);
+    }
 }

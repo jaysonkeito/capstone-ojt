@@ -151,4 +151,12 @@ class OjtSetting extends Model
         // to match Carbon's dayOfWeek for simplicity in the UI toggles.
         return in_array((int) $date->format('w'), $this->working_days ?? [], true);
     }
+
+    /**
+     * The line the System Admin's activity log shows for settings changes.
+     */
+    public function auditLabel(): string
+    {
+        return 'System settings';
+    }
 }

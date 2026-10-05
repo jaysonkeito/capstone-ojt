@@ -257,4 +257,12 @@ class DocumentTemplate extends Model
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
+
+    /**
+     * The line the System Admin's activity log shows for this template.
+     */
+    public function auditLabel(): string
+    {
+        return (self::TYPES[$this->type]['label'] ?? $this->type).' ('.$this->college_code.')';
+    }
 }

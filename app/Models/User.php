@@ -621,4 +621,12 @@ class User extends Authenticatable
     {
         return $this->deviceTokens()->pluck('token')->all();
     }
+
+    /**
+     * The line the System Admin's activity log shows for this account.
+     */
+    public function auditLabel(): string
+    {
+        return "({$this->role_label}) {$this->full_name}";
+    }
 }

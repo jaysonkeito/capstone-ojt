@@ -50,4 +50,12 @@ class Office extends Model
     {
         return $this->type === 'external' ? 'External' : 'Internal';
     }
+
+    /**
+     * The line the System Admin's activity log shows for this office.
+     */
+    public function auditLabel(): string
+    {
+        return $this->name;
+    }
 }

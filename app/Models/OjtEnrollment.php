@@ -93,4 +93,12 @@ class OjtEnrollment extends Model
             default => ucfirst($this->status),
         };
     }
+
+    /**
+     * The line the System Admin's activity log shows for this OJT set.
+     */
+    public function auditLabel(): string
+    {
+        return ($this->label ?? 'OJT set').' — '.($this->user?->full_name ?? 'intern #'.$this->user_id);
+    }
 }

@@ -78,6 +78,7 @@
                 ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff'],
                 ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Kiosk'],
                 ['route' => 'admin.requests.index', 'match' => 'admin.requests.*', 'icon' => 'file', 'label' => 'Requests', 'badge' => $pendingAdminRequests ?: null],
+                ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'icon' => 'file', 'label' => 'Activity Log'],
                 ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
             ],

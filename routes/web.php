@@ -19,6 +19,7 @@ use App\Http\Controllers\Intern\PersonalInformationController as InternPersonalI
 use App\Http\Controllers\Intern\RequestController as InternRequestController;
 use App\Http\Controllers\Intern\RequirementController as InternRequirementController;
 use App\Http\Controllers\AppDownloadController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\Monitor\RequestController as MonitorRequestController;
@@ -194,6 +195,13 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
             Route::get('/kiosk/ping', [KioskController::class, 'ping'])->name('kiosk.ping');
             Route::post('/kiosk/scan', [KioskController::class, 'scan'])->name('kiosk.scan');
             Route::post('/kiosk/manual', [KioskController::class, 'manual'])->name('kiosk.manual');
+        });
+
+        // Activity log — System Admin only: the full trail of who changed
+        // what, across accounts, duty records, requests, and templates.
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/audit-log', [AuditLogController::class, 'index'])->name('audit-log.index');
+            Route::get('/audit-log/entries', [AuditLogController::class, 'entries'])->name('audit-log.entries');
         });
 
         // Settings — standard working hours, working days, no-class calendar
