@@ -29,9 +29,7 @@ class InternPolicy
             return $intern->coordinator_id === $user->id;
         }
 
-        return $user->isSupervisor()
-            && $user->office_id !== null
-            && $intern->office_id === $user->office_id;
+        return $user->supervisesOffice($intern->office_id);
     }
 
     /**

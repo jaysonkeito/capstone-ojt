@@ -86,8 +86,8 @@
                 </div>
             @endif
 
-            <div id="officeField" class="{{ ($staff->exists ? $staff->role !== 'supervisor' : old('role', $staff->role) !== 'supervisor') ? 'hidden' : '' }}">
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Office <span class="text-gray-400 font-normal text-xs">(required for supervisors)</span></label>
+            <div id="officeField" class="{{ ($staff->exists ? ! in_array($staff->role, ['supervisor', 'dean']) : ! in_array(old('role', $staff->role), ['supervisor', 'dean'])) ? 'hidden' : '' }}">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Office <span class="text-gray-400 font-normal text-xs">(required for supervisors; optional for deans — set it if the dean supervises their office's interns)</span></label>
                 <select name="office_id" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="">Select office</option>
                     @foreach($offices as $office)

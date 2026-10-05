@@ -150,6 +150,10 @@ class InternController extends Controller
         $coordinatorId = $validated['coordinator_id'] ?? null;
         if ($staff->isSupervisor()) {
             $officeId = $staff->office_id;
+        } elseif ($staff->isDean() && $staff->office_id) {
+            // A dean supervising their office's interns creates them there.
+            $officeId = $staff->office_id;
+            $coordinatorId = $staff->id;
         } elseif ($staff->isCoordinator()) {
             $coordinatorId = $staff->id;
         }

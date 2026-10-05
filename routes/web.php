@@ -184,7 +184,7 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
         // each scan records the next time of their day. Runs in the office, so
         // it's the Supervisor's station (the scanner resolves only that
         // office's interns); Coordinators don't get it.
-        Route::middleware('role:admin,supervisor')->group(function () {
+        Route::middleware('role:admin,supervisor,dean')->group(function () {
             Route::get('/kiosk', [KioskController::class, 'index'])->name('kiosk.index');
             Route::get('/kiosk/ping', [KioskController::class, 'ping'])->name('kiosk.ping');
             Route::post('/kiosk/scan', [KioskController::class, 'scan'])->name('kiosk.scan');
@@ -277,7 +277,7 @@ Route::middleware('auth')->group(function () {
 | its group-level role middleware would otherwise lock the admin out.
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin,coordinator,supervisor', 'profile-completed'])
+Route::middleware(['auth', 'role:admin,coordinator,supervisor,dean', 'profile-completed'])
     ->post('/monitor/requests/log/{logRequest}/decide', [MonitorRequestController::class, 'decide'])
     ->name('monitor.requests.log.decide');
 

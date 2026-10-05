@@ -263,11 +263,29 @@ class User extends Authenticatable
 
     /**
      * Coordinator or supervisor — the read-only monitoring roles. A dean
-     * who also coordinates a program monitors interns the same way.
+     * whose office accepts interns is that office's supervisor and monitors
+     * interns the same way.
      */
     public function isMonitor(): bool
     {
         return $this->isCoordinator() || $this->isSupervisor() || $this->isDean();
+    }
+
+    /**
+     * Whether this staff member supervises a specific office: a supervisor
+     * with that office assigned, or a dean whose office accepts interns
+     * (dean's offices commonly host OJT interns, making the dean their
+     * de-facto supervisor). Deans without an office supervise nothing.
+     */
+    public function supervisesOffice(?int $officeId): bool
+    {
+        if (! in_array($this->role, ['supervisor', 'dean'], true) || $officeId === null) {
+            return false;
+        }
+
+        return $this->isSupervisor()
+            ? $this->office_id === $officeId
+            : ($this->office_id !== null && $this->office_id === $officeId);
     }
 
     /**
@@ -576,11 +594,12 @@ class User extends Authenticatable
             return $query;
         }
 
-        if ($staff->isCoordinator()) {
+        if ($staff->isCoordinator() || ($staff->isDean() && $staff->office_id)) {
+            // A dean supervising their office's interns coordinates them.
             return $query->where('coordinator_id', $staff->id);
         }
 
-        if ($staff->isSupervisor()) {
+        if ($staff->isSupervisor() || $staff->isDean()) {
             return $query->where('office_id', $staff->office_id);
         }
 

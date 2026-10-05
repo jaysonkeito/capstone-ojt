@@ -21,9 +21,7 @@ class OjtLogPolicy
      */
     public function review(User $user, OjtLog $log): bool
     {
-        return $user->isSupervisor()
-            && $user->office_id !== null
-            && $log->user->office_id === $user->office_id;
+        return $user->supervisesOffice($log->user->office_id);
     }
 
     /**
@@ -49,8 +47,6 @@ class OjtLogPolicy
             return $log->user->coordinator_id === $user->id;
         }
 
-        return $user->isSupervisor()
-            && $user->office_id !== null
-            && $log->user->office_id === $user->office_id;
+        return $user->supervisesOffice($log->user->office_id);
     }
 }

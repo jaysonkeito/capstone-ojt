@@ -123,7 +123,8 @@ class KioskController extends Controller
     {
         $staff = $request->user();
 
-        if ($staff->isSupervisor() && $intern->office_id !== $staff->office_id) {
+        if (! $staff->isAdmin() && $intern->office_id !== $staff->office_id
+            && ! $staff->supervisesOffice($intern->office_id)) {
             return response()->json([
                 'state' => 'not_assigned',
                 'message' => 'This intern is not assigned to this office.',

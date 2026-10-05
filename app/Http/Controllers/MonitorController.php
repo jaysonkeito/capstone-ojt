@@ -310,11 +310,10 @@ class MonitorController extends Controller
      */
     private function scopedInterns(User $user)
     {
-        // Deans monitor the interns they coordinate exactly like a
-        // coordinator would (a dean who is also a program's OJT coordinator
-        // holds the interns assigned to them).
+        // Coordinators monitor the interns assigned to them; supervisors
+        // and deans-with-office monitor their office's interns.
         return User::where('role', 'intern')->when(
-            $user->isCoordinator() || $user->isDean(),
+            $user->isCoordinator(),
             fn ($q) => $q->where('coordinator_id', $user->id),
             fn ($q) => $q->where('office_id', $user->office_id),
         );

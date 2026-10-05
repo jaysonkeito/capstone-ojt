@@ -18,7 +18,7 @@ class ManualLogRequest extends FormRequest
     {
         // The route is restricted to the supervisor role; per-intern office
         // scoping happens in the controller once the intern is resolved.
-        return $this->user()->isSupervisor();
+        return $this->user()->isSupervisor() || $this->user()->isDean();
     }
 
     /**

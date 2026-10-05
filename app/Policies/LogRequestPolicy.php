@@ -23,8 +23,6 @@ class LogRequestPolicy
             return $logRequest->intern->coordinator_id === $user->id;
         }
 
-        return $user->isSupervisor()
-            && $user->office_id !== null
-            && $logRequest->intern->office_id === $user->office_id;
+        return $user->supervisesOffice($logRequest->intern->office_id);
     }
 }

@@ -81,7 +81,7 @@ class StaffController extends Controller
             'email' => $validated['email'],
             'password' => $validated['password'],
             'password_changed_at' => now(),
-            'office_id' => $validated['role'] === 'supervisor' ? ($validated['office_id'] ?? null) : null,
+            'office_id' => in_array($validated['role'], ['supervisor', 'dean'], true) ? ($validated['office_id'] ?? null) : null,
             'student_id' => null,
             'target_hours' => 0,
             // Admin-provisioned staff skip the self-service approval gate and
@@ -145,7 +145,7 @@ class StaffController extends Controller
             'title' => $validated['title'] ?? null,
             'position' => $validated['position'] ?? null,
             'email' => $validated['email'],
-            'office_id' => $staff->role === 'supervisor' ? ($validated['office_id'] ?? null) : null,
+            'office_id' => in_array($staff->role, ['supervisor', 'dean'], true) ? ($validated['office_id'] ?? null) : null,
             'is_active' => $request->boolean('is_active', false),
             'approved_at' => now(),
         ]);
