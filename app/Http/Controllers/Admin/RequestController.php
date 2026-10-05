@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CompletionRecommendation;
+use App\Models\LogRequest;
 use App\Models\PlacementRequest;
 use App\Support\RequestDecider;
 use Illuminate\Http\Request;
@@ -33,11 +34,20 @@ class RequestController extends Controller
             ->paginate(15, ['*'], 'completion_page')
             ->withQueryString();
 
-        $pendingCount = PlacementRequest::pending()->count() + CompletionRecommendation::pending()->count();
+        $logRequests = LogRequest::with(['intern', 'decidedBy'])
+            ->when($status, fn ($q) => $q->where('status', $status))
+            ->latest()
+            ->paginate(15, ['*'], 'attendance_page')
+            ->withQueryString();
+
+        $pendingCount = PlacementRequest::pending()->count()
+            + CompletionRecommendation::pending()->count()
+            + LogRequest::pending()->count();
 
         return view('admin.requests', [
             'placementRequests' => $placementRequests,
             'completionRecommendations' => $completionRecommendations,
+            'logRequests' => $logRequests,
             'status' => in_array($status, ['pending', 'approved', 'rejected'], true) ? $status : null,
             'pendingCount' => $pendingCount,
         ]);

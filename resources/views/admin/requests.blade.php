@@ -107,6 +107,42 @@
     @endif
 </div>
 
+{{-- Attendance requests — the admin is the fallback adjudicator --}}
+<div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h2 class="font-semibold text-gray-900">Attendance Requests</h2>
+        <p class="text-xs text-gray-500 mt-0.5">Missed-scan corrections and absence reports from interns — normally decided by their supervisor or coordinator; you are the fallback when needed.</p>
+    </div>
+    @forelse($logRequests as $lr)
+        <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap sm:flex-nowrap items-center gap-3">
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-gray-900">{{ $lr->intern->full_name }}
+                    <span class="text-[11px] font-normal text-gray-400">· {{ $lr->type_label }} · {{ $lr->date->format('M d, Y') }}</span></p>
+                <p class="text-xs text-gray-500 truncate">{{ $lr->reason }}</p>
+                <p class="text-xs text-gray-400">{{ $lr->created_at->format('M d, Y') }}@if($lr->decidedBy) · decided by {{ $lr->decidedBy->full_name }}@if($lr->decision_comment) — “{{ $lr->decision_comment }}” @endif @endif</p>
+            </div>
+            @if($lr->status === 'pending')
+                <div class="flex items-center gap-2 shrink-0">
+                    <form method="POST" action="{{ route('monitor.requests.log.decide', $lr) }}">
+                        @csrf
+                        <input type="hidden" name="action" value="approved">
+                        <button type="submit" class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">Accept</button>
+                    </form>
+                    <button type="button" data-url="{{ route('monitor.requests.log.decide', $lr) }}" onclick="openReject(this)"
+                        class="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-red-50 hover:text-red-700 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg transition">Reject</button>
+                </div>
+            @else
+                <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $lr->status_badge['class'] }}">{{ $lr->status_badge['label'] }}</span>
+            @endif
+        </div>
+    @empty
+        <p class="px-5 py-10 text-center text-sm text-gray-400">No attendance requests{{ $status ? " with this status" : '' }}.</p>
+    @endforelse
+    @if($logRequests->hasPages())
+        <div class="px-5 py-3 border-t border-gray-100">{{ $logRequests->links() }}</div>
+    @endif
+</div>
+
 {{-- Shared rejection modal --}}
 <div id="rejectModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/25 px-4"
      onclick="if(event.target === this) this.classList.add('hidden')">
