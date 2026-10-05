@@ -18,6 +18,7 @@
         <option value="">All Staff</option>
         <option value="coordinator" {{ request('role') === 'coordinator' ? 'selected' : '' }}>OJT Coordinators</option>
         <option value="supervisor" {{ request('role') === 'supervisor' ? 'selected' : '' }}>Supervisors</option>
+        <option value="dean" {{ request('role') === 'dean' ? 'selected' : '' }}>College Deans</option>
     </select>
     @if(request('role'))
         <a href="{{ route('admin.staff.index') }}" class="text-sm font-medium text-gray-400 hover:text-gray-700 px-2 py-2">Clear</a>
@@ -151,6 +152,16 @@
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="coordinator">OJT Coordinator — monitors the interns assigned to them</option>
                     <option value="supervisor">Supervisor — monitors the interns at their office</option>
+                    <option value="dean">College Dean — approves coordinator and supervisor sign-ups for their college</option>
+                </select>
+            </div>
+            <div id="modalCollegeField">
+                <label class="block text-xs font-medium text-gray-600 mb-1">College <span class="text-gray-400 font-normal">(optional for supervisors)</span></label>
+                <select name="college_code" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <option value="">— None —</option>
+                    @foreach($colleges as $college)
+                        <option value="{{ $college->code }}" {{ old('college_code') === $college->code ? 'selected' : '' }}>{{ $college->name }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

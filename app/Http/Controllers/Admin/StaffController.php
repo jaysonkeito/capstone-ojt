@@ -32,6 +32,7 @@ class StaffController extends Controller
             ->withQueryString();
 
         return view('admin.staff.index', [
+            'colleges' => College::orderBy('name')->get(),
             'staff' => $staff,
             'offices' => Office::orderBy('name')->get(),
         ]);
@@ -49,7 +50,7 @@ class StaffController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'role' => ['required', Rule::in(['coordinator', 'supervisor'])],
+            'role' => ['required', Rule::in(['coordinator', 'supervisor', 'dean'])],
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
@@ -97,7 +98,11 @@ class StaffController extends Controller
             'college_code' => $validated['college_code'],
         ]);
 
-        $label = $validated['role'] === 'supervisor' ? 'Supervisor' : 'OJT Coordinator';
+        $label = match ($validated['role']) {
+            'supervisor' => 'Supervisor',
+            'dean' => 'College Dean',
+            default => 'OJT Coordinator',
+        };
 
         return redirect()->route('admin.staff.index')->with('status', "{$label} account created for {$validated['first_name']} {$validated['last_name']}.");
     }
