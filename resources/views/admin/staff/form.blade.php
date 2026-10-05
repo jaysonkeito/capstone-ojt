@@ -3,7 +3,7 @@
 @section('title', $staff->exists ? 'Edit Staff' : 'Add Staff')
 
 @section('content')
-<div class="max-w-2xl mx-auto">
+<div>
     <div class="mb-6">
         <a href="{{ route('admin.staff.index') }}" class="text-xs font-medium text-gray-400 hover:text-gray-700">← Staff</a>
         <h1 class="text-xl font-semibold tracking-tight text-gray-900 mt-1">{{ $staff->exists ? 'Edit '.$staff->role_label : 'Add Staff' }}</h1>
@@ -15,24 +15,29 @@
             @if($staff->exists) @method('PUT') @endif
 
             @unless($staff->exists)
-                <div>
+                <div class="mb-5">
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
                     <select name="role" required onchange="document.getElementById('officeField').classList.toggle('hidden', this.value !== 'supervisor')"
                         class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                         <option value="coordinator" {{ old('role', $staff->role) === 'coordinator' ? 'selected' : '' }}>OJT Coordinator — monitors the interns assigned to them</option>
                         <option value="supervisor" {{ old('role', $staff->role) === 'supervisor' ? 'selected' : '' }}>Supervisor — monitors the interns at their office</option>
+                        <option value="dean" {{ old('role', $staff->role) === 'dean' ? 'selected' : '' }}>College Dean — approves coordinator and supervisor sign-ups for their college</option>
                     </select>
-                
-                    <label class="block text-xs font-medium text-gray-500 mb-1.5 mt-3">College</label>
-                    <select name="college_code" required class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
-                        @foreach($colleges ?? [] as $college)
-                            <option value="{{ $college->code }}" {{ old('college_code', $staff->staffProfile?->college_code ?? 'cas') === $college->code ? 'selected' : '' }}>
-                                {{ $college->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <p class="text-[11px] text-gray-400 mt-1">Scopes which college's document templates this staff member manages.</p></div>
+                </div>
             @endunless
+
+            {{-- College — editable on both create and edit so existing staff can be assigned --}}
+            <div class="mb-5">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">College</label>
+                <select name="college_code" required class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    @foreach($colleges ?? [] as $college)
+                        <option value="{{ $college->code }}" {{ old('college_code', $staff->staffProfile?->college_code ?? $staff->college_code ?? 'cas') === $college->code ? 'selected' : '' }}>
+                            {{ $college->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <p class="text-[11px] text-gray-400 mt-1">Scopes approvals and which college's document templates this staff member manages.</p>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
