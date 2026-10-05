@@ -99,7 +99,7 @@
                  Interns identify by Student ID instead, so this stays hidden
                  (and cleared) for them. --}}
             <div class="field {{ $accountType === 'intern' ? 'hidden' : '' }}" id="collegeField">
-                <label for="college_code" class="field-label">College</label>
+                <label for="college_code" class="field-label">College <span style="font-weight:400;color:#9ca3af">(optional for supervisors)</span></label>
                 <select id="college_code" name="college_code" class="auth-input">
                     @foreach($colleges ?? [] as $college)
                         <option value="{{ $college->code }}" {{ old('college_code', 'cas') === $college->code ? 'selected' : '' }}>{{ $college->name }}</option>

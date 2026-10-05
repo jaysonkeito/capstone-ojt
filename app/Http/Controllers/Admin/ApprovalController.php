@@ -23,7 +23,11 @@ class ApprovalController extends Controller
     {
         $user = $request->user();
         $pending = User::pendingApproval()
-            ->when(! $user->isAdmin(), fn ($q) => $q->where('college_code', $user->collegeCode()))
+            ->when(! $user->isAdmin(), function ($q) use ($user) {
+                // Their college's queue only; college-less supervisor sign-ups
+                // (external offices) sit in the System Admin's queue alone.
+                $q->where('college_code', $user->collegeCode());
+            })
             ->orderByDesc('created_at')
             ->paginate(30);
 

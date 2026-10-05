@@ -203,11 +203,20 @@ class User extends Authenticatable
      * recorded (roster import, registration, admin provisioning), else the
      * staff profile's, else the installation default.
      */
-    public function collegeCode(): string
+    public function collegeCode(): ?string
     {
         return $this->college_code
-            ?? $this->staffProfile?->college_code
-            ?? 'cas';
+            ?? $this->staffProfile?->college_code;
+    }
+
+    /**
+     * The college code with the installation default — for scoping template
+     * folders and other places that need a definite college. Supervisors of
+     * external offices may have none.
+     */
+    public function collegeCodeOr(string $default = 'cas'): string
+    {
+        return $this->collegeCode() ?? $default;
     }
 
     /**
@@ -235,6 +244,12 @@ class User extends Authenticatable
         }
 
         if (! in_array($this->role, ['dean', 'coordinator'], true)) {
+            return false;
+        }
+
+        // A supervisor sign-up without a college (external office) has no
+        // dean or coordinator queue — only the System Admin decides it.
+        if ($this->collegeCode() === null || $pending->collegeCode() === null) {
             return false;
         }
 

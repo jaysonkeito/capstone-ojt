@@ -34,7 +34,8 @@ function registerStaffAccount(string $role, array $attributes = []): User
         'last_name' => $last,
         'username' => $username,
         'email' => $email,
-        'college_code' => $attributes['college_code'] ?? 'cas',
+        // null (or absent) means the college-less external-office case
+        'college_code' => array_key_exists('college_code', $attributes) ? $attributes['college_code'] : 'cas',
         'password' => 'DutyDay2026!',
         'password_confirmation' => 'DutyDay2026!',
         'agree_terms' => '1',
@@ -58,6 +59,7 @@ function approvalUser(string $role, array $attributes = []): User
         'target_hours' => 0,
         'is_active' => true,
         'approved_at' => now(),
+        'college_code' => 'cas',
         // Admin-provisioned accounts skip the profile completion wall.
         'profile_completed_at' => now(),
         ...$attributes,

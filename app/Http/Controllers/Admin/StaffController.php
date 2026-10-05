@@ -60,7 +60,14 @@ class StaffController extends Controller
             // A supervisor represents exactly one office; coordinators
             // don't belong to one.
             'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
-            'college_code' => ['required', 'string', 'exists:colleges,code'],
+            // Coordinators and deans belong to a college; a supervisor's
+            // college is optional — external offices may host interns from
+            // any college, so their sign-ups fall to the System Admin.
+            'college_code' => [
+                'nullable', 'string', 'max:20', 'exists:colleges,code',
+                'required_if:role,coordinator',
+                'required_if:role,dean',
+            ],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
@@ -118,7 +125,12 @@ class StaffController extends Controller
             'position' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($staff->id)],
             'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
-            'college_code' => ['required', 'string', 'exists:colleges,code'],
+            // Role isn't editable here — the account's current role decides
+            // whether the college is required.
+            'college_code' => [
+                'nullable', 'string', 'max:20', 'exists:colleges,code',
+                $staff->isCoordinator() || $staff->isDean() ? 'required' : 'nullable',
+            ],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 

@@ -107,7 +107,7 @@ class RegisterController extends Controller
 
         $user = User::create([
             'role' => $validated['account_type'],
-            'college_code' => $isIntern ? null : ($validated['college_code'] ?? 'cas'),
+            'college_code' => $isIntern ? null : (array_key_exists('college_code', $validated) && $validated['college_code'] !== null && $validated['college_code'] !== '' ? $validated['college_code'] : null),
             'student_id' => $isIntern ? $validated['student_id'] : null,
             'username' => $isIntern ? null : $validated['username'],
             'first_name' => $validated['first_name'],

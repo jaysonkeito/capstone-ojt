@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\College;
 use App\Models\DocumentTemplate;
+use App\Models\OjtSetting;
 use App\Models\User;
 use App\Notifications\TemplateChanged;
 use App\Services\DocumentTemplateService;
@@ -125,11 +126,20 @@ class DocumentTemplateController extends Controller
      */
     private function collegeFor(User $user): College
     {
+        // Coordinators land on their own college; supervisors are locked out
+        // of templates by middleware, and the System Admin gets the default.
         $code = $user->isCoordinator()
-            ? ($user->staffProfile?->college_code ?: $this->defaultCollege())
+            ? ($user->collegeCode() ?? $this->defaultCollege())
             : $this->defaultCollege();
 
         return College::where('code', $code)->first() ?? College::orderBy('id')->firstOr(fn () => new College(['code' => $code, 'name' => 'College']));
+    }
+
+    private function defaultCollege(): string
+    {
+        $code = \App\Models\OjtSetting::current()->college_code;
+
+        return College::where('code', $code)->exists() ? $code : (string) College::orderBy('id')->value('code');
     }
 
     /**
@@ -139,7 +149,7 @@ class DocumentTemplateController extends Controller
     private function assertCollegeAccess(User $user, College $college): void
     {
         if ($user->isCoordinator()) {
-            $own = $user->staffProfile?->college_code ?: $this->defaultCollege();
+            $own = $user->collegeCode() ?? $this->defaultCollege();
 
             abort_unless($college->code === $own, 403);
         }
@@ -164,13 +174,6 @@ class DocumentTemplateController extends Controller
             'reports' => $templates->get(DocumentTemplate::CATEGORY_REPORT, collect())->values(),
             'requirements' => $templates->get(DocumentTemplate::CATEGORY_REQUIREMENT, collect())->values(),
         ]);
-    }
-
-    private function defaultCollege(): string
-    {
-        $code = \App\Models\OjtSetting::current()->college_code;
-
-        return College::where('code', $code)->exists() ? $code : (string) College::orderBy('id')->value('code');
     }
 
     /**

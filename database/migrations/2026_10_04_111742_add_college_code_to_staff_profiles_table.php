@@ -16,7 +16,7 @@ return new class extends Migration
         // installation's founding college (CAS); the Staff form sets it for
         // new hires.
         Schema::table('staff_profiles', function (Blueprint $table) {
-            $table->string('college_code', 20)->default('cas')->after('user_id');
+            $table->string('college_code', 20)->nullable()->after('user_id');
         });
     }
 

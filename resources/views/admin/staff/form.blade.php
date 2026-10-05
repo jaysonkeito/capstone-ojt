@@ -29,14 +29,15 @@
             {{-- College — editable on both create and edit so existing staff can be assigned --}}
             <div class="mb-5">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">College</label>
-                <select name="college_code" required class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                <select name="college_code" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <option value="">— None (external office) —</option>
                     @foreach($colleges ?? [] as $college)
-                        <option value="{{ $college->code }}" {{ old('college_code', $staff->staffProfile?->college_code ?? $staff->college_code ?? 'cas') === $college->code ? 'selected' : '' }}>
+                        <option value="{{ $college->code }}" {{ old('college_code', $staff->staffProfile?->college_code ?? $staff->college_code) === $college->code ? 'selected' : '' }}>
                             {{ $college->name }}
                         </option>
                     @endforeach
                 </select>
-                <p class="text-[11px] text-gray-400 mt-1">Scopes approvals and which college's document templates this staff member manages.</p>
+                <p class="text-[11px] text-gray-400 mt-1">Required for coordinators and deans. Supervisors of external offices may leave this blank — their sign-ups then go to the System Admin for approval.</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
