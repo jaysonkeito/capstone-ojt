@@ -30,6 +30,7 @@ class OjtLog extends Model
         'hours_rendered',
         'notes',
         'photo_path',
+        'kiosk_captures',
         'journal_removed_at',
         'logged_by',
         'status',
@@ -45,6 +46,7 @@ class OjtLog extends Model
             'regular_hours' => 'decimal:2',
             'overtime_hours' => 'decimal:2',
             'hours_rendered' => 'decimal:2',
+            'kiosk_captures' => 'array',
             'journal_removed_at' => 'datetime',
             'reviewed_at' => 'datetime',
         ];
@@ -205,6 +207,24 @@ class OjtLog extends Model
     public function getClockedOutAttribute(): bool
     {
         return (bool) ($this->am_time_out || $this->pm_time_out);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Accessors — kiosk verification captures
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Public URL of the webcam snapshot the kiosk took at a given slot
+     * ('am_time_in', 'pm_time_out', …), or null when that scan wasn't
+     * captured (camera off or scan predates the feature).
+     */
+    public function kioskCaptureUrl(string $slot): ?string
+    {
+        $path = $this->kiosk_captures[$slot] ?? null;
+
+        return $path ? Storage::disk('public')->url($path) : null;
     }
 
     /**

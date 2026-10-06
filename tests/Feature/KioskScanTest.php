@@ -4,6 +4,8 @@ use App\Models\OjtEnrollment;
 use App\Models\OjtLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -948,4 +950,149 @@ test('an empty or prefix-only payload resolves to no one', function () {
     expect(User::fromScanPayload(''))->toBeNull()
         ->and(User::fromScanPayload('OJTID:'))->toBeNull()
         ->and(User::fromScanPayload(null))->toBeNull();
+});
+
+/*
+ * Verification captures — the kiosk's webcam grabs a frame at the instant
+ * of each successful scan and uploads it with the scan (multipart), so
+ * supervisors and coordinators can confirm the person behind each entry.
+ * The capture is always optional: a station with no camera or a denied
+ * permission still records times exactly as before.
+ */
+
+test('a scan with a capture stores the photo under the recorded slot', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    $this->actingAs($admin)
+        ->post(route('admin.kiosk.scan'), [
+            'code' => $intern->scanQrPayload(),
+            'capture' => UploadedFile::fake()->image('capture.jpg', 320, 240),
+        ])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded', 'action' => 'AM Time In'])
+        ->assertJsonPath('captureUrl', fn (?string $url) => $url !== null);
+
+    $log = OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail();
+
+    expect($log->kiosk_captures)->toBeArray()
+        ->and($log->kiosk_captures['am_time_in'] ?? null)->not->toBeNull()
+        ->and($log->kioskCaptureUrl('am_time_in'))->not->toBeNull()
+        // One photo per scan — a later slot has no capture yet.
+        ->and($log->kioskCaptureUrl('am_time_out'))->toBeNull();
+});
+
+test('a scan from a camera-less station records the time without a capture', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    $this->actingAs($admin)
+        ->postJson(route('admin.kiosk.scan'), ['code' => $intern->scanQrPayload()])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded'])
+        ->assertJsonPath('captureUrl', null);
+
+    expect(OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail()->kiosk_captures)->toBeNull();
+});
+
+test('a non-image capture is ignored and the scan still records', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    $this->actingAs($admin)
+        ->post(route('admin.kiosk.scan'), [
+            'code' => $intern->scanQrPayload(),
+            'capture' => UploadedFile::fake()->createWithContent('capture.jpg', 'definitely not an image'),
+        ])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded'])
+        ->assertJsonPath('captureUrl', null);
+
+    expect(OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail()->kiosk_captures)->toBeNull();
+});
+
+test('a refused scan never stores a capture', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+    $payload = $intern->scanQrPayload();
+
+    $this->actingAs($admin);
+
+    $this->travelTo(now()->setTime(8, 0));
+    $this->post(route('admin.kiosk.scan'), [
+        'code' => $payload,
+        'capture' => UploadedFile::fake()->image('capture.jpg', 320, 240),
+    ])->assertJson(['state' => 'recorded']);
+
+    // Inside the cooldown: nothing recorded, nothing captured.
+    $this->travelTo(now()->setTime(8, 5));
+    $this->post(route('admin.kiosk.scan'), [
+        'code' => $payload,
+        'capture' => UploadedFile::fake()->image('capture.jpg', 320, 240),
+    ])->assertOk()
+        ->assertJson(['state' => 'too_soon'])
+        ->assertJsonPath('captureUrl', null);
+
+    $log = OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail();
+
+    expect(count($log->kiosk_captures))->toBe(1);
+});
+
+test('a manual Student-ID entry files the capture as well', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern(['student_id' => 'T-6666']);
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 1));
+
+    $this->actingAs($admin)
+        ->post(route('admin.kiosk.manual'), [
+            'student_id' => 'T-6666',
+            'capture' => UploadedFile::fake()->image('capture.jpg', 320, 240),
+        ])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded', 'action' => 'AM Time In'])
+        ->assertJsonPath('captureUrl', fn (?string $url) => $url !== null);
+
+    $log = OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail();
+
+    expect($log->kiosk_captures['am_time_in'] ?? null)->not->toBeNull();
+});
+
+test('supervisors see the day\'s kiosk captures on the intern log page', function () {
+    Storage::fake('public');
+    $office = makeOffice();
+    $supervisor = makeSupervisor($office);
+    $intern = makeIntern(['student_id' => 'T-9101', 'office_id' => $office->id]);
+    $enrollment = makeActiveEnrollment($intern);
+
+    makeLog($intern, $enrollment, times: ['am_time_in' => '08:00', 'pm_time_out' => '17:00']);
+
+    $log = OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail();
+    $path = 'kiosk-captures/'.$intern->id.'/'.today()->toDateString().'/am_time_in-080000.jpg';
+    Storage::disk('public')->put($path, 'jpeg-bytes');
+    $log->forceFill(['kiosk_captures' => ['am_time_in' => $path]])->save();
+
+    $this->actingAs($supervisor)
+        ->get(route('monitor.intern', $intern))
+        ->assertOk()
+        // The camera button with the capture count, and the modal behind it
+        // naming the slot the capture belongs to.
+        ->assertSee('Kiosk captures')
+        ->assertSee('AM Time In');
 });

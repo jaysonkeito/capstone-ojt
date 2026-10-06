@@ -38,6 +38,7 @@
                 </th>
                 <th class="px-4 py-3">Notes</th>
                 <th class="px-4 py-3">Daily Report</th>
+                <th class="px-4 py-3">Capture</th>
                 <th class="px-5 py-3 text-right">Actions</th>
             </tr>
         </thead>
@@ -74,6 +75,12 @@
                             <span class="text-gray-300">—</span>
                         @endif
                     </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        @include('partials.kiosk-captures', ['log' => $log, 'intern' => $intern])
+                        @if(blank($log->kiosk_captures))
+                            <span class="text-gray-300">—</span>
+                        @endif
+                    </td>
                     <td class="px-5 py-3 text-right">
                         <form method="POST" action="{{ route('admin.logs.destroy', $log) }}"
                               data-confirm-title="Delete entry"
@@ -87,7 +94,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400 text-sm">No logged hours yet.</td></tr>
+                <tr><td colspan="8" class="px-5 py-10 text-center text-gray-400 text-sm">No logged hours yet.</td></tr>
             @endforelse
         </tbody>
     </table>

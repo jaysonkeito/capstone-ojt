@@ -144,7 +144,9 @@ files from the laptop's `storage/ojt-prod/` to the server, then:
 ```bash
 docker compose exec -T db sh -c 'exec mysql -h127.0.0.1 -uojt -p"$MYSQL_PASSWORD" cas_ojt_management' < ojt-prod-dump.sql
 docker compose exec -T db sh -c 'exec mysql -h127.0.0.1 -uojt -p"$MYSQL_PASSWORD" cas_ojt_management' < import-cleanup.sql
-# restore intern photos / uploaded files into the app-storage volume
+# apply any migration added after the dump was taken (no-op if none):
+docker compose run --rm app php artisan migrate --force
+# restore intern photos / kiosk captures / uploaded files into the app-storage volume
 # (check the exact volume name with `docker volume ls | grep app-storage`):
 docker run --rm -v "$PWD:/src" -v ojt-tracker_app-storage:/data alpine tar xzf /src/ojt-storage.tgz -C /data
 ```
@@ -233,5 +235,7 @@ The second line captures intern photos and uploaded templates (the `app-storage`
 4. Kiosk PC: `KIOSK_URL=https://norsubscojt.online/admin/kiosk` in `kiosk-station.bat`,
    scan a **real intern's** QR four times (AM In → AM Out → PM In → PM Out) — there is no
    dummy account (demo/test accounts were removed before export). Delete those four scans
-   afterwards from the intern's Duty History if you don't want them counted.
+   afterwards from the intern's Duty History if you don't want them counted. Allow the
+   browser's **camera prompt** once — the kiosk snapshots the intern at every scan so
+   supervisors can verify who made each entry (a denied camera never blocks a scan).
 5. Install the APK on a phone, run the offline test from `docs/mobile-app.md`.

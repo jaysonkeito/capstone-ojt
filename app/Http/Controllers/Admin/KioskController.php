@@ -10,6 +10,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class KioskController extends Controller
 {
@@ -72,7 +74,7 @@ class KioskController extends Controller
             return $blocked;
         }
 
-        return response()->json($this->recordFor($intern));
+        return response()->json($this->recordFor($request, $intern));
     }
 
     /**
@@ -111,7 +113,7 @@ class KioskController extends Controller
             return $blocked;
         }
 
-        return response()->json($this->recordFor($intern));
+        return response()->json($this->recordFor($request, $intern));
     }
 
     /**
@@ -137,12 +139,14 @@ class KioskController extends Controller
     /**
      * Run the shared intern / active-set checks and advance the intern's day
      * through AttendanceRecorder, returning the JSON payload the station
-     * renders. Used by both a QR scan and a manual Student-ID entry so the two
-     * behave identically once the intern is resolved.
+     * renders. Used by both a QR scan and a manual Student-ID entry so the
+     * two behave identically once the intern is resolved. When a time is
+     * actually recorded, the kiosk's webcam frame captured at the moment of
+     * the scan is stored and linked to the day's log for later verification.
      *
      * @return array<string, mixed>
      */
-    private function recordFor(User $intern): array
+    private function recordFor(Request $request, User $intern): array
     {
         if (! $intern->isIntern()) {
             return [
@@ -172,6 +176,13 @@ class KioskController extends Controller
         $outcome = AttendanceRecorder::record($intern, $enrollment, now());
         $slot = $outcome['slot'];
 
+        // A time went on the books — file the face capture that came with
+        // the scan (null when the station has no working camera).
+        $captureUrl = null;
+        if (in_array($outcome['state'], ['recorded', 'done'], true)) {
+            $captureUrl = $this->storeCapture($request, $outcome['log'], $slot);
+        }
+
         // A return during the lunch window is recorded as PM Time In even
         // though the afternoon hasn't formally started — spell that out on
         // the result card so the label doesn't look like a mistake. The
@@ -191,6 +202,7 @@ class KioskController extends Controller
             'note' => $note,
             'action' => $slot ? AttendanceRecorder::labelFor($slot) : null,
             'recordedAt' => $slot ? now()->format('g:i A') : null,
+            'captureUrl' => $captureUrl,
             'intern' => $this->internPayload($intern),
             'log' => $this->logPayload($outcome['log']),
             'progress' => [
@@ -214,6 +226,53 @@ class KioskController extends Controller
             'initials' => $intern->initials,
             'avatarUrl' => $intern->avatar_url,
         ];
+    }
+
+    /**
+     * Store the webcam frame the station grabbed at the moment of the scan
+     * and link it to the day's log under the slot it belongs to. Deliberately
+     * defensive instead of a ValidationException — the kiosk always expects a
+     * JSON reply, and a blocked or broken camera must never fail a scan that
+     * would otherwise be valid.
+     */
+    private function storeCapture(Request $request, OjtLog $log, ?string $slot): ?string
+    {
+        if (! $slot || ! $request->hasFile('capture')) {
+            return null;
+        }
+
+        $file = $request->file('capture');
+
+        // Sniff the bytes, not the client's claimed type — the capture is
+        // only ever a canvas JPEG, and anything else is ignored.
+        $mimeType = $file->getRealPath()
+            ? (string) (new \finfo(FILEINFO_MIME_TYPE))->file($file->getRealPath())
+            : '';
+
+        if (! $file->isValid()
+            || ! str_starts_with($mimeType, 'image/')
+            || ! in_array(strtolower($file->getClientOriginalExtension() ?: ''), ['jpg', 'jpeg', 'png', 'webp'], true)
+            || (int) $file->getSize() > 4 * 1024 * 1024) {
+            return null;
+        }
+
+        try {
+            $path = $file->storeAs(
+                'kiosk-captures/'.$log->user_id.'/'.$log->date->toDateString(),
+                $slot.'-'.now()->format('His').'.jpg',
+                'public'
+            );
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
+
+        $captures = $log->kiosk_captures ?? [];
+        $captures[$slot] = $path;
+        $log->forceFill(['kiosk_captures' => $captures])->save();
+
+        return Storage::disk('public')->url($path);
     }
 
     /**

@@ -135,6 +135,18 @@
         </div>
     </div>
 
+    {{-- Verification camera — a small always-on corner preview. Its frame is
+         captured the instant a scan is submitted and saved with the intern's
+         log, so supervisors can confirm the person behind each time entry.
+         If the camera is missing or denied, scans simply save without a photo. --}}
+    <div id="guardCam" class="fixed bottom-4 right-4 z-40 w-32 rounded-2xl overflow-hidden ring-1 ring-white/15 bg-black/70 shadow-2xl">
+        <video id="guardVideo" class="w-full aspect-[4/3] object-cover -scale-x-100" autoplay muted playsinline></video>
+        <div class="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5">
+            <span id="guardDot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span id="guardNote" class="text-[9px] font-medium tracking-wide text-gray-200 uppercase">Capturing</span>
+        </div>
+    </div>
+
     <script>
         (function () {
             let mode = 'scanner'; // 'scanner' | 'camera' | 'manual'
@@ -501,11 +513,20 @@
                       (intern.studentId ? ' · ' + esc(intern.studentId) : '') + '</p>'
                     : '';
 
+                // The face captured at scan time — the supervisor's proof of
+                // who actually stood at the kiosk.
+                const capture = (data.state === 'recorded' || data.state === 'done') && data.captureUrl
+                    ? '<img src="' + esc(data.captureUrl) + '" alt="Verification photo" title="Captured at scan time"' +
+                      ' class="mt-4 w-24 h-24 rounded-2xl object-cover ring-2 ring-white/20 mx-auto">' +
+                      '<p class="text-[10px] uppercase tracking-widest text-gray-500 mt-2">Verification photo</p>'
+                    : '';
+
                 result.innerHTML =
                     '<div class="fade-in border ' + s.card + ' rounded-3xl px-6 py-8 text-center">' +
                     head + name +
                     '<h1 class="text-2xl font-bold tracking-tight">' + titleFor(data) + '</h1>' +
                     '<p class="text-gray-400 mt-1.5">' + subtitleFor(data) + '</p>' +
+                    capture +
                     (data.note ? '<p class="mt-3 text-[13px] leading-relaxed text-gray-300">' + esc(data.note) + '</p>' : '') +
                     (showDetails ? timesGrid(data.log) + progressBar(data.progress) : '') +
                     '</div>';
@@ -526,8 +547,8 @@
                 resetTimer = setTimeout(() => { window.location.href = "{{ route('admin.kiosk.index') }}"; }, 3500);
             }
 
-            // ---- shared POST ----
-            async function send(url, body) {
+            // ---- shared POST (multipart, so it can carry the capture) ----
+            async function send(url, form) {
                 if (busy) { return; }
                 busy = true;
                 showProcessing();
@@ -535,13 +556,12 @@
                     const res = await fetch(url, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
                             'Accept': 'application/json',
                             'X-CSRF-TOKEN': csrf,
                             'X-Requested-With': 'XMLHttpRequest',
                         },
                         credentials: 'same-origin',
-                        body: JSON.stringify(body),
+                        body: form,
                     });
 
                     if (res.redirected || res.status === 401 || res.status === 419) {
@@ -558,8 +578,70 @@
                 }
             }
 
-            function submit(code) { send(scanUrl, { code: code }); }
-            function submitManual(studentId) { send(manualUrl, { student_id: studentId }); }
+            function submit(code) { submitWithCapture(scanUrl, 'code', code); }
+            function submitManual(studentId) { submitWithCapture(manualUrl, 'student_id', studentId); }
+
+            // Grab the verification camera's frame at the instant of the scan
+            // (mirrored preview stays CSS-only — the saved photo is unmirrored),
+            // then post the scan as multipart. No camera → the scan posts
+            // without a capture and everything else works as before.
+            async function submitWithCapture(url, field, value) {
+                const form = new FormData();
+                form.append(field, value);
+                try {
+                    const shot = await captureFrame();
+                    if (shot) { form.append('capture', shot, 'capture.jpg'); }
+                } catch (e) { /* camera hiccup must never block a scan */ }
+                send(url, form);
+            }
+
+            // ---- verification camera ----
+            const guardVideo = document.getElementById('guardVideo');
+            const guardCam = document.getElementById('guardCam');
+            const guardDot = document.getElementById('guardDot');
+            const guardNote = document.getElementById('guardNote');
+            const guardCanvas = document.createElement('canvas');
+            const guardCtx = guardCanvas.getContext('2d');
+            let guardStream = null;
+
+            async function startGuardCamera() {
+                try {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error('unsupported');
+                    }
+                    guardStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 640 }, height: { ideal: 480 } },
+                        audio: false,
+                    });
+                    guardVideo.srcObject = guardStream;
+                    await guardVideo.play();
+                } catch (e) {
+                    guardStream = null;
+                    guardDot.classList.replace('bg-emerald-400', 'bg-gray-500');
+                    guardNote.textContent = 'No camera';
+                }
+            }
+
+            // A JPEG frame from the live preview, or null when the camera
+            // isn't producing frames. Kept small so a day of scans stays
+            // a few MB on the server.
+            async function captureFrame() {
+                try {
+                    if (!guardStream || guardVideo.readyState < 2 || !guardVideo.videoWidth) {
+                        return null;
+                    }
+                    const width = 640;
+                    const height = Math.round(guardVideo.videoHeight * (width / guardVideo.videoWidth));
+                    guardCanvas.width = width;
+                    guardCanvas.height = height;
+                    guardCtx.drawImage(guardVideo, 0, 0, width, height);
+                    return await new Promise((resolve) => guardCanvas.toBlob(resolve, 'image/jpeg', 0.85));
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            startGuardCamera();
 
             // ---- soft audio cue: rising tone on success, low tone otherwise ----
             let audioCtx = null;
