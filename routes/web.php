@@ -196,6 +196,11 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
         Route::get('/requests', [AdminRequestController::class, 'index'])->name('requests.index');
         Route::post('/requests/placement/{placementRequest}/decide', [AdminRequestController::class, 'decidePlacement'])->name('requests.placement.decide');
         Route::post('/requests/completion/{completionRecommendation}/decide', [AdminRequestController::class, 'decideCompletion'])->name('requests.completion.decide');
+        // Attendance-request cleanup — pending only; a decided request is
+        // part of the record. System Admin only.
+        Route::delete('/requests/attendance/{logRequest}', [AdminRequestController::class, 'destroyAttendance'])
+            ->name('requests.attendance.destroy')
+            ->middleware('role:admin');
 
         // Document templates — download the starter, upload an edited Word
         // design, or remove it (the form is then unavailable until a new
@@ -420,7 +425,10 @@ Route::middleware(['auth', 'role:intern', 'profile-completed'])
 
         // The intern's attendance requests — corrections to recorded scan
         // times and absence reports, decided by their supervisor or
-        // coordinator.
+        // coordinator. A pending one can be withdrawn by its own intern.
         Route::get('/requests', [InternRequestController::class, 'index'])->name('requests.index');
         Route::post('/requests', [InternRequestController::class, 'store'])->name('requests.store');
+        Route::delete('/requests/{logRequest}', [InternRequestController::class, 'destroy'])
+            ->name('requests.destroy')
+            ->middleware('can:delete,logRequest');
     });

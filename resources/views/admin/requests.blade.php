@@ -130,6 +130,18 @@
                     </form>
                     <button type="button" data-url="{{ route('monitor.requests.log.decide', $lr) }}" onclick="openReject(this)"
                         class="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-red-50 hover:text-red-700 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg transition">Reject</button>
+                    @if(auth()->user()->isAdmin())
+                        {{-- Cleanup for junk or duplicate filings; decided requests stay as the record. --}}
+                        <form method="POST" action="{{ route('admin.requests.attendance.destroy', $lr) }}"
+                            data-confirm-title="Delete request"
+                            data-confirm-message="Delete {{ $lr->intern->full_name }}'s {{ $lr->type_label }} for {{ $lr->date->format('M d, Y') }}? This removes it entirely — the intern can file a new one."
+                            data-confirm-action="Delete"
+                            onsubmit="return askConfirm(this);">
+                            @csrf
+                            @method('DELETE')
+                            <button class="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-700 text-xs font-medium px-2.5 py-1.5 rounded-lg transition" title="Delete this request">Delete</button>
+                        </form>
+                    @endif
                 </div>
             @else
                 <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $lr->status_badge['class'] }}">{{ $lr->status_badge['label'] }}</span>
@@ -184,4 +196,6 @@ function openReject(button) {
 }
 </script>
 @endpush
+
+@include('partials.confirm-modal')
 @endsection

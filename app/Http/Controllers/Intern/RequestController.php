@@ -39,4 +39,19 @@ class RequestController extends Controller
         return redirect()->route('intern.requests.index')
             ->with('status', "Your {$logRequest->type_label} for {$logRequest->date->format('M d, Y')} was submitted — your supervisor and coordinator have been notified.");
     }
+
+    /**
+     * Withdraw a request that hasn't been decided yet. It's the intern's own
+     * filing and only while it still waits on a decision — the can:delete
+     * policy middleware refuses decided or foreign requests outright.
+     */
+    public function destroy(Request $request, LogRequest $logRequest)
+    {
+        $label = "{$logRequest->type_label} for {$logRequest->date->format('M d, Y')}";
+
+        $logRequest->delete();
+
+        return redirect()->route('intern.requests.index')
+            ->with('status', "Your {$label} was withdrawn — file a new one anytime.");
+    }
 }

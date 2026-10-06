@@ -240,3 +240,88 @@ test('an intern cannot file a request for a future date', function () {
         ])
         ->assertSessionHasErrors('date');
 });
+
+/*
+ * Withdrawing and deleting attendance requests — an intern can withdraw
+ * their own filing while it still awaits a decision; once decided, the
+ * outcome is part of the record. The System Admin can delete pending
+ * requests entirely (junk/duplicate cleanup); decided ones stay.
+ */
+
+function filePendingAbsence(array $who, string $reason = 'Sick.'): LogRequest
+{
+    test()->actingAs($who['intern'])
+        ->post(route('intern.requests.store'), [
+            'type' => 'absence',
+            'date' => today()->toDateString(),
+            'reason' => $reason,
+        ]);
+
+    return LogRequest::firstOrFail();
+}
+
+test('an intern can withdraw their own pending request', function () {
+    $world = requestWorld();
+    $request = filePendingAbsence($world);
+
+    expect(LogRequest::count())->toBe(1);
+
+    $this->actingAs($world['intern'])
+        ->delete(route('intern.requests.destroy', $request))
+        ->assertRedirect(route('intern.requests.index'));
+
+    expect(LogRequest::count())->toBe(0);
+});
+
+test('a decided request can no longer be withdrawn', function () {
+    $world = requestWorld();
+    $request = filePendingAbsence($world);
+
+    $this->actingAs($world['supervisor'])
+        ->post(route('monitor.requests.log.decide', $request), ['action' => 'approved']);
+
+    $this->actingAs($world['intern'])
+        ->delete(route('intern.requests.destroy', $request))
+        ->assertForbidden();
+
+    expect(LogRequest::count())->toBe(1);
+});
+
+test('an intern cannot withdraw another intern\'s request', function () {
+    $world = requestWorld();
+    $request = filePendingAbsence($world);
+
+    $stranger = makeIntern(['student_id' => 'T-9877']);
+    makeActiveEnrollment($stranger);
+
+    $this->actingAs($stranger)
+        ->delete(route('intern.requests.destroy', $request))
+        ->assertForbidden();
+
+    expect(LogRequest::count())->toBe(1);
+});
+
+test('the System Admin can delete a pending attendance request', function () {
+    $world = requestWorld();
+    $request = filePendingAbsence($world, 'junk filing.');
+
+    $this->actingAs($world['admin'])
+        ->delete(route('admin.requests.attendance.destroy', $request))
+        ->assertRedirect(route('admin.requests.index'));
+
+    expect(LogRequest::count())->toBe(0);
+});
+
+test('the System Admin cannot delete a decided attendance request', function () {
+    $world = requestWorld();
+    $request = filePendingAbsence($world);
+
+    $this->actingAs($world['supervisor'])
+        ->post(route('monitor.requests.log.decide', $request), ['action' => 'approved']);
+
+    $this->actingAs($world['admin'])
+        ->delete(route('admin.requests.attendance.destroy', $request))
+        ->assertStatus(422);
+
+    expect(LogRequest::count())->toBe(1);
+});

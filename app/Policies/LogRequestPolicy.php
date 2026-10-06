@@ -25,4 +25,16 @@ class LogRequestPolicy
 
         return $user->supervisesOffice($logRequest->intern->office_id);
     }
+
+    /**
+     * A request may be withdrawn by the intern who filed it while it still
+     * awaits a decision — once a supervisor has ruled, the outcome is part
+     * of the record and the line can't be erased.
+     */
+    public function delete(User $user, LogRequest $logRequest): bool
+    {
+        return $user->isIntern()
+            && $logRequest->intern_id === $user->id
+            && $logRequest->status === 'pending';
+    }
 }

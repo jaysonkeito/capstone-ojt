@@ -76,7 +76,20 @@
                                 </p>
                             @endif
                         </div>
-                        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $lr->status_badge['class'] }}">{{ $lr->status_badge['label'] }}</span>
+                        <div class="shrink-0 flex flex-col items-end gap-1.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $lr->status_badge['class'] }}">{{ $lr->status_badge['label'] }}</span>
+                            @if($lr->status === 'pending')
+                                <form method="POST" action="{{ route('intern.requests.destroy', $lr) }}"
+                                    data-confirm-title="Withdraw request"
+                                    data-confirm-message="Withdraw your {{ $lr->type_label }} for {{ $lr->date->format('M d, Y') }}? Your supervisor and coordinator will no longer see it."
+                                    data-confirm-action="Withdraw"
+                                    onsubmit="return askConfirm(this);">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="text-[11px] font-medium text-gray-400 hover:text-red-600 transition">Withdraw</button>
+                                </form>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @empty
@@ -85,4 +98,6 @@
         </div>
     </div>
 </div>
+
+@include('partials.confirm-modal')
 @endsection

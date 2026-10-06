@@ -88,6 +88,22 @@ class RequestController extends Controller
     }
 
     /**
+     * Remove an attendance request entirely — cleanup for junk or duplicate
+     * filings. Pending only: a decided request is part of the record (its
+     * outcome and the supervisor/coordinator who made it stay on the trail).
+     */
+    public function destroyAttendance(Request $request, LogRequest $logRequest)
+    {
+        abort_unless($logRequest->status === 'pending', 422, 'Only pending attendance requests can be deleted.');
+
+        $label = "{$logRequest->intern->full_name}'s {$logRequest->type_label} for {$logRequest->date->format('M d, Y')}";
+
+        $logRequest->delete();
+
+        return redirect()->route('admin.requests.index')->with('status', "Deleted {$label}.");
+    }
+
+    /**
      * Shared decision validation for the admin queues: approve or reject,
      * with a reason required for a rejection.
      *
