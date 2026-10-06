@@ -151,9 +151,9 @@ docker run --rm -v "$PWD:/src" -v ojt-tracker_app-storage:/data alpine tar xzf /
 
 The dump includes the full schema *and* the `migrations` table — import it into an
 **empty** database (no `migrate` first; the import creates every table and leaves the
-schema exactly as the dev machine had it). `import-cleanup.sql` strips the local test
-accounts and development session/cache rows and is safe to re-run. `db:seed` is **not**
-run on this path.
+schema exactly as the dev machine had it). The demo/test accounts were removed from the
+dev database before export; `import-cleanup.sql` only clears the development
+session/cache rows and is safe to re-run. `db:seed` is **not** run on this path.
 
 **Check:** `docker compose ps` shows db healthy + 4 services running; open
 `http://norsubscojt.online` → the login page.
@@ -231,7 +231,7 @@ The second line captures intern photos and uploaded templates (the `app-storage`
 3. Staff: verify the coordinator/supervisor/dean accounts are present (imported); create
    any that are missing (default password = last name).
 4. Kiosk PC: `KIOSK_URL=https://norsubscojt.online/admin/kiosk` in `kiosk-station.bat`,
-   scan a **real intern's** QR four times (AM In → AM Out → PM In → PM Out) — the local
-   test accounts were stripped by `import-cleanup.sql`. Delete those four scans
+   scan a **real intern's** QR four times (AM In → AM Out → PM In → PM Out) — there is no
+   dummy account (demo/test accounts were removed before export). Delete those four scans
    afterwards from the intern's Duty History if you don't want them counted.
 5. Install the APK on a phone, run the offline test from `docs/mobile-app.md`.
