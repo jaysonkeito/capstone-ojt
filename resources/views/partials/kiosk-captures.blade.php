@@ -18,7 +18,7 @@
         <div class="absolute inset-0 bg-gray-900/40" onclick="document.getElementById('kioskCaptures{{ $log->id }}').classList.add('hidden')"></div>
         <div class="relative bg-white border border-gray-200 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden">
             <div class="flex items-center justify-between gap-2 px-5 py-3 border-b border-gray-100">
-                <p class="text-sm font-medium text-gray-900">Kiosk captures — {{ $intern->full_name }} ({{ $log->date->format('M d, Y') }})</p>
+                <p class="text-sm font-medium text-gray-900">Scan captures — {{ $intern->full_name }} ({{ $log->date->format('M d, Y') }})</p>
                 <button type="button" onclick="document.getElementById('kioskCaptures{{ $log->id }}').classList.add('hidden')"
                     class="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-900 hover:bg-gray-100">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>

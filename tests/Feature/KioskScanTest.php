@@ -1093,7 +1093,7 @@ test('supervisors see the day\'s kiosk captures on the intern log page', functio
         ->assertOk()
         // The camera button with the capture count, and the modal behind it
         // naming the slot the capture belongs to.
-        ->assertSee('Kiosk captures')
+        ->assertSee('Scan captures')
         ->assertSee('AM Time In');
 });
 
@@ -1125,7 +1125,7 @@ test('the admin sees the day\'s captures on the monitoring page', function () {
         ->assertOk()
         ->assertSee($intern->full_name)
         ->assertSee('AM Time In')
-        ->assertSee('Kiosk Captures');
+        ->assertSee('Scan Captures');
 });
 
 test('supervisors only see their own office\'s captures', function () {

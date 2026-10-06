@@ -75,71 +75,73 @@
             ? App\Models\LogRequest::where('intern_id', $u->id)->where('status', 'pending')->count()
             : 0;
 
+        // Every link carries a 'group' — the sidebar renders a section header
+        // whenever the group changes, so related items read as one block.
         $navLinks = match (true) {
             $u->isAdmin() => [
-                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
-                ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'badge' => $pendingApprovals ?: null],
-                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook'],
-                ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices'],
-                ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff'],
-                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Kiosk'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Kiosk Captures'],
-                ['route' => 'admin.requests.index', 'match' => 'admin.requests.*', 'icon' => 'file', 'label' => 'Requests', 'badge' => $pendingAdminRequests ?: null],
-                ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'icon' => 'file', 'label' => 'Activity Log'],
-                ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates'],
-                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
+                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
+                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
+                ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff', 'group' => 'People'],
+                ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices', 'group' => 'People'],
+                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => 'Attendance'],
+                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
+                ['route' => 'admin.requests.index', 'match' => 'admin.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingAdminRequests ?: null],
+                ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'icon' => 'file', 'label' => 'Activity Log', 'group' => 'System'],
+                ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
+                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
             ],
             // Supervisors run their office's program: the scoped dashboard,
-            // their interns, the logbook and office kiosk. Templates stay
+            // their interns, the logbook and the office scanner. Templates stay
             // with the Coordinator and the System Admin.
             $u->isSupervisor() => [
-                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
-                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook'],
-                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Kiosk'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Kiosk Captures'],
-                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'badge' => $pendingMonitorRequests ?: null],
-                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
+                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
+                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
+                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => 'Attendance'],
+                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
+                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
             ],
             // Coordinators run the school-side program: their interns, the
             // logbook, staff accounts, offices, plus templates and settings.
             $u->isCoordinator() => [
-                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
-                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Kiosk Captures'],
-                ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff'],
-                ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices'],
-                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'badge' => $pendingMonitorRequests ?: null],
-                ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates'],
-                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings'],
+                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
+                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
+                ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff', 'group' => 'People'],
+                ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices', 'group' => 'People'],
+                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
+                ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
+                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
             ],
             // Deans: approvals desk, plus the coordinator's monitoring tools
             // when they also coordinate a program's interns.
             $u->isDean() => [
-                ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'badge' => $pendingApprovals ?: null],
-                ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Kiosk Captures'],
-                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests'],
+                ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns', 'group' => 'People'],
+                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
+                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
             ],
             default => [
-                ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard'],
-                ['route' => 'intern.my-qr', 'match' => 'intern.my-qr', 'icon' => 'qr', 'label' => 'My QR Code'],
-                ['route' => 'intern.time-frame', 'match' => 'intern.time-frame', 'icon' => 'clock', 'label' => 'My Time Frame'],
-                ['route' => 'intern.documentation', 'match' => 'intern.documentation', 'icon' => 'image', 'label' => 'My Journal'],
-                ['route' => 'intern.requests.index', 'match' => 'intern.requests.*', 'icon' => 'file', 'label' => 'My Requests', 'badge' => $pendingInternRequests ?: null],
-                ['route' => 'intern.personal-information.edit', 'match' => 'intern.personal-information.*', 'icon' => 'id-card', 'label' => 'Personal Info'],
-                ['route' => 'intern.requirements.index', 'match' => 'intern.requirements.*', 'icon' => 'file', 'label' => 'Requirements'],
+                ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard', 'group' => 'My OJT'],
+                ['route' => 'intern.my-qr', 'match' => 'intern.my-qr', 'icon' => 'qr', 'label' => 'My QR Code', 'group' => 'My OJT'],
+                ['route' => 'intern.time-frame', 'match' => 'intern.time-frame', 'icon' => 'clock', 'label' => 'My Time Frame', 'group' => 'My OJT'],
+                ['route' => 'intern.documentation', 'match' => 'intern.documentation', 'icon' => 'image', 'label' => 'My Journal', 'group' => 'My OJT'],
+                ['route' => 'intern.requests.index', 'match' => 'intern.requests.*', 'icon' => 'file', 'label' => 'My Requests', 'group' => 'Requests', 'badge' => $pendingInternRequests ?: null],
+                ['route' => 'intern.personal-information.edit', 'match' => 'intern.personal-information.*', 'icon' => 'id-card', 'label' => 'Personal Info', 'group' => 'My Records'],
+                ['route' => 'intern.requirements.index', 'match' => 'intern.requirements.*', 'icon' => 'file', 'label' => 'Requirements', 'group' => 'My Records'],
             ],
         };
 
         // Everyone can manage their own profile (photo, info, password).
-        $navLinks[] = ['route' => 'profile', 'match' => 'profile', 'icon' => 'user', 'label' => 'Profile'];
+        $navLinks[] = ['route' => 'profile', 'match' => 'profile', 'icon' => 'user', 'label' => 'Profile', 'group' => 'Account'];
 
         // The notification inbox — every role, with the unread count as a badge.
-        $navLinks[] = ['route' => 'notifications.index', 'match' => 'notifications.*', 'icon' => 'bell', 'label' => 'Notifications', 'badge' => $unreadNotificationCount ?: null];
+        $navLinks[] = ['route' => 'notifications.index', 'match' => 'notifications.*', 'icon' => 'bell', 'label' => 'Notifications', 'group' => 'Account', 'badge' => $unreadNotificationCount ?: null];
     @endphp
 
     <div class="flex min-h-screen">
@@ -154,8 +156,14 @@
             </div>
 
             <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-                <p class="px-3 pb-2 text-[10px] font-medium uppercase tracking-widest text-gray-400">Menu</p>
+                @php $navGroup = null; @endphp
                 @foreach($navLinks as $link)
+                    @if(($link['group'] ?? '') !== $navGroup)
+                        @php $navGroup = $link['group'] ?? ''; @endphp
+                        @if($navGroup !== '')
+                            <p class="px-3 pt-4 pb-2 text-[10px] font-medium uppercase tracking-widest text-gray-400">{{ $navGroup }}</p>
+                        @endif
+                    @endif
                     @php $active = request()->routeIs($link['match']); @endphp
                     <a href="{{ route($link['route']) }}"
                        class="nav-link px-3 py-2 rounded-lg text-sm transition
@@ -222,19 +230,26 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
                         </button>
                     </div>
-                    <nav class="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
-                        @foreach($navLinks as $link)
-                            @php $active = request()->routeIs($link['match']); @endphp
-                            <a href="{{ route($link['route']) }}"
-                               class="nav-link px-3 py-2.5 rounded-lg text-sm {{ $active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $icon($link['icon']) !!}</svg>
-                                <span>{{ $link['label'] }}</span>
-                                @if(! empty($link['badge']))
-                                    <span class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full {{ $active ? 'bg-brand-600 text-white' : 'bg-amber-100 text-amber-700' }}">{{ $link['badge'] }}</span>
-                                @endif
-                            </a>
-                        @endforeach
-                    </nav>
+                <nav class="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+                    @php $navGroup = null; @endphp
+                    @foreach($navLinks as $link)
+                        @if(($link['group'] ?? '') !== $navGroup)
+                            @php $navGroup = $link['group'] ?? ''; @endphp
+                            @if($navGroup !== '')
+                                <p class="px-3 pt-4 pb-2 text-[10px] font-medium uppercase tracking-widest text-gray-400">{{ $navGroup }}</p>
+                            @endif
+                        @endif
+                        @php $active = request()->routeIs($link['match']); @endphp
+                        <a href="{{ route($link['route']) }}"
+                           class="nav-link px-3 py-2.5 rounded-lg text-sm {{ $active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $icon($link['icon']) !!}</svg>
+                            <span>{{ $link['label'] }}</span>
+                            @if(! empty($link['badge']))
+                                <span class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full {{ $active ? 'bg-brand-600 text-white' : 'bg-amber-100 text-amber-700' }}">{{ $link['badge'] }}</span>
+                            @endif
+                        </a>
+                    @endforeach
+                </nav>
                     <div class="px-5 py-4 border-t border-gray-100 text-xs text-gray-400">
                         {{ $u->display_name }} · {{ $u->role_label }}
                     </div>

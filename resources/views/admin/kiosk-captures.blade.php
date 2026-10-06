@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Kiosk Captures')
+@section('title', 'Scan Captures')
 
 @section('content')
 <div class="mb-8">
-    <h1 class="text-xl font-semibold tracking-tight text-gray-900">Kiosk Captures</h1>
+    <h1 class="text-xl font-semibold tracking-tight text-gray-900">Scan Captures</h1>
     <p class="text-sm text-gray-500 mt-0.5">Webcam snapshots the kiosk took at each successful scan — verify the person behind every time in/out. Most recent scan first.</p>
 </div>
 
@@ -42,7 +42,7 @@
         <div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mx-auto mb-4">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="text-gray-300"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
         </div>
-        <p class="text-sm font-medium text-gray-700">No kiosk captures for this date</p>
+        <p class="text-sm font-medium text-gray-700">No scan captures for this date</p>
         <p class="text-xs text-gray-400 mt-1">Either no one scanned at the kiosk that day, or the station's camera was off or denied.</p>
     </div>
 @else
