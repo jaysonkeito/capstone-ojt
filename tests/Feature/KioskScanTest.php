@@ -1380,3 +1380,36 @@ test('a time-out scan records a time-out line on the activity trail', function (
     expect(AuditLog::where('action', 'time-out')->where('subject_id', $log->id)->exists())->toBeTrue()
         ->and(AuditLog::where('action', 'time-in')->where('subject_id', $log->id)->count())->toBe(1);
 });
+
+test('creating an office scanner account needs no person fields — its name derives from the office', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $office = makeOffice();
+
+    $this->actingAs($admin)
+        ->post(route('admin.staff.store'), [
+            'role' => 'office',
+            'office_id' => $office->id,
+            'email' => 'scanner.mis@norsubscojt.online',
+            'password' => 'password',
+        ])
+        ->assertRedirect(route('admin.staff.index'));
+
+    $scanner = User::where('role', 'office')->firstOrFail();
+
+    expect($scanner->first_name)->toBe('Scanner')
+        ->and($scanner->last_name)->toBe($office->name)
+        ->and($scanner->full_name)->toBe($office->name.', Scanner')
+        ->and($scanner->office_id)->toBe($office->id);
+
+    // A second scanner for the same office is fine — sessions are per device.
+    $this->actingAs($admin)
+        ->post(route('admin.staff.store'), [
+            'role' => 'office',
+            'office_id' => $office->id,
+            'email' => 'scanner2.mis@norsubscojt.online',
+            'password' => 'password',
+        ])
+        ->assertRedirect(route('admin.staff.index'));
+
+    expect(User::where('role', 'office')->count())->toBe(2);
+});

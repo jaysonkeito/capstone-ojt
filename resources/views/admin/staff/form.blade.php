@@ -17,7 +17,7 @@
             @unless($staff->exists)
                 <div class="mb-5">
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
-                    <select name="role" required onchange="document.getElementById('officeField').classList.toggle('hidden', ! ['supervisor', 'office'].includes(this.value))"
+                    <select name="role" required onchange="syncStaffRoleFields(this.value)"
                         class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                         <option value="coordinator" {{ old('role', $staff->role) === 'coordinator' ? 'selected' : '' }}>OJT Coordinator — monitors the interns assigned to them</option>
                         <option value="supervisor" {{ old('role', $staff->role) === 'supervisor' ? 'selected' : '' }}>Supervisor — monitors the interns at their office</option>
@@ -28,7 +28,7 @@
             @endunless
 
             {{-- College — editable on both create and edit so existing staff can be assigned --}}
-            <div class="mb-5">
+            <div id="collegeField" class="mb-5 {{ ($staff->exists && $staff->isOffice()) ? 'hidden' : '' }}">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">College</label>
                 <select name="college_code" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="">— None —</option>
@@ -41,6 +41,10 @@
                 <p class="text-[11px] text-gray-400 mt-1">Required for coordinators and deans. Supervisors of external offices may leave this blank — their sign-ups then go to the System Admin for approval.</p>
             </div>
 
+            {{-- An office scanner account is a station, not a person — the
+                 display name derives from its office, so the person fields
+                 and college don't apply. --}}
+            <div id="personFields" class="{{ ($staff->exists && $staff->isOffice()) ? 'hidden' : '' }}">
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
@@ -68,6 +72,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">Position <span class="text-gray-400 font-normal text-xs">(e.g. MIS, Campus Director)</span></label>
                 <input type="text" name="position" value="{{ old('position', $staff->position) }}" placeholder="e.g. MIS, Campus Director"
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+            </div>
             </div>
 
             <div>
@@ -114,4 +119,17 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    // Office scanner accounts are stations, not people — picking the role
+    // hides the person fields and college, and shows the office instead.
+    function syncStaffRoleFields(role) {
+        var isOffice = role === 'office';
+        document.getElementById('officeField').classList.toggle('hidden', ! (isOffice || role === 'supervisor'));
+        document.getElementById('personFields').classList.toggle('hidden', isOffice);
+        document.getElementById('collegeField').classList.toggle('hidden', isOffice);
+    }
+</script>
+@endpush
 @endsection

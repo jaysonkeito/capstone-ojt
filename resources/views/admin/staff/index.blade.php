@@ -149,7 +149,7 @@
             @csrf
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Role</label>
-                <select name="role" required onchange="document.getElementById('modalOfficeField').classList.toggle('hidden', ! ['supervisor', 'office'].includes(this.value))"
+                <select name="role" required onchange="syncModalStaffRoleFields(this.value)"
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="coordinator">OJT Coordinator — monitors the interns assigned to them</option>
                     <option value="supervisor">Supervisor — monitors the interns at their office</option>
@@ -166,6 +166,7 @@
                     @endforeach
                 </select>
             </div>
+            <div id="modalPersonFields">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">First Name</label>
@@ -192,6 +193,7 @@
                 <label class="block text-xs font-medium text-gray-600 mb-1">Position <span class="text-gray-400 font-normal">(e.g. MIS, Campus Director)</span></label>
                 <input type="text" name="position" value="{{ old('position') }}" placeholder="e.g. MIS, Campus Director"
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+            </div>
             </div>
             <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Email <span class="text-gray-400 font-normal">(used to log in)</span></label>
@@ -233,4 +235,17 @@
 </div>
 
 @include('partials.confirm-modal')
+
+@push('scripts')
+<script>
+    // Office scanner accounts are stations, not people — picking the role
+    // hides the person fields and college, and shows the office instead.
+    function syncModalStaffRoleFields(role) {
+        var isOffice = role === 'office';
+        document.getElementById('modalOfficeField').classList.toggle('hidden', ! (isOffice || role === 'supervisor'));
+        document.getElementById('modalPersonFields').classList.toggle('hidden', isOffice);
+        document.getElementById('modalCollegeField').classList.toggle('hidden', isOffice);
+    }
+</script>
+@endpush
 @endsection

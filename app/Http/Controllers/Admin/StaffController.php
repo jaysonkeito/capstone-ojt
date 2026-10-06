@@ -51,9 +51,12 @@ class StaffController extends Controller
     {
         $validated = $request->validate([
             'role' => ['required', Rule::in(['coordinator', 'supervisor', 'dean', 'office'])],
-            'first_name' => ['required', 'string', 'max:255'],
+            // An office scanner account is a station, not a person — its
+            // display name derives from the office ("«office» Scanner"), so
+            // the person fields don't apply.
+            'first_name' => [$request->input('role') === 'office' ? 'nullable' : 'required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'last_name' => [$request->input('role') === 'office' ? 'nullable' : 'required', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:50'],
             'position' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -73,10 +76,15 @@ class StaffController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
+        // The scanner account's name comes from its office — nobody types it.
+        // Stored directory-style (last, first) so it reads like every other
+        // staff row: "Test Office, Scanner".
+        $office = $validated['role'] === 'office' ? Office::find($validated['office_id']) : null;
+
         $user = User::create([
             'role' => $validated['role'],
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
+            'first_name' => $office ? 'Scanner' : $validated['first_name'],
+            'last_name' => $office?->name ?? $validated['last_name'],
             'title' => $validated['title'] ?? null,
             'position' => $validated['position'] ?? null,
             'email' => $validated['email'],
@@ -96,7 +104,7 @@ class StaffController extends Controller
         // Save middle name + college to the staff profile
         $user->staffProfile()->create([
             'middle_name' => $validated['middle_name'] ?? null,
-            'college_code' => $validated['college_code'],
+            'college_code' => $validated['college_code'] ?? null,
         ]);
 
         $label = match ($validated['role']) {
@@ -106,7 +114,11 @@ class StaffController extends Controller
             default => 'OJT Coordinator',
         };
 
-        return redirect()->route('admin.staff.index')->with('status', "{$label} account created for {$validated['first_name']} {$validated['last_name']}.");
+        $displayName = $office
+            ? "{$office->name}, Scanner"
+            : trim("{$validated['first_name']} {$validated['last_name']}");
+
+        return redirect()->route('admin.staff.index')->with('status', "{$label} account created for {$displayName}.");
     }
 
     public function edit(User $staff)
@@ -125,9 +137,11 @@ class StaffController extends Controller
         abort_unless($this->isManagedStaff($staff), 404);
 
         $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
+            // Names are skipped for office scanner accounts — they were
+            // derived from the office at creation and stay that way.
+            'first_name' => [$staff->isOffice() ? 'nullable' : 'required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'last_name' => [$staff->isOffice() ? 'nullable' : 'required', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:50'],
             'position' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($staff->id)],
@@ -142,10 +156,10 @@ class StaffController extends Controller
         ]);
 
         $staff->update([
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'title' => $validated['title'] ?? null,
-            'position' => $validated['position'] ?? null,
+            'first_name' => $staff->isOffice() ? $staff->first_name : $validated['first_name'],
+            'last_name' => $staff->isOffice() ? $staff->last_name : $validated['last_name'],
+            'title' => $staff->isOffice() ? $staff->title : ($validated['title'] ?? null),
+            'position' => $staff->isOffice() ? $staff->position : ($validated['position'] ?? null),
             'email' => $validated['email'],
             'office_id' => in_array($staff->role, ['supervisor', 'dean', 'office'], true) ? ($validated['office_id'] ?? null) : null,
             'is_active' => $request->boolean('is_active', false),
