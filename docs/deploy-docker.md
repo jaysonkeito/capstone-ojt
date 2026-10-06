@@ -89,7 +89,9 @@ cd /opt/ojt-tracker
 cp .env.example .env   # or copy the project's .env and edit it
 ```
 
-Edit `.env` for production:
+Edit `.env` for production — a ready-to-copy template ships in the repo as
+`.env.production`; copy it over `.env` and fill in the FILL-IN values (the
+database password) instead of assembling the file by hand:
 
 ```ini
 APP_ENV=production
