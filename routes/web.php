@@ -179,27 +179,6 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
         Route::put('/logs/{log}', [OjtLogController::class, 'update'])->name('logs.update');
         Route::delete('/logs/{log}', [OjtLogController::class, 'destroy'])->name('logs.destroy');
 
-        // Kiosk — the office desk-scanner station, left open on the front-desk
-        // PC wired to the QR scanner box. Interns present their personal QR and
-        // each scan records the next time of their day. Runs in the office, so
-        // it's the Supervisor's station (the scanner resolves only that
-        // office's interns); Coordinators don't get it.
-        Route::middleware('role:admin,supervisor,dean')->group(function () {
-            Route::get('/kiosk', [KioskController::class, 'index'])->name('kiosk.index');
-            Route::get('/kiosk/ping', [KioskController::class, 'ping'])->name('kiosk.ping');
-            Route::post('/kiosk/scan', [KioskController::class, 'scan'])->name('kiosk.scan');
-            Route::post('/kiosk/manual', [KioskController::class, 'manual'])->name('kiosk.manual');
-        });
-
-        // Kiosk captures — the verification snapshots the kiosk webcam takes
-        // at each successful scan. One monitoring page for everyone who
-        // reviews attendance: admins and deans campus-wide, supervisors for
-        // their office, coordinators for their interns (coordinators don't
-        // run the kiosk itself, but they do verify their interns' times).
-        Route::middleware('role:admin,supervisor,coordinator,dean')->group(function () {
-            Route::get('/kiosk-captures', [KioskController::class, 'captures'])->name('kiosk-captures.index');
-        });
-
         // Activity log — System Admin only: the full trail of who changed
         // what, across accounts, duty records, requests, and templates.
         Route::middleware('role:admin')->group(function () {
@@ -247,6 +226,38 @@ Route::middleware(['auth', 'role:admin,dean,coordinator', 'profile-completed'])
         Route::get('/approvals', [AdminApprovalController::class, 'index'])->name('approvals.index');
         Route::post('/approvals/{user}/approve', [AdminApprovalController::class, 'approve'])->name('approvals.approve');
         Route::delete('/approvals/{user}/reject', [AdminApprovalController::class, 'reject'])->name('approvals.reject');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Kiosk & scan captures — the office front-desk station plus the webcam
+| verification gallery. Lives outside the System Admin group so every
+| reviewing role reaches it: the office scanner account (kiosk PC,
+| station-only — nested role middleware does not widen the group's own
+| restriction, the same reason the dean's approvals live out here),
+| supervisors and coordinators for their scope, admins campus-wide.
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'profile-completed'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        // The station itself: the office scanner account runs it, and its
+        // guardOffice resolves only that office's interns.
+        Route::middleware('role:admin,supervisor,dean,office')->group(function () {
+            Route::get('/kiosk', [KioskController::class, 'index'])->name('kiosk.index');
+            Route::get('/kiosk/ping', [KioskController::class, 'ping'])->name('kiosk.ping');
+            Route::post('/kiosk/scan', [KioskController::class, 'scan'])->name('kiosk.scan');
+            Route::post('/kiosk/manual', [KioskController::class, 'manual'])->name('kiosk.manual');
+        });
+
+        Route::middleware('role:admin,supervisor,coordinator,dean')->group(function () {
+            Route::get('/kiosk-captures', [KioskController::class, 'captures'])->name('kiosk-captures.index');
+        });
+
+        Route::middleware('role:admin')->group(function () {
+            Route::delete('/kiosk-captures/{log}/{slot}', [KioskController::class, 'deleteCapture'])->name('kiosk-captures.delete');
+        });
     });
 
 /*

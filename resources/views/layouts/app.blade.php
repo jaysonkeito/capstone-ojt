@@ -126,6 +126,11 @@
                 ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
             ],
+            // Office scanner accounts: the station is their entire surface —
+            // they exist so the kiosk PC's session exposes nothing else.
+            $u->isOffice() => [
+                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => ''],
+            ],
             default => [
                 ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard', 'group' => 'My OJT'],
                 ['route' => 'intern.my-qr', 'match' => 'intern.my-qr', 'icon' => 'qr', 'label' => 'My QR Code', 'group' => 'My OJT'],

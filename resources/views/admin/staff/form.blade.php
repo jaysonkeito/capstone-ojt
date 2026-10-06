@@ -17,11 +17,12 @@
             @unless($staff->exists)
                 <div class="mb-5">
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
-                    <select name="role" required onchange="document.getElementById('officeField').classList.toggle('hidden', this.value !== 'supervisor')"
+                    <select name="role" required onchange="document.getElementById('officeField').classList.toggle('hidden', ! ['supervisor', 'office'].includes(this.value))"
                         class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                         <option value="coordinator" {{ old('role', $staff->role) === 'coordinator' ? 'selected' : '' }}>OJT Coordinator — monitors the interns assigned to them</option>
                         <option value="supervisor" {{ old('role', $staff->role) === 'supervisor' ? 'selected' : '' }}>Supervisor — monitors the interns at their office</option>
                         <option value="dean" {{ old('role', $staff->role) === 'dean' ? 'selected' : '' }}>College Dean — approves coordinator and supervisor sign-ups for their college</option>
+                        <option value="office" {{ old('role', $staff->role) === 'office' ? 'selected' : '' }}>Office Scanner — scanner-only account for the kiosk PC; nothing else</option>
                     </select>
                 </div>
             @endunless
@@ -86,8 +87,8 @@
                 </div>
             @endif
 
-            <div id="officeField" class="{{ ($staff->exists ? ! in_array($staff->role, ['supervisor', 'dean']) : ! in_array(old('role', $staff->role), ['supervisor', 'dean'])) ? 'hidden' : '' }}">
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Office <span class="text-gray-400 font-normal text-xs">(required for supervisors; optional for deans — set it if the dean supervises their office's interns)</span></label>
+            <div id="officeField" class="{{ ($staff->exists ? ! in_array($staff->role, ['supervisor', 'dean', 'office']) : ! in_array(old('role', $staff->role), ['supervisor', 'dean', 'office'])) ? 'hidden' : '' }}">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Office <span class="text-gray-400 font-normal text-xs">(required for supervisors and office scanner accounts; optional for deans — set it if the dean supervises their office's interns)</span></label>
                 <select name="office_id" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="">Select office</option>
                     @foreach($offices as $office)

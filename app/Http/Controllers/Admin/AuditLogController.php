@@ -18,7 +18,7 @@ class AuditLogController extends Controller
 {
     public function index(Request $request): View
     {
-        $actions = ['created', 'updated', 'deleted', 'restored', 'logged-in', 'logged-out'];
+        $actions = ['created', 'updated', 'deleted', 'restored', 'logged-in', 'logged-out', 'time-in', 'time-out'];
 
         $logs = $this->fetchEntries($request, 300);
 

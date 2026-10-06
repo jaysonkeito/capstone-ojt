@@ -53,15 +53,33 @@
                     $time = $log->{$slot} ? \Illuminate\Support\Carbon::parse($log->{$slot})->format('g:i A') : '—';
                 @endphp
                 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-                    <button type="button" class="block w-full relative cursor-zoom-in"
-                        onclick="openCapture('{{ \Illuminate\Support\Facades\Storage::disk('public')->url($path) }}')">
-                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($path) }}" loading="lazy"
-                            alt="Kiosk capture — {{ $log->user->full_name }} at {{ $time }}"
-                            class="w-full aspect-[4/3] object-cover bg-gray-100">
-                        <span class="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-900/70 text-white">
-                            {{ \App\Support\AttendanceRecorder::labelFor($slot) }}
-                        </span>
-                    </button>
+                    <div class="relative">
+                        <button type="button" class="block w-full cursor-zoom-in"
+                            onclick="openCapture('{{ \Illuminate\Support\Facades\Storage::disk('public')->url($path) }}')">
+                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($path) }}" loading="lazy"
+                                alt="Kiosk capture — {{ $log->user->full_name }} at {{ $time }}"
+                                class="w-full aspect-[4/3] object-cover bg-gray-100">
+                            <span class="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-900/70 text-white">
+                                {{ \App\Support\AttendanceRecorder::labelFor($slot) }}
+                            </span>
+                        </button>
+                        @if(auth()->user()->isAdmin())
+                            {{-- A wrong or unflattering frame can be removed for good —
+                                 the photo file goes with it and the trail notes the change. --}}
+                            <form method="POST" action="{{ route('admin.kiosk-captures.delete', [$log, $slot]) }}"
+                                class="absolute top-1.5 right-1.5"
+                                data-confirm-title="Delete capture"
+                                data-confirm-message="Delete {{ $log->user->full_name }}'s {{ \App\Support\AttendanceRecorder::labelFor($slot) }} capture? The photo is removed from the server permanently."
+                                data-confirm-action="Delete"
+                                onsubmit="return askConfirm(this);">
+                                @csrf
+                                @method('DELETE')
+                                <button class="w-7 h-7 rounded-md bg-black/50 text-white flex items-center justify-center hover:bg-red-600 transition" title="Delete capture">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </form>
+                        @endif
+                    </div>
                     <div class="px-3 py-2.5">
                         <p class="text-sm font-medium text-gray-900 truncate" title="{{ $log->user->full_name }}">{{ $log->user->full_name }}</p>
                         <p class="text-xs text-gray-500 mt-0.5 flex items-center justify-between gap-2">
@@ -78,6 +96,8 @@
 
     <div class="mt-5">{{ $logs->links() }}</div>
 @endif
+
+@include('partials.confirm-modal')
 
 {{-- Click-to-zoom lightbox --}}
 <div id="captureZoom" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"

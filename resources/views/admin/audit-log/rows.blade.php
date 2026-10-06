@@ -12,6 +12,7 @@
                     'updated' => 'bg-amber-50 text-amber-700',
                     'deleted' => 'bg-red-50 text-red-700',
                     'restored' => 'bg-blue-50 text-blue-700',
+                    'time-in', 'time-out' => 'bg-emerald-50 text-emerald-700',
                     default => 'bg-gray-100 text-gray-600',
                 } }}">{{ ucwords(str_replace('-', ' ', $log->action)) }}</span>
         </td>

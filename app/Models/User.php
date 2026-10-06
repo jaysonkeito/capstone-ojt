@@ -199,6 +199,15 @@ class User extends Authenticatable
     }
 
     /**
+     * Scanner-only account for the office's kiosk PC — it can run the
+     * station and nothing else.
+     */
+    public function isOffice(): bool
+    {
+        return $this->role === 'office';
+    }
+
+    /**
      * The college this staff member belongs to: the account's own code when
      * recorded (roster import, registration, admin provisioning), else the
      * staff profile's, else the installation default.
@@ -522,6 +531,7 @@ class User extends Authenticatable
             'coordinator' => 'OJT Coordinator',
             'supervisor' => 'Supervisor',
             'dean' => 'College Dean',
+            'office' => 'Office Scanner',
             default => ucfirst($this->role),
         };
     }

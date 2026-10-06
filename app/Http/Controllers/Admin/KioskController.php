@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\OjtLog;
 use App\Models\User;
 use App\Support\AttendanceRecorder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
@@ -235,6 +237,18 @@ class KioskController extends Controller
         $captureUrl = null;
         if (in_array($outcome['state'], ['recorded', 'done'], true)) {
             $captureUrl = $this->storeCapture($request, $outcome['log'], $slot);
+
+            // The punch itself belongs on the activity trail — one explicit
+            // line per scan, attributed to the intern whose time it is (the
+            // station's session user only operates the desk). The recorder's
+            // own writes are silenced in the observer, so this is the single
+            // clean scan entry instead of generic created/updated noise.
+            AuditLog::record(
+                str_ends_with((string) $slot, '_out') ? 'time-out' : 'time-in',
+                $outcome['log'],
+                ['recorded' => AttendanceRecorder::labelFor((string) $slot).' at '.now()->format('g:i A')],
+                $intern,
+            );
         }
 
         // A return during the lunch window is recorded as PM Time In even
@@ -265,6 +279,25 @@ class KioskController extends Controller
                 'percent' => $intern->completion_percentage,
             ],
         ];
+    }
+
+    /**
+     * Remove one scan capture for good — the photo file goes with the trail
+     * entry. Admin-only (route middleware); the kiosk_captures change itself
+     * is audited by the OjtLog observer.
+     */
+    public function deleteCapture(Request $request, OjtLog $log, string $slot): RedirectResponse
+    {
+        $captures = $log->kiosk_captures ?? [];
+
+        abort_unless(array_key_exists($slot, $captures), 404, 'Capture not found.');
+
+        Storage::disk('public')->delete($captures[$slot]);
+
+        unset($captures[$slot]);
+        $log->forceFill(['kiosk_captures' => $captures])->save();
+
+        return back()->with('status', 'Scan capture deleted.');
     }
 
     /**

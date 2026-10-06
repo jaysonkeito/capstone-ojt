@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\AuditLog;
 use App\Models\OjtEnrollment;
 use App\Models\OjtLog;
+use App\Models\Office;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -1201,4 +1203,180 @@ test('the captures page can be searched by name or Student ID', function () {
         ->assertOk()
         ->assertSee($found->full_name)
         ->assertDontSee($hidden->full_name);
+});
+
+/*
+ * Office scanner accounts — a second account per office, for the kiosk PC.
+ * It can run the station and nothing else: no dashboards, no intern lists,
+ * so the browser left open on the front desk all day exposes no supervisor
+ * navigation to whoever walks up to it.
+ */
+
+function makeOfficeScanner(Office $office, array $attributes = []): User
+{
+    return User::create([
+        'role' => 'office',
+        'first_name' => 'Front',
+        'last_name' => 'Desk',
+        'email' => fake()->unique()->safeEmail(),
+        'password' => 'password',
+        'password_changed_at' => now(),
+        'office_id' => $office->id,
+        'target_hours' => 0,
+        'is_active' => true,
+        'approved_at' => now(),
+        'profile_completed_at' => now(),
+        ...$attributes,
+    ]);
+}
+
+test('an office scanner account can run the kiosk for its own office', function () {
+    $office = makeOffice();
+    $scanner = makeOfficeScanner($office);
+    $intern = makeIntern(['office_id' => $office->id]);
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    $this->actingAs($scanner)->get(route('admin.kiosk.index'))->assertOk();
+
+    $this->post(route('admin.kiosk.scan'), ['code' => $intern->scanQrPayload()])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded', 'action' => 'AM Time In']);
+});
+
+test('an office scanner account cannot scan another office\'s interns', function () {
+    $office = makeOffice();
+    $scanner = makeOfficeScanner($office);
+    $stranger = makeIntern(['student_id' => 'T-9401']);
+    makeActiveEnrollment($stranger);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    $this->actingAs($scanner)
+        ->postJson(route('admin.kiosk.scan'), ['code' => $stranger->scanQrPayload()])
+        ->assertOk()
+        ->assertJson(['state' => 'not_assigned']);
+
+    expect(OjtLog::count())->toBe(0);
+});
+
+test('an office scanner account cannot reach any other section', function () {
+    $scanner = makeOfficeScanner(makeOffice());
+
+    $this->actingAs($scanner);
+
+    foreach ([route('admin.dashboard'), route('admin.interns.index'), route('admin.logs.index'), route('admin.requests.index'), route('admin.kiosk-captures.index')] as $url) {
+        $this->get($url)->assertForbidden();
+    }
+
+    // The station itself stays open to them.
+    $this->get(route('admin.kiosk.index'))->assertOk();
+});
+
+test('signing in as an office scanner lands directly on the kiosk', function () {
+    $scanner = makeOfficeScanner(makeOffice());
+
+    $this->post(route('login.store'), ['login' => $scanner->email, 'password' => 'password'])
+        ->assertRedirect(route('admin.kiosk.index'));
+});
+
+/*
+ * Capture deletion — the System Admin can remove a wrong or unflattering
+ * frame for good; every other role only ever views captures.
+ */
+
+test('the System Admin can delete a scan capture', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    $enrollment = makeActiveEnrollment($intern);
+    makeLog($intern, $enrollment, times: ['am_time_in' => '08:00']);
+    $log = OjtLog::where('user_id', $intern->id)->firstOrFail();
+    $path = putCapture($log, 'am_time_in', today()->toDateString());
+
+    $this->actingAs($admin)
+        ->delete(route('admin.kiosk-captures.delete', [$log, 'am_time_in']))
+        ->assertRedirect();
+
+    expect($log->fresh()->kiosk_captures)->toBe([])
+        ->and(Storage::disk('public')->exists($path))->toBeFalse();
+});
+
+test('deleting a missing capture 404s instead of guessing', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    $enrollment = makeActiveEnrollment($intern);
+    $log = makeLog($intern, $enrollment, times: ['am_time_in' => '08:00']);
+
+    $this->actingAs($admin)
+        ->delete(route('admin.kiosk-captures.delete', [$log, 'am_time_in']))
+        ->assertNotFound();
+});
+
+test('only the System Admin can delete captures', function () {
+    Storage::fake('public');
+    $office = makeOffice();
+    $supervisor = makeSupervisor($office);
+    $intern = makeIntern(['office_id' => $office->id]);
+    $enrollment = makeActiveEnrollment($intern);
+    makeLog($intern, $enrollment, times: ['am_time_in' => '08:00']);
+    $log = OjtLog::where('user_id', $intern->id)->firstOrFail();
+    $path = putCapture($log, 'am_time_in', today()->toDateString());
+
+    $this->actingAs($supervisor)
+        ->delete(route('admin.kiosk-captures.delete', [$log, 'am_time_in']))
+        ->assertForbidden();
+
+    expect(Storage::disk('public')->exists($path))->toBeTrue()
+        ->and($log->fresh()->kiosk_captures)->not->toBeEmpty();
+});
+
+/*
+ * The activity trail — each successful scan writes ONE explicit
+ * time-in/time-out line attributed to the intern, and the recorder's own
+ * writes stay silent so the trail reads cleanly instead of showing
+ * generic created/updated noise per scan.
+ */
+
+test('a scan records a single time-in line on the activity trail', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    $this->actingAs($admin)
+        ->postJson(route('admin.kiosk.scan'), ['code' => $intern->scanQrPayload()])
+        ->assertJson(['state' => 'recorded']);
+
+    $log = OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail();
+
+    $entry = AuditLog::where('action', 'time-in')->where('subject_type', 'OjtLog')->where('subject_id', $log->id)->first();
+
+    expect($entry)->not->toBeNull()
+        ->and($entry->user_name)->toBe($intern->full_name)
+        ->and($entry->changes['recorded'])->toContain('AM Time In')
+        // The recorder's generic writes are silenced — no created/updated noise.
+        ->and(AuditLog::where('subject_type', 'OjtLog')->whereIn('action', ['created', 'updated'])->where('subject_id', $log->id)->exists())->toBeFalse();
+});
+
+test('a time-out scan records a time-out line on the activity trail', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+    $payload = $intern->scanQrPayload();
+
+    $this->actingAs($admin);
+
+    $this->travelTo(now()->setTime(8, 0));
+    $this->postJson(route('admin.kiosk.scan'), ['code' => $payload]);
+
+    $this->travelTo(now()->setTime(12, 0));
+    $this->postJson(route('admin.kiosk.scan'), ['code' => $payload])->assertJson(['action' => 'AM Time Out']);
+
+    $log = OjtLog::where('user_id', $intern->id)->whereDate('date', today())->firstOrFail();
+
+    expect(AuditLog::where('action', 'time-out')->where('subject_id', $log->id)->exists())->toBeTrue()
+        ->and(AuditLog::where('action', 'time-in')->where('subject_id', $log->id)->count())->toBe(1);
 });

@@ -6,6 +6,7 @@ use App\Models\OjtEnrollment;
 use App\Models\OjtLog;
 use App\Models\OjtSetting;
 use App\Models\User;
+use App\Observers\AuditObserver;
 use Illuminate\Support\Carbon;
 
 /**
@@ -102,11 +103,24 @@ class AttendanceRecorder
     /**
      * Record the given clock time on the intern's day (creating today's entry
      * on the first scan) and report what happened so the caller can render it
-     * as JSON for the kiosk.
+     * as JSON for the kiosk. The recorder's own writes are silenced in the
+     * audit observer — each successful scan carries its single explicit
+     * time-in/time-out trail entry, recorded by the caller.
      *
      * @return array{state: string, log: OjtLog, slot: ?string}
      */
     public static function record(User $intern, OjtEnrollment $enrollment, Carbon $when): array
+    {
+        AuditObserver::$quiet = true;
+
+        try {
+            return self::doRecord($intern, $enrollment, $when);
+        } finally {
+            AuditObserver::$quiet = false;
+        }
+    }
+
+    private static function doRecord(User $intern, OjtEnrollment $enrollment, Carbon $when): array
     {
         $time = $when->format('H:i');
 
