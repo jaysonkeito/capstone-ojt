@@ -116,6 +116,12 @@ CACHE_STORE=database
 QUEUE_CONNECTION=database
 ```
 
+**Testing over the LAN IP before HTTPS is live?** Browsers drop Secure cookies on plain
+HTTP, so every form fails with Laravel's **419 Page Expired**. Temporarily set
+`SESSION_SECURE_COOKIE=false` in the server's `.env` and `docker compose up -d` to apply —
+then flip it back to `true` once `https://norsubscojt.online` is the access path (the
+cookie works fine over HTTPS).
+
 ## 3. Build + first run
 
 ```bash
