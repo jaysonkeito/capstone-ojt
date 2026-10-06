@@ -220,6 +220,30 @@ Nightly cron as root (`sudo crontab -e`):
 
 The second line captures intern photos and uploaded templates (the `app-storage` volume).
 
+### 6b. Keeping a copy off the server (and how to restore)
+
+Backups on the same disk survive bad updates and accidental deletes — not disk loss.
+Weekly, copy the latest archives to a laptop or other machine:
+
+```powershell
+scp "mis@192.168.101.4:/var/backups/ojt-*" D:\ojt-backups\
+```
+
+**Restore the database** (mysqldump archives include DROP/CREATE, so this replaces the
+current contents):
+```bash
+gunzip -c /var/backups/ojt-db-YYYY-MM-DD.sql.gz | docker compose exec -T db sh -c 'exec mysql -h127.0.0.1 -uojt -p"$MYSQL_PASSWORD" cas_ojt_management'
+```
+
+**Restore files** (intern photos, kiosk captures, uploads):
+```bash
+docker run --rm -v ojt-tracker_app-storage:/data -v /var/backups:/backup alpine tar xzf /backup/ojt-storage-YYYY-MM-DD.tgz -C /data
+docker compose restart app
+```
+
+After any restore, run the test suite's smoke path — log in, open the roster, check a
+duty day renders — before calling it recovered.
+
 ## 7. Useful commands
 
 | Task | Command |
