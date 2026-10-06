@@ -46,24 +46,46 @@
             <p class="text-xs text-gray-400">Oldest first, exactly as the exported form reads.</p>
         </div>
         @if($rows !== [])
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="text-left text-[11px] uppercase tracking-widest text-gray-400 border-b border-gray-100">
-                        <th class="px-5 py-2.5 font-medium">Date</th>
-                        <th class="px-5 py-2.5 font-medium">Time In / Out</th>
-                        <th class="px-5 py-2.5 font-medium text-right">Hours</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @foreach($rows as $row)
-                        <tr class="hover:bg-gray-50/60 transition">
-                            <td class="px-5 py-2.5 text-gray-900 tabular-nums whitespace-nowrap">{{ $row['date'] }}</td>
-                            <td class="px-5 py-2.5 text-gray-600">{{ $row['time'] }}</td>
-                            <td class="px-5 py-2.5 text-gray-900 font-medium tabular-nums text-right">{{ $row['hours'] }}</td>
+            {{-- Desktop / tablet: the same table the printed form reads. --}}
+            <div class="hidden sm:block">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-[11px] uppercase tracking-widest text-gray-400 border-b border-gray-100">
+                            <th class="px-5 py-2.5 font-medium">Date</th>
+                            <th class="px-5 py-2.5 font-medium">Time In / Out</th>
+                            <th class="px-5 py-2.5 font-medium text-right">Hours</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach($rows as $row)
+                            <tr class="hover:bg-gray-50/60 transition">
+                                <td class="px-5 py-2.5 text-gray-900 tabular-nums whitespace-nowrap">{{ $row['date'] }}</td>
+                                <td class="px-5 py-2.5 text-gray-600">{{ $row['time'] }}</td>
+                                <td class="px-5 py-2.5 text-gray-900 font-medium tabular-nums text-right">{{ $row['hours'] }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Phone: one card per duty day — the three squeezed columns
+                 become a date + hours header and one line per session, so the
+                 times never wrap mid-interval. --}}
+            <ul class="sm:hidden divide-y divide-gray-100">
+                @foreach($rows as $row)
+                    <li class="px-4 py-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-sm font-semibold text-gray-900 tabular-nums">{{ $row['date'] }}</p>
+                            <p class="text-xs font-medium text-gray-600 tabular-nums whitespace-nowrap">{{ $row['hours'] }}</p>
+                        </div>
+                        <div class="mt-1 space-y-0.5">
+                            @foreach(explode(' / ', $row['time']) as $session)
+                                <p class="text-[13px] text-gray-600 tabular-nums whitespace-nowrap">{{ trim($session) }}</p>
+                            @endforeach
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
         @else
             <p class="px-5 py-10 text-sm text-gray-400 text-center">No duty days recorded in this OJT set yet — time in at the office scanner to start.</p>
         @endif

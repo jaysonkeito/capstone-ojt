@@ -187,58 +187,61 @@
             </div>
         </aside>
 
-        {{-- Mobile top bar (sidebar collapses below md) --}}
-        <div class="md:hidden no-print fixed top-0 inset-x-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-4 py-3">
-            <div class="flex items-center gap-3">
-                <button type="button" onclick="document.getElementById('mobileSidebar').classList.remove('hidden')" class="text-gray-500 hover:text-gray-900" aria-label="Open menu">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                </button>
-                <a href="{{ url('/') }}" class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-md bg-gray-900 flex items-center justify-center text-white text-[11px] font-bold">N</span>
-                    <span class="font-semibold text-sm tracking-tight">NORSU OJT</span>
-                </a>
-            </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button class="text-xs font-medium text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">Logout</button>
-            </form>
-        </div>
-
-        {{-- Mobile slide-over sidebar --}}
-        <div id="mobileSidebar" class="hidden md:hidden fixed inset-0 z-50" role="dialog">
-            <div class="absolute inset-0 bg-gray-900/20" onclick="document.getElementById('mobileSidebar').classList.add('hidden')"></div>
-            <div class="absolute inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col">
-                <div class="px-5 py-5 flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white text-sm font-bold">N</div>
-                        <p class="font-semibold text-sm tracking-tight">NORSU OJT</p>
-                    </div>
-                    <button type="button" onclick="document.getElementById('mobileSidebar').classList.add('hidden')" class="text-gray-400 hover:text-gray-900">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <nav class="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
-                    @foreach($navLinks as $link)
-                        @php $active = request()->routeIs($link['match']); @endphp
-                        <a href="{{ route($link['route']) }}"
-                           class="nav-link px-3 py-2.5 rounded-lg text-sm {{ $active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $icon($link['icon']) !!}</svg>
-                            <span>{{ $link['label'] }}</span>
-                            @if(! empty($link['badge']))
-                                <span class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full {{ $active ? 'bg-brand-600 text-white' : 'bg-amber-100 text-amber-700' }}">{{ $link['badge'] }}</span>
-                            @endif
-                        </a>
-                    @endforeach
-                </nav>
-                <div class="px-5 py-4 border-t border-gray-100 text-xs text-gray-400">
-                    {{ $u->display_name }} · {{ $u->role_label }}
-                </div>
-            </div>
-        </div>
-
         {{-- Main content --}}
         <div class="flex-1 min-w-0">
-            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 2xl:px-14 py-8 mt-14 md:mt-0 md:py-10">
+            {{-- Mobile top bar (sidebar collapses below md). Sticky inside the
+                 content column — NOT fixed — so the install banner above the
+                 flex wrapper stays visible in flow and content never needs a
+                 hardcoded top margin to dodge the bar. --}}
+            <div class="md:hidden no-print sticky top-0 z-40 bg-white border-b border-gray-200 flex items-center justify-between px-4 py-3">
+                <div class="flex items-center gap-3">
+                    <button type="button" onclick="document.getElementById('mobileSidebar').classList.remove('hidden')" class="text-gray-500 hover:text-gray-900" aria-label="Open menu">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                    <a href="{{ url('/') }}" class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-md bg-gray-900 flex items-center justify-center text-white text-[11px] font-bold">N</span>
+                        <span class="font-semibold text-sm tracking-tight">NORSU OJT</span>
+                    </a>
+                </div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="text-xs font-medium text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition">Logout</button>
+                </form>
+            </div>
+
+            {{-- Mobile slide-over sidebar --}}
+            <div id="mobileSidebar" class="hidden md:hidden fixed inset-0 z-50" role="dialog">
+                <div class="absolute inset-0 bg-gray-900/20" onclick="document.getElementById('mobileSidebar').classList.add('hidden')"></div>
+                <div class="absolute inset-y-0 left-0 w-64 bg-white border-r border-gray-200 flex flex-col">
+                    <div class="px-5 py-5 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white text-sm font-bold">N</div>
+                            <p class="font-semibold text-sm tracking-tight">NORSU OJT</p>
+                        </div>
+                        <button type="button" onclick="document.getElementById('mobileSidebar').classList.add('hidden')" class="text-gray-400 hover:text-gray-900">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <nav class="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+                        @foreach($navLinks as $link)
+                            @php $active = request()->routeIs($link['match']); @endphp
+                            <a href="{{ route($link['route']) }}"
+                               class="nav-link px-3 py-2.5 rounded-lg text-sm {{ $active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-100' }}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{!! $icon($link['icon']) !!}</svg>
+                                <span>{{ $link['label'] }}</span>
+                                @if(! empty($link['badge']))
+                                    <span class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full {{ $active ? 'bg-brand-600 text-white' : 'bg-amber-100 text-amber-700' }}">{{ $link['badge'] }}</span>
+                                @endif
+                            </a>
+                        @endforeach
+                    </nav>
+                    <div class="px-5 py-4 border-t border-gray-100 text-xs text-gray-400">
+                        {{ $u->display_name }} · {{ $u->role_label }}
+                    </div>
+                </div>
+            </div>
+
+            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 2xl:px-14 py-8 md:py-10">
                 @if($u->password_changed_at === null && ! $u->isAdmin())
                     <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 text-amber-800 text-sm">
                         <span>You're still using the default password{{ $u->isIntern() ? ' (your last name)' : '' }} — anyone who knows it could log in as you.</span>
