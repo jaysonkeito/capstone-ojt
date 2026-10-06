@@ -13,6 +13,25 @@ uses(RefreshDatabase::class);
  * "coming soon" until the APK is posted.
  */
 
+beforeEach(function () {
+    // Park the real release APK out of the way so availability tests see a
+    // clean slate — and put it back afterwards. Deleting it outright (the
+    // old try/finally) silently removed the actual distributable whenever
+    // the suite ran with it in place.
+    $this->apkPath = public_path('downloads/ojt-tracker.apk');
+    $this->apkParked = $this->apkPath.'.test-parked';
+    if (is_file($this->apkPath)) {
+        rename($this->apkPath, $this->apkParked);
+    }
+});
+
+afterEach(function () {
+    @unlink($this->apkPath);
+    if (is_file($this->apkParked)) {
+        rename($this->apkParked, $this->apkPath);
+    }
+});
+
 test('desktop browsers do not see the install banner', function () {
     $this->withHeaders(['User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0'])
         ->get('/login')
@@ -43,8 +62,9 @@ test('ios browsers do not see the banner while the app is android-only', functio
 });
 
 test('the download page is public and honest about availability', function () {
-    // No APK posted and no APP_APK_URL configured in tests: the page renders
-    // with a disabled "coming soon" button instead of a dead link.
+    // No APK posted (the real release APK is parked by beforeEach) and no
+    // APP_APK_URL configured in tests: the page renders with a disabled
+    // "coming soon" button instead of a dead link.
     $this->get(route('app.download'))
         ->assertOk()
         ->assertSee('OJT Tracker for Android')
@@ -52,15 +72,9 @@ test('the download page is public and honest about availability', function () {
 });
 
 test('the download page links straight to the apk once one is posted', function () {
-    $dir = public_path('downloads');
-    @mkdir($dir, 0777, true);
-    file_put_contents($dir.'/ojt-tracker.apk', 'apk-bytes');
+    file_put_contents(public_path('downloads/ojt-tracker.apk'), 'apk-bytes');
 
-    try {
-        $this->get(route('app.download'))
-            ->assertOk()
-            ->assertSee('downloads/ojt-tracker.apk', false);
-    } finally {
-        @unlink($dir.'/ojt-tracker.apk');
-    }
+    $this->get(route('app.download'))
+        ->assertOk()
+        ->assertSee('downloads/ojt-tracker.apk', false);
 });

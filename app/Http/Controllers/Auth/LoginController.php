@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -23,9 +24,9 @@ class LoginController extends Controller
     /**
      * Handle an authentication attempt.
      *
-     * Accepts either an email address or a student ID in the `login` field.
-     * Admin accounts must log in with their email; interns may use either
-     * their student ID or their email.
+     * Accepts an email address, a Student ID, or a staff username in the
+     * `login` field. Interns use their Student ID or email; staff accounts
+     * pick a username at sign-up, so it must work as a login handle too.
      */
     public function store(Request $request)
     {
@@ -46,17 +47,24 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $loginField = filter_var($credentials['login'], FILTER_VALIDATE_EMAIL)
-            ? 'email'
-            : 'student_id';
+        $login = $credentials['login'];
 
-        $user = User::where($loginField, $credentials['login'])->first();
+        // Resolve the account across the three login handles. Digits resolve
+        // to the intern's Student ID before any staff username, matching the
+        // form label's order.
+        $user = null;
+        foreach (['email', 'student_id', 'username'] as $field) {
+            $user = User::where($field, $login)->first();
+            if ($user) {
+                break;
+            }
+        }
 
-        if (! $user || ! $user->is_active) {
+        if (! $user) {
             RateLimiter::hit($throttleKey);
 
             throw ValidationException::withMessages([
-                'login' => 'These credentials do not match our records, or the account is inactive.',
+                'login' => 'These credentials do not match our records.',
             ]);
         }
 
@@ -71,10 +79,7 @@ class LoginController extends Controller
             $passwordToCheck = $user->last_name;
         }
 
-        if (! Auth::attempt(
-            [$loginField => $credentials['login'], 'password' => $passwordToCheck],
-            $request->boolean('remember')
-        )) {
+        if (! Hash::check($passwordToCheck, $user->password)) {
             RateLimiter::hit($throttleKey);
 
             throw ValidationException::withMessages([
@@ -82,7 +87,22 @@ class LoginController extends Controller
             ]);
         }
 
+        // The password is right, so the account state decides the message:
+        // a staff sign-up held for approval gets an explanation instead of a
+        // generic failure — this is the first thing they try after applying.
+        if (! $user->is_active) {
+            RateLimiter::hit($throttleKey);
+
+            throw ValidationException::withMessages([
+                'login' => $user->approved_at === null
+                    ? 'Your application is still awaiting approval. You\'ll be able to sign in once the System Admin or your College Dean approves your account.'
+                    : 'This account has been deactivated. Please contact the System Admin if you believe this is a mistake.',
+            ]);
+        }
+
         RateLimiter::clear($throttleKey);
+
+        Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();
 

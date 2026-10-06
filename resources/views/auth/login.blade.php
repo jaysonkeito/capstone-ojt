@@ -23,7 +23,7 @@
         @csrf
 
         <div class="field">
-            <label for="login" class="field-label">Student ID or Email</label>
+            <label for="login" class="field-label">Student ID, Email, or Username</label>
             <input type="text" id="login" name="login" class="auth-input" required autofocus
                    value="{{ old('login') }}"
                    autocomplete="off" autocapitalize="off" spellcheck="false"

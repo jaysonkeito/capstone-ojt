@@ -100,6 +100,52 @@ test('a pending staff sign-up cannot sign in until the admin approves it', funct
     expect($pending->fresh()->profile_completed_at)->not->toBeNull();
 });
 
+test('a pending staff sign-up is told their application awaits approval, not that the credentials are wrong', function () {
+    $pending = registerStaffAccount('coordinator', ['first_name' => 'Maria', 'last_name' => 'Santos']);
+
+    // Correct credentials + pending account → the approval explanation,
+    // because this is the first thing they try after submitting the form.
+    $this->post(route('login.store'), [
+        'login' => $pending->email,
+        'password' => 'DutyDay2026!',
+    ])->assertSessionHasErrors('login');
+    expect(session('errors')->first('login'))->toContain('awaiting approval');
+
+    // Wrong password on the same pending account stays deliberately vague —
+    // account state is only ever revealed to someone who knows the password.
+    $this->post(route('login.store'), [
+        'login' => $pending->email,
+        'password' => 'WrongPass1!',
+    ])->assertSessionHasErrors('login');
+    expect(session('errors')->first('login'))->toBe('These credentials do not match our records.');
+});
+
+test('a staff sign-up can sign in with their username once approved', function () {
+    $pending = registerStaffAccount('coordinator', ['first_name' => 'Maria', 'last_name' => 'Santos']);
+
+    $this->actingAs(approvalUser('admin'))->post(route('admin.approvals.approve', $pending));
+    auth()->logout();
+
+    $this->post(route('login.store'), [
+        'login' => $pending->username,
+        'password' => 'DutyDay2026!',
+    ])->assertRedirect(route('profile-completion.edit'));
+    $this->assertAuthenticatedAs($pending->fresh());
+});
+
+test('a deactivated staff account is told the account was deactivated, not that the credentials are wrong', function () {
+    $staff = registerStaffAccount('supervisor', ['first_name' => 'Sofia', 'last_name' => 'Reyes']);
+    $this->actingAs(approvalUser('admin'))->post(route('admin.approvals.approve', $staff));
+    auth()->logout();
+    $staff->fresh()->update(['is_active' => false]);
+
+    $this->post(route('login.store'), [
+        'login' => $staff->email,
+        'password' => 'DutyDay2026!',
+    ])->assertSessionHasErrors('login');
+    expect(session('errors')->first('login'))->toContain('deactivated');
+});
+
 test('pending coordinator and supervisor sign-ups are listed on the approvals page', function () {
     registerStaffAccount('coordinator', ['first_name' => 'Maria', 'last_name' => 'Santos']);
     registerStaffAccount('supervisor', ['first_name' => 'Sofia', 'last_name' => 'Reyes']);
