@@ -35,6 +35,7 @@ Thumbs.db
 
 # Real student/staff data — never publish to the remote
 /database/data/*.csv
+/storage/ojt-prod
 /resources/screenshot/
 /public/reference/
 /storage/framework/cache/data/*

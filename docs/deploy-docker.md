@@ -86,12 +86,20 @@ sudo mkdir -p /opt/ojt-tracker && sudo chown $USER /opt/ojt-tracker
 # copy the project folder over (rsync/scp/USB — everything except node_modules,
 # vendor, android). Then:
 cd /opt/ojt-tracker
-cp .env.example .env   # or copy the project's .env and edit it
+cp .env.production .env
 ```
 
-Edit `.env` for production — a ready-to-copy template ships in the repo as
-`.env.production`; copy it over `.env` and fill in the FILL-IN values (the
-database password) instead of assembling the file by hand:
+Edit `.env`: fill in the FILL-IN values (the database password), then generate the
+encryption key **on the host** — the image ships without a `.env` (deliberately, see
+`.dockerignore`), so `key:generate` inside a throwaway container would write nowhere:
+
+```bash
+# fill DB_PASSWORD first, then replace the empty APP_KEY= line:
+sed -i "s|^APP_KEY=$|APP_KEY=base64:$(openssl rand -base64 32)|" .env
+grep '^APP_KEY=' .env        # must show base64:…
+```
+
+The production values that must differ from development:
 
 ```ini
 APP_ENV=production
@@ -112,17 +120,40 @@ QUEUE_CONNECTION=database
 
 ```bash
 docker compose build                      # builds the app image (assets + vendor baked in)
-
 docker compose up -d db                   # start the database first
-docker compose run --rm app php artisan key:generate
-docker compose run --rm app php artisan migrate --force
-docker compose run --rm app php artisan db:seed --force     # first deployment only
 docker compose up -d                      # brings up app, web, queue, scheduler
 ```
 
 The entrypoint (`docker/app/entrypoint.sh`) seeds the Nginx volume, waits for MySQL, caches
-config/routes/views, and fixes permissions on every start — migrations stay a deliberate
-manual step so the team controls schema changes.
+config/routes/views, and fixes permissions on every start — migrations and data loading stay
+deliberate manual steps so the team controls schema changes.
+
+Then load the data — **path 1 or path 2, not both**:
+
+**Path 1 — fresh install** (empty database, no existing OJT data):
+
+```bash
+docker compose run --rm app php artisan migrate --force
+docker compose run --rm app php artisan db:seed --force
+```
+
+**Path 2 — import the real data** (chosen for go-live: carries the intern roster, the
+September attendance records, accounts, and the customized CAS templates). Copy the three
+files from the laptop's `storage/ojt-prod/` to the server, then:
+
+```bash
+docker compose exec -T db sh -c 'exec mysql -h127.0.0.1 -uojt -p"$MYSQL_PASSWORD" cas_ojt_management' < ojt-prod-dump.sql
+docker compose exec -T db sh -c 'exec mysql -h127.0.0.1 -uojt -p"$MYSQL_PASSWORD" cas_ojt_management' < import-cleanup.sql
+# restore intern photos / uploaded files into the app-storage volume
+# (check the exact volume name with `docker volume ls | grep app-storage`):
+docker run --rm -v "$PWD:/src" -v ojt-tracker_app-storage:/data alpine tar xzf /src/ojt-storage.tgz -C /data
+```
+
+The dump includes the full schema *and* the `migrations` table — import it into an
+**empty** database (no `migrate` first; the import creates every table and leaves the
+schema exactly as the dev machine had it). `import-cleanup.sql` strips the local test
+accounts and development session/cache rows and is safe to re-run. `db:seed` is **not**
+run on this path.
 
 **Check:** `docker compose ps` shows db healthy + 4 services running; open
 `http://norsubscojt.online` → the login page.
@@ -193,9 +224,14 @@ The second line captures intern photos and uploaded templates (the `app-storage`
 
 ## 8. First-login checklist after go-live
 
-1. Log in as admin → Settings: working hours, working days, OJT period start.
-2. Templates: download each starter, re-upload the customized ones.
-3. Staff: create the real coordinator/supervisor accounts (default password = last name).
+1. Log in as admin → Settings: verify working hours, working days, OJT period start
+   (imported with the data — check rather than re-enter).
+2. Templates: verify the customized CAS starters are listed per college (imported with the
+   data — the template files themselves came across in `ojt-storage.tgz`).
+3. Staff: verify the coordinator/supervisor/dean accounts are present (imported); create
+   any that are missing (default password = last name).
 4. Kiosk PC: `KIOSK_URL=https://norsubscojt.online/admin/kiosk` in `kiosk-station.bat`,
-   scan a test QR four times (AM In → AM Out → PM In → PM Out).
+   scan a **real intern's** QR four times (AM In → AM Out → PM In → PM Out) — the local
+   test accounts were stripped by `import-cleanup.sql`. Delete those four scans
+   afterwards from the intern's Duty History if you don't want them counted.
 5. Install the APK on a phone, run the offline test from `docs/mobile-app.md`.
