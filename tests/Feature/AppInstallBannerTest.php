@@ -36,7 +36,9 @@ test('desktop browsers do not see the install banner', function () {
     $this->withHeaders(['User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0'])
         ->get('/login')
         ->assertOk()
-        ->assertDontSee('appInstallBanner', false);
+        // The auth layout's stylesheet mentions the banner's id in its
+        // pinning rule, so assert on the rendered div itself.
+        ->assertDontSee('<div id="appInstallBanner"', false);
 });
 
 test('android mobile browsers see the install banner with a download link', function () {
@@ -51,14 +53,14 @@ test('requests from the Android app itself never see the banner', function () {
     $this->withHeaders(['User-Agent' => 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 OJTTrackerApp/1.0'])
         ->get('/login')
         ->assertOk()
-        ->assertDontSee('appInstallBanner', false);
+        ->assertDontSee('<div id="appInstallBanner"', false);
 });
 
 test('ios browsers do not see the banner while the app is android-only', function () {
     $this->withHeaders(['User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Safari/604.1'])
         ->get('/login')
         ->assertOk()
-        ->assertDontSee('appInstallBanner', false);
+        ->assertDontSee('<div id="appInstallBanner"', false);
 });
 
 test('the download page is public and honest about availability', function () {

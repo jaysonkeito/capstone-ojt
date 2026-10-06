@@ -262,6 +262,17 @@
 
         .hidden { display: none !important; }
 
+        /* The install banner renders as a direct child of this flex body —
+           left in the flow it sits BESIDE the auth card and shoves the card
+           off-screen on the Android phones it targets (body is a flex row).
+           Pin it across the top instead; it overlays nothing but the padding. */
+        body.auth-body > #appInstallBanner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
         /* Mobile: hide the welcome panel, collapse to a single column, and
            reveal the compact brand block above the form. */
         @media (max-width: 860px) {
