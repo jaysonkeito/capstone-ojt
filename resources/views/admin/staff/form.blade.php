@@ -48,7 +48,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
-                    <input type="text" name="first_name" value="{{ old('first_name', $staff->first_name) }}" required
+                    <input type="text" name="first_name" value="{{ old('first_name', $staff->first_name) }}"
                         class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                 </div>
                 <div>
@@ -58,7 +58,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
-                    <input type="text" name="last_name" value="{{ old('last_name', $staff->last_name) }}" required
+                    <input type="text" name="last_name" value="{{ old('last_name', $staff->last_name) }}"
                         class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                 </div>
                 <div>
