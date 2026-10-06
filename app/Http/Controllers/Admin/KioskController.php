@@ -28,6 +28,60 @@ class KioskController extends Controller
     }
 
     /**
+     * The monitoring view over the kiosk's verification captures: every
+     * webcam snapshot taken at a successful scan for the chosen date,
+     * newest scan first. Admins and deans see the whole campus; supervisors
+     * see the interns placed at their office; coordinators see the interns
+     * assigned to them — the same scoping the kiosk itself applies. A scan
+     * saves its log row, so ordering by updated_at gives the live-feed feel
+     * the page is for.
+     */
+    public function captures(Request $request)
+    {
+        $staff = $request->user();
+        $search = trim((string) $request->string('q'));
+
+        try {
+            $date = Carbon::createFromFormat('Y-m-d', (string) $request->input('date')) ?: today();
+        } catch (\Exception) {
+            $date = today();
+        }
+
+        $logs = OjtLog::query()
+            ->whereDate('date', $date->toDateString())
+            ->whereNotNull('kiosk_captures')
+            ->whereHas('user', function ($query) use ($staff, $search) {
+                $query->where('role', 'intern');
+
+                if (! $staff->isAdmin() && ! $staff->isDean()) {
+                    if ($staff->isCoordinator()) {
+                        $query->where('coordinator_id', $staff->id);
+                    } else {
+                        $query->where('office_id', $staff->office_id);
+                    }
+                }
+
+                if ($search !== '') {
+                    $query->where(function ($q) use ($search) {
+                        $q->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%")
+                            ->orWhere('student_id', 'like', "%{$search}%");
+                    });
+                }
+            })
+            ->orderByDesc('updated_at')
+            ->with('user.office:id,name')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.kiosk-captures', [
+            'logs' => $logs,
+            'date' => $date,
+            'search' => $search,
+        ]);
+    }
+
+    /**
      * A tiny keep-alive the station pings on a timer while it sits idle. It
      * carries no data and answers 204 — its only job is to slide the admin
      * session forward (and quietly re-authenticate through the remember-me

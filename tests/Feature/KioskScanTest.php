@@ -1096,3 +1096,109 @@ test('supervisors see the day\'s kiosk captures on the intern log page', functio
         ->assertSee('Kiosk captures')
         ->assertSee('AM Time In');
 });
+
+/*
+ * The captures monitoring page — one gallery of every kiosk snapshot for a
+ * date, scoped the way attendance review is scoped: admins and deans
+ * campus-wide, supervisors by office, coordinators by their own interns.
+ */
+
+function putCapture(OjtLog $log, string $slot, string $date): string
+{
+    $path = 'kiosk-captures/'.$log->user_id.'/'.$date.'/'.$slot.'-080000.jpg';
+    Storage::disk('public')->put($path, 'jpeg-bytes');
+    $log->forceFill(['kiosk_captures' => [$slot => $path]])->save();
+
+    return $path;
+}
+
+test('the admin sees the day\'s captures on the monitoring page', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    $enrollment = makeActiveEnrollment($intern);
+    makeLog($intern, $enrollment, times: ['am_time_in' => '08:00']);
+    putCapture(OjtLog::where('user_id', $intern->id)->firstOrFail(), 'am_time_in', today()->toDateString());
+
+    $this->actingAs($admin)
+        ->get(route('admin.kiosk-captures.index'))
+        ->assertOk()
+        ->assertSee($intern->full_name)
+        ->assertSee('AM Time In')
+        ->assertSee('Kiosk Captures');
+});
+
+test('supervisors only see their own office\'s captures', function () {
+    Storage::fake('public');
+    $office = makeOffice();
+    $supervisor = makeSupervisor($office);
+    $mine = makeIntern(['student_id' => 'T-9201', 'office_id' => $office->id, 'first_name' => 'Mine', 'last_name' => 'One']);
+    $stranger = makeIntern(['student_id' => 'T-9202', 'first_name' => 'Other', 'last_name' => 'Office']);
+    makeLog($mine, makeActiveEnrollment($mine), times: ['am_time_in' => '08:00']);
+    makeLog($stranger, makeActiveEnrollment($stranger), times: ['am_time_in' => '08:00']);
+    putCapture(OjtLog::where('user_id', $mine->id)->firstOrFail(), 'am_time_in', today()->toDateString());
+    putCapture(OjtLog::where('user_id', $stranger->id)->firstOrFail(), 'am_time_in', today()->toDateString());
+
+    $this->actingAs($supervisor)
+        ->get(route('admin.kiosk-captures.index'))
+        ->assertOk()
+        ->assertSee($mine->full_name)
+        ->assertDontSee($stranger->full_name);
+});
+
+test('coordinators can open the captures page and see their own interns', function () {
+    Storage::fake('public');
+    $coordinator = makeCoordinator();
+    $mine = makeIntern(['student_id' => 'T-9203', 'coordinator_id' => $coordinator->id, 'first_name' => 'Mine', 'last_name' => 'Two']);
+    $stranger = makeIntern(['student_id' => 'T-9204', 'first_name' => 'Other', 'last_name' => 'Coordinator']);
+    makeLog($mine, makeActiveEnrollment($mine), times: ['am_time_in' => '08:00']);
+    makeLog($stranger, makeActiveEnrollment($stranger), times: ['am_time_in' => '08:00']);
+    putCapture(OjtLog::where('user_id', $mine->id)->firstOrFail(), 'am_time_in', today()->toDateString());
+    putCapture(OjtLog::where('user_id', $stranger->id)->firstOrFail(), 'am_time_in', today()->toDateString());
+
+    $this->actingAs($coordinator)
+        ->get(route('admin.kiosk-captures.index'))
+        ->assertOk()
+        ->assertSee($mine->full_name)
+        ->assertDontSee($stranger->full_name);
+});
+
+test('the date navigator filters captures by day', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern();
+    $enrollment = makeActiveEnrollment($intern);
+
+    $yesterday = today()->subDay()->toDateString();
+    makeLog($intern, $enrollment, date: $yesterday, times: ['am_time_in' => '08:00']);
+    putCapture(OjtLog::where('user_id', $intern->id)->firstOrFail(), 'am_time_in', $yesterday);
+
+    // Default view (today) has nothing — yesterday's capture stays hidden.
+    $this->actingAs($admin)
+        ->get(route('admin.kiosk-captures.index'))
+        ->assertOk()
+        ->assertDontSee($intern->full_name);
+
+    // Navigating to yesterday surfaces it.
+    $this->actingAs($admin)
+        ->get(route('admin.kiosk-captures.index', ['date' => $yesterday]))
+        ->assertOk()
+        ->assertSee($intern->full_name);
+});
+
+test('the captures page can be searched by name or Student ID', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+    $found = makeIntern(['student_id' => 'T-9301', 'first_name' => 'Found', 'last_name' => 'One']);
+    $hidden = makeIntern(['student_id' => 'T-9302', 'first_name' => 'Hidden', 'last_name' => 'Two']);
+    makeLog($found, makeActiveEnrollment($found), times: ['am_time_in' => '08:00']);
+    makeLog($hidden, makeActiveEnrollment($hidden), times: ['am_time_in' => '08:00']);
+    putCapture(OjtLog::where('user_id', $found->id)->firstOrFail(), 'am_time_in', today()->toDateString());
+    putCapture(OjtLog::where('user_id', $hidden->id)->firstOrFail(), 'am_time_in', today()->toDateString());
+
+    $this->actingAs($admin)
+        ->get(route('admin.kiosk-captures.index', ['q' => 'T-9301']))
+        ->assertOk()
+        ->assertSee($found->full_name)
+        ->assertDontSee($hidden->full_name);
+});

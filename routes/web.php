@@ -191,6 +191,15 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
             Route::post('/kiosk/manual', [KioskController::class, 'manual'])->name('kiosk.manual');
         });
 
+        // Kiosk captures — the verification snapshots the kiosk webcam takes
+        // at each successful scan. One monitoring page for everyone who
+        // reviews attendance: admins and deans campus-wide, supervisors for
+        // their office, coordinators for their interns (coordinators don't
+        // run the kiosk itself, but they do verify their interns' times).
+        Route::middleware('role:admin,supervisor,coordinator,dean')->group(function () {
+            Route::get('/kiosk-captures', [KioskController::class, 'captures'])->name('kiosk-captures.index');
+        });
+
         // Activity log — System Admin only: the full trail of who changed
         // what, across accounts, duty records, requests, and templates.
         Route::middleware('role:admin')->group(function () {
