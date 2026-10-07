@@ -28,9 +28,10 @@ class KioskController extends Controller
     {
         $staff = request()->user();
 
-        // The station's duty logbook — today's entries, most recent punch
-        // first, scoped exactly like the scans: an office scanner account
-        // and a supervisor see their office, admins and deans see everyone.
+        // The station's duty logbook — today's entries, alphabetical by
+        // intern name, scoped exactly like the scans: an office scanner
+        // account and a supervisor see their office, admins and deans see
+        // everyone.
         $stationLogs = OjtLog::query()
             ->whereDate('date', today())
             ->whereHas('user', function ($q) use ($staff) {
@@ -41,9 +42,9 @@ class KioskController extends Controller
                 }
             })
             ->with('user')
-            ->orderByDesc('updated_at')
-            ->limit(20)
-            ->get();
+            ->get()
+            ->sortBy(fn (OjtLog $log) => mb_strtolower($log->user->last_name.' '.$log->user->first_name))
+            ->values();
 
         return view('admin.kiosk', ['stationLogs' => $stationLogs]);
     }

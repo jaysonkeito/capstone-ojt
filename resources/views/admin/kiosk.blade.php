@@ -627,9 +627,16 @@
                     slotCell(data.log.amOut, data.slot === 'am_time_out') +
                     slotCell(data.log.pmIn, data.slot === 'pm_time_in') +
                     slotCell(data.log.pmOut, data.slot === 'pm_time_out');
-                body.prepend(row);
 
-                while (body.children.length > 20) { body.lastElementChild.remove(); }
+                // Keep the table alphabetical — drop the row in at its name's
+                // position rather than the top.
+                var rows = Array.from(body.children);
+                rows.push(row);
+                rows.sort(function (a, b) {
+                    return a.querySelector('td').textContent.trim()
+                        .localeCompare(b.querySelector('td').textContent.trim(), 'en', { sensitivity: 'base' });
+                });
+                rows.forEach(function (r) { body.appendChild(r); });
 
                 var count = document.getElementById('stationLogCount');
                 if (count) { count.textContent = body.children.length; }
