@@ -577,6 +577,45 @@ test('a bare token without the OJTID prefix still resolves', function () {
     expect(OjtLog::where('user_id', $intern->id)->whereDate('date', today())->exists())->toBeTrue();
 });
 
+/*
+ * The desk tab doesn't have to match what the intern presents — either
+ * endpoint resolves both forms, so a mode mismatch can never fail a scan.
+ */
+
+test('a Student ID scanned into the Scanner endpoint still records', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern(['student_id' => '202300399']);
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    // The USB QR box types whatever it decoded — an intern's printed card
+    // carries the Student ID, not the QR token.
+    $this->actingAs($admin)
+        ->postJson(route('admin.kiosk.scan'), ['code' => '202300399'])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded', 'action' => 'AM Time In']);
+
+    expect(OjtLog::where('user_id', $intern->id)->whereDate('date', today())->exists())->toBeTrue();
+});
+
+test('a QR payload typed into the manual endpoint still records', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $intern = makeIntern(['student_id' => '202300400']);
+    makeActiveEnrollment($intern);
+
+    $this->travelTo(now()->setTime(8, 3));
+
+    // The manual field receives the QR payload (OJTID:token) instead of a
+    // Student ID — same intern, same recording path.
+    $this->actingAs($admin)
+        ->postJson(route('admin.kiosk.manual'), ['student_id' => $intern->scanQrPayload()])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded', 'action' => 'AM Time In']);
+
+    expect(OjtLog::where('user_id', $intern->id)->whereDate('date', today())->exists())->toBeTrue();
+});
+
 test('a scan earlier than an already-recorded time is refused', function () {
     $admin = makeStaff(['role' => 'admin']);
     $intern = makeIntern();

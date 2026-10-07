@@ -139,10 +139,19 @@ class KioskController extends Controller
 
         $intern = User::fromScanPayload($code);
 
+        // The desk tab doesn't have to match what the intern presents: a
+        // Student ID typed while the Scanner tab is active resolves the
+        // same intern — the endpoints are interchangeable on purpose.
+        if (! $intern) {
+            $intern = User::where('role', 'intern')->where('student_id', $code)->first();
+        }
+
         if (! $intern) {
             return response()->json([
                 'state' => 'unknown_code',
-                'message' => "That QR code isn't recognized. Open My QR Code on your phone, or use your printed OJT ID card.",
+                'message' => str_starts_with($code, User::SCAN_QR_PREFIX)
+                    ? "That QR code isn't recognized. Open My QR Code on your phone, or use your printed OJT ID card."
+                    : "That code or Student ID isn't recognized. Open My QR Code on your phone, or use your printed OJT ID card.",
             ]);
         }
 
@@ -178,10 +187,19 @@ class KioskController extends Controller
             ->where('student_id', $studentId)
             ->first();
 
+        // The desk tab doesn't have to match what the intern presents: a QR
+        // payload (OJTID:… or a bare token) scanned into this field resolves
+        // through the same path the Scanner tab uses.
+        if (! $intern) {
+            $intern = User::fromScanPayload($studentId);
+        }
+
         if (! $intern) {
             return response()->json([
                 'state' => 'unknown_code',
-                'message' => 'No intern found with Student ID "'.$studentId.'".',
+                'message' => str_starts_with($studentId, User::SCAN_QR_PREFIX)
+                    ? "That QR code isn't recognized. Open My QR Code on your phone, or use your printed OJT ID card."
+                    : 'No intern found with Student ID "'.$studentId.'".',
             ]);
         }
 
