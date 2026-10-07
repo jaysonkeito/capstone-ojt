@@ -168,6 +168,20 @@ session/cache rows and is safe to re-run. `db:seed` is **not** run on this path.
 
 ## 4. HTTPS — two paths, pick one
 
+### Port map for the direct-public-IP deployment (team reserves host port 80)
+
+The web container binds **host 8083** (container 80) and **host 443**. The office
+firewall therefore forwards:
+
+| Public port | Forward to |
+|---|---|
+| TCP 80 | 192.168.101.3:8083 (tracker HTTP — ACME challenges + redirect) |
+| TCP 443 | 192.168.101.3:443 (tracker HTTPS) |
+
+Let's Encrypt's validation requests arrive on public 80 and walk that chain to the
+container, so issuance and renewal work unchanged. The team's own service on the
+server's port 80 is never touched.
+
 ### Path A — public IP + Let's Encrypt (Certbot profile)
 
 ```bash

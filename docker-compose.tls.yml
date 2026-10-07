@@ -9,7 +9,11 @@
 services:
   web:
     ports:
-      - "80:80"
+      # Host port 8083 (the team reserves 80): the office firewall forwards
+      # public 80 -> 192.168.101.3:8083, so Let's Encrypt's ACME challenges
+      # and the HTTP->HTTPS redirect still arrive at the container's port 80.
+      # Public 443 forwards to 443 for the app itself.
+      - "8083:80"
       - "443:443"
     volumes:
       - ./docker/nginx/tls.conf:/etc/nginx/conf.d/default.conf:ro
