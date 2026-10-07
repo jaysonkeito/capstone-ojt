@@ -26,7 +26,26 @@ class KioskController extends Controller
      */
     public function index()
     {
-        return view('admin.kiosk');
+        $staff = request()->user();
+
+        // The station's duty logbook — today's entries, most recent punch
+        // first, scoped exactly like the scans: an office scanner account
+        // and a supervisor see their office, admins and deans see everyone.
+        $stationLogs = OjtLog::query()
+            ->whereDate('date', today())
+            ->whereHas('user', function ($q) use ($staff) {
+                $q->where('role', 'intern');
+
+                if ($staff->isOffice() || $staff->isSupervisor()) {
+                    $q->where('office_id', $staff->office_id);
+                }
+            })
+            ->with('user')
+            ->orderByDesc('updated_at')
+            ->limit(20)
+            ->get();
+
+        return view('admin.kiosk', ['stationLogs' => $stationLogs]);
     }
 
     /**
@@ -303,11 +322,12 @@ class KioskController extends Controller
     /**
      * The scanned intern's identity for the result card.
      *
-     * @return array{name: string, studentId: ?string, initials: string, avatarUrl: ?string}
+     * @return array{id: int, name: string, studentId: ?string, initials: string, avatarUrl: ?string}
      */
     private function internPayload(User $intern): array
     {
         return [
+            'id' => $intern->id,
             'name' => $intern->full_name,
             'studentId' => $intern->student_id,
             'initials' => $intern->initials,

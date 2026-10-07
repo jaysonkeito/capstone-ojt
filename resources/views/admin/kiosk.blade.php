@@ -25,12 +25,12 @@
         .mode-btn.active { background: rgba(255,255,255,.12); color: #fff; }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen overflow-hidden">
+<body class="bg-gray-900 text-white h-screen overflow-hidden">
 
     {{-- Capture field — refocused only in Scanner mode so a scan is never missed. --}}
     <input id="scanInput" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-hidden="true" tabindex="-1">
 
-    <div class="min-h-screen flex flex-col">
+    <div class="h-screen flex flex-col">
 
         {{-- Top bar --}}
         <div class="flex items-center justify-between px-6 py-4 border-b border-white/10">
@@ -51,8 +51,13 @@
             </div>
         </div>
 
+        {{-- Split station: left half the scan flow, right half the day's
+             logbook (read-only) over the live capture camera. --}}
+        <div class="flex-1 grid grid-cols-2 min-h-0">
+            <div class="flex flex-col border-r border-white/10 min-w-0">
+
         {{-- Mode toggle — Scanner (USB QR box), Camera (webcam), or Student ID (manual entry) --}}
-        <div class="flex justify-center pt-6 pb-1">
+        <div class="flex justify-center pt-5 pb-1">
             <div class="inline-flex items-center gap-1 rounded-2xl bg-white/5 border border-white/10 p-1">
                 <button type="button" data-mode="scanner" class="mode-btn active">Scanner</button>
                 <button type="button" data-mode="camera" class="mode-btn">Camera</button>
@@ -133,19 +138,52 @@
         <div class="px-6 py-3 text-center text-[11px] text-gray-600 border-t border-white/10">
             Leave this page open on the front-desk computer. Interns can scan by device, camera, or Student ID.
         </div>
-    </div>
+            </div>
 
-    {{-- Verification camera — a small always-on corner preview. Its frame is
-         captured the instant a scan is submitted and saved with the intern's
-         log, so supervisors can confirm the person behind each time entry.
-         If the camera is missing or denied, scans simply save without a photo. --}}
-    <div id="guardCam" class="fixed bottom-4 right-4 z-40 w-32 rounded-2xl overflow-hidden ring-1 ring-white/15 bg-black/70 shadow-2xl">
-        <video id="guardVideo" class="w-full aspect-[4/3] object-cover -scale-x-100" autoplay muted playsinline></video>
-        <div class="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5">
-            <span id="guardDot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span id="guardNote" class="text-[9px] font-medium tracking-wide text-gray-200 uppercase">Capturing</span>
+            {{-- Right half: duty logbook (read-only) over the capture scanner --}}
+            <div class="grid grid-rows-2 gap-4 p-4 min-h-0">
+
+                {{-- Duty logbook — today's entries as they happen. Read-only:
+                     the station records, the dashboards edit. --}}
+                <div class="rounded-3xl border border-white/10 bg-white/5 flex flex-col overflow-hidden min-h-0">
+                    <div class="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+                        <h2 class="text-[11px] font-medium uppercase tracking-widest text-gray-400">Duty logbook — today</h2>
+                        <span id="stationLogCount" class="text-xs text-gray-500 tabular-nums">{{ $stationLogs->count() }}</span>
+                    </div>
+                    <ul id="stationLog" class="flex-1 overflow-y-auto divide-y divide-white/5 text-sm">
+                        @forelse($stationLogs as $log)
+                            @php $punch = $log->latest_punch; @endphp
+                            <li class="px-5 py-2.5 flex items-center justify-between gap-3" data-user="{{ $log->user_id }}">
+                                <span class="text-white truncate">{{ $log->user->full_name }}</span>
+                                <span class="text-gray-400 tabular-nums whitespace-nowrap text-[13px]">
+                                    @if($punch) {{ $punch['label'] }} · {{ $punch['time'] }} @else — @endif
+                                </span>
+                            </li>
+                        @empty
+                            <li id="stationLogEmpty" class="px-5 py-10 text-center text-gray-500 text-sm">No scans yet today.</li>
+                        @endforelse
+                    </ul>
+                </div>
+
+                {{-- Capture scanner — the live webcam whose frame is saved
+                     with each scan, so the intern sees themselves being
+                     recorded. --}}
+                <div id="guardCam" class="rounded-3xl overflow-hidden border border-white/10 bg-black relative min-h-0">
+                    <video id="guardVideo" class="absolute inset-0 w-full h-full object-cover -scale-x-100" autoplay muted playsinline></video>
+                    <div class="absolute top-3 left-3 flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1">
+                        <span id="guardDot" class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span id="guardNote" class="text-[10px] font-medium tracking-wide text-gray-200 uppercase">Capturing</span>
+                    </div>
+                    <div class="absolute bottom-0 inset-x-0 px-4 py-2.5 bg-gradient-to-t from-black/80 to-transparent">
+                        <p class="text-[11px] text-gray-300">Capture Scanner — a snapshot is saved with every scan.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    {{-- Capture field moved above; the verification camera lives in the
+         right-bottom panel and is driven by the same JS as before. --}}
 
     <script>
         (function () {
@@ -534,8 +572,40 @@
                 show(result);
                 beep(s.good);
 
+                // A time went on the books — move the intern to the top of
+                // the duty logbook panel with their newest punch.
+                if (data.state === 'recorded') { updateStationLog(data); }
+
                 const delay = s.good ? 4500 : 6000;
                 resetTimer = setTimeout(resetToIdle, delay);
+            }
+
+            // The duty logbook panel: an intern's row moves to the top with
+            // their newest punch, or appears fresh on their first scan of
+            // the day. Mirrors the server-side ordering (recent punch first).
+            function updateStationLog(data) {
+                var list = document.getElementById('stationLog');
+                if (!list || !data.intern) { return; }
+
+                var empty = document.getElementById('stationLogEmpty');
+                if (empty) { empty.remove(); }
+
+                var existing = list.querySelector('[data-user="' + data.intern.id + '"]');
+                if (existing) { existing.remove(); }
+
+                var row = document.createElement('li');
+                row.dataset.user = data.intern.id;
+                row.className = 'px-5 py-2.5 flex items-center justify-between gap-3 fade-in';
+                row.innerHTML =
+                    '<span class="text-white truncate">' + esc(data.intern.name) + '</span>' +
+                    '<span class="text-gray-400 tabular-nums whitespace-nowrap text-[13px]">' +
+                    esc(data.action || '') + (data.recordedAt ? ' · ' + esc(data.recordedAt) : '') + '</span>';
+                list.prepend(row);
+
+                while (list.children.length > 20) { list.lastElementChild.remove(); }
+
+                var count = document.getElementById('stationLogCount');
+                if (count) { count.textContent = list.children.length; }
             }
 
             function showSession() {
