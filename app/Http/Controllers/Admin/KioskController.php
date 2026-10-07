@@ -323,13 +323,14 @@ class KioskController extends Controller
     /**
      * The scanned intern's identity for the result card.
      *
-     * @return array{id: int, name: string, studentId: ?string, initials: string, avatarUrl: ?string}
+     * @return array{id: int, name: string, shortName: string, studentId: ?string, initials: string, avatarUrl: ?string}
      */
     private function internPayload(User $intern): array
     {
         return [
             'id' => $intern->id,
             'name' => $intern->full_name,
+            'shortName' => $intern->last_name.', '.mb_substr($intern->first_name, 0, 1).'.',
             'studentId' => $intern->student_id,
             'initials' => $intern->initials,
             'avatarUrl' => $intern->avatar_url,

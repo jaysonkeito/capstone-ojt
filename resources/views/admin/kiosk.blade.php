@@ -51,9 +51,9 @@
             </div>
         </div>
 
-        {{-- Split station: left 70% the scan flow, right 30% the day's
+        {{-- Split station: left 60% the scan flow, right 40% the day's
              logbook (read-only) over the live capture camera. --}}
-        <div class="flex-1 grid grid-cols-[7fr_3fr] min-h-0">
+        <div class="flex-1 grid grid-cols-[6fr_4fr] min-h-0">
             <div class="flex flex-col border-r border-white/10 min-w-0">
 
         {{-- Mode toggle — Scanner (USB QR box), Camera (webcam), or Student ID (manual entry) --}}
@@ -143,44 +143,46 @@
             {{-- Right half: duty logbook (read-only) over the capture scanner --}}
             <div class="grid grid-rows-2 gap-4 p-4 min-h-0">
 
-                {{-- Duty logbook — today's entries as they happen. Read-only:
-                     the station records, the dashboards edit. --}}
+                {{-- Duty logbook — today's entries as they happen, read-only
+                     like the exported form: one header, four slot columns. --}}
                 <div class="rounded-3xl border border-white/10 bg-white/5 flex flex-col overflow-hidden min-h-0">
-                    <div class="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+                    <div class="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                         <h2 class="text-[11px] font-medium uppercase tracking-widest text-gray-400">Duty logbook — today</h2>
                         <span id="stationLogCount" class="text-xs text-gray-500 tabular-nums">{{ $stationLogs->count() }}</span>
                     </div>
-                    <ul id="stationLog" class="flex-1 overflow-y-auto divide-y divide-white/5 text-sm">
-                        @forelse($stationLogs as $log)
-                            @php
-                                $punch = $log->latest_punch;
-                                $slots = [
-                                    ['label' => 'AM In', 'value' => $log->am_time_in, 'active' => $punch && $punch['slot'] === 'am_time_in'],
-                                    ['label' => 'AM Out', 'value' => $log->am_time_out, 'active' => $punch && $punch['slot'] === 'am_time_out'],
-                                    ['label' => 'PM In', 'value' => $log->pm_time_in, 'active' => $punch && $punch['slot'] === 'pm_time_in'],
-                                    ['label' => 'PM Out', 'value' => $log->pm_time_out, 'active' => $punch && $punch['slot'] === 'pm_time_out'],
-                                ];
-                            @endphp
-                            <li class="px-4 py-2.5 border-b border-white/5" data-user="{{ $log->user_id }}">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-white truncate text-[13px]">{{ $log->user->full_name }}</span>
-                                    @if($punch)
-                                        <span class="text-[10px] text-gray-500 whitespace-nowrap">{{ $punch['label'] }} · {{ $punch['time'] }}</span>
-                                    @endif
-                                </div>
-                                <div class="grid grid-cols-4 gap-1.5 mt-1.5">
-                                    @foreach($slots as $s)
-                                        <div class="rounded-md px-1 py-1 text-center {{ $s['active'] ? 'bg-brand-500/20 ring-1 ring-brand-400/40' : 'bg-white/5' }}">
-                                            <p class="text-[8px] uppercase tracking-wide {{ $s['active'] ? 'text-brand-200' : 'text-gray-500' }}">{{ $s['label'] }}</p>
-                                            <p class="text-[11px] tabular-nums {{ $s['value'] ? 'text-gray-100' : 'text-gray-600' }}">{{ $s['value'] ? \Illuminate\Support\Carbon::parse($s['value'])->format('g:i') : '—' }}</p>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </li>
-                        @empty
-                            <li id="stationLogEmpty" class="px-5 py-10 text-center text-gray-500 text-sm">No scans yet today.</li>
-                        @endforelse
-                    </ul>
+                    <div class="flex-1 overflow-y-auto min-h-0">
+                        <table class="w-full text-[12px]">
+                            <thead class="sticky top-0 bg-gray-900 z-10">
+                                <tr class="text-left text-[9px] uppercase tracking-widest text-gray-400 border-b border-white/10">
+                                    <th class="px-3 py-2 font-medium">Name</th>
+                                    <th class="px-2 py-2 font-medium">AM In</th>
+                                    <th class="px-2 py-2 font-medium">AM Out</th>
+                                    <th class="px-2 py-2 font-medium">PM In</th>
+                                    <th class="px-2 py-2 font-medium">PM Out</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stationLog" class="divide-y divide-white/5">
+                                @forelse($stationLogs as $log)
+                                    @php
+                                        $punch = $log->latest_punch;
+                                        $shortName = $log->user->last_name.', '.mb_substr($log->user->first_name, 0, 1).'.';
+                                        $slotTime = fn (?string $v) => $v
+                                            ? \Illuminate\Support\Carbon::parse($v)->format('h:i A')
+                                            : '<span class="text-gray-600">—</span>';
+                                    @endphp
+                                    <tr data-user="{{ $log->user_id }}">
+                                        <td class="px-3 py-2 text-white truncate max-w-[9rem]" title="{{ $log->user->full_name }}">{{ $shortName }}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'am_time_in' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->am_time_in) !!}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'am_time_out' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->am_time_out) !!}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'pm_time_in' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->pm_time_in) !!}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'pm_time_out' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->pm_time_out) !!}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="5" class="px-5 py-10 text-center text-gray-500 text-sm">No scans yet today.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 {{-- Capture scanner — the live webcam whose frame is saved
@@ -598,49 +600,39 @@
                 resetTimer = setTimeout(resetToIdle, delay);
             }
 
-            // The duty logbook panel: an intern's row moves to the top with
-            // their four slot chips (AM In / AM Out / PM In / PM Out) rebuilt
-            // from the scan response, the newest punch highlighted.
-            function slotChip(label, value, key, activeSlot) {
-                var empty = ! value;
-                var active = key === activeSlot;
-                var time = empty ? '—' : value.replace(/ (AM|PM)$/, '');
-                return '<div class="rounded-md px-1 py-1 text-center ' + (active ? 'bg-brand-500/20 ring-1 ring-brand-400/40' : 'bg-white/5') + '">' +
-                    '<p class="text-[8px] uppercase tracking-wide ' + (active ? 'text-brand-200' : 'text-gray-500') + '">' + label + '</p>' +
-                    '<p class="text-[11px] tabular-nums ' + (empty ? 'text-gray-600' : 'text-gray-100') + '">' + esc(time) + '</p></div>';
+            // The duty logbook table: the intern's row moves to the top with
+            // their four slot times rebuilt from the scan response, the
+            // newest punch highlighted. Mirrors the server-side ordering.
+            function slotCell(value, active) {
+                return '<td class="px-2 py-2 tabular-nums whitespace-nowrap ' + (active ? 'text-brand-300 font-medium' : 'text-gray-300') + '">' +
+                    (value ? esc(value) : '<span class="text-gray-600">—</span>') + '</td>';
             }
 
             function updateStationLog(data) {
-                var list = document.getElementById('stationLog');
-                if (!list || !data.intern || !data.log) { return; }
+                var body = document.getElementById('stationLog');
+                if (!body || !data.intern || !data.log) { return; }
 
                 var empty = document.getElementById('stationLogEmpty');
                 if (empty) { empty.remove(); }
 
-                var existing = list.querySelector('[data-user="' + data.intern.id + '"]');
+                var existing = body.querySelector('[data-user="' + data.intern.id + '"]');
                 if (existing) { existing.remove(); }
 
-                var chips =
-                    slotChip('AM In', data.log.amIn, 'am_time_in', data.slot) +
-                    slotChip('AM Out', data.log.amOut, 'am_time_out', data.slot) +
-                    slotChip('PM In', data.log.pmIn, 'pm_time_in', data.slot) +
-                    slotChip('PM Out', data.log.pmOut, 'pm_time_out', data.slot);
-
-                var row = document.createElement('li');
+                var row = document.createElement('tr');
                 row.dataset.user = data.intern.id;
-                row.className = 'px-4 py-2.5 border-b border-white/5 fade-in';
+                row.className = 'fade-in';
                 row.innerHTML =
-                    '<div class="flex items-center justify-between gap-2">' +
-                    '<span class="text-white truncate text-[13px]">' + esc(data.intern.name) + '</span>' +
-                    '<span class="text-[10px] text-gray-500 whitespace-nowrap">' + esc(data.action || '') + (data.recordedAt ? ' · ' + esc(data.recordedAt) : '') + '</span>' +
-                    '</div>' +
-                    '<div class="grid grid-cols-4 gap-1.5 mt-1.5">' + chips + '</div>';
-                list.prepend(row);
+                    '<td class="px-3 py-2 text-white truncate max-w-[9rem]" title="' + esc(data.intern.name) + '">' + esc(data.intern.shortName) + '</td>' +
+                    slotCell(data.log.amIn, data.slot === 'am_time_in') +
+                    slotCell(data.log.amOut, data.slot === 'am_time_out') +
+                    slotCell(data.log.pmIn, data.slot === 'pm_time_in') +
+                    slotCell(data.log.pmOut, data.slot === 'pm_time_out');
+                body.prepend(row);
 
-                while (list.children.length > 20) { list.lastElementChild.remove(); }
+                while (body.children.length > 20) { body.lastElementChild.remove(); }
 
                 var count = document.getElementById('stationLogCount');
-                if (count) { count.textContent = list.children.length; }
+                if (count) { count.textContent = body.children.length; }
             }
 
             function showSession() {
