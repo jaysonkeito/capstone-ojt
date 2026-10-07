@@ -287,6 +287,7 @@ class KioskController extends Controller
             'state' => $outcome['state'],
             'message' => $message,
             'note' => $note,
+            'slot' => $slot,
             'action' => $slot ? AttendanceRecorder::labelFor($slot) : null,
             'recordedAt' => $slot ? now()->format('g:i A') : null,
             'captureUrl' => $captureUrl,

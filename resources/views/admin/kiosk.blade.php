@@ -152,12 +152,30 @@
                     </div>
                     <ul id="stationLog" class="flex-1 overflow-y-auto divide-y divide-white/5 text-sm">
                         @forelse($stationLogs as $log)
-                            @php $punch = $log->latest_punch; @endphp
-                            <li class="px-5 py-2.5 flex items-center justify-between gap-3" data-user="{{ $log->user_id }}">
-                                <span class="text-white truncate">{{ $log->user->full_name }}</span>
-                                <span class="text-gray-400 tabular-nums whitespace-nowrap text-[13px]">
-                                    @if($punch) {{ $punch['label'] }} · {{ $punch['time'] }} @else — @endif
-                                </span>
+                            @php
+                                $punch = $log->latest_punch;
+                                $slots = [
+                                    ['label' => 'AM In', 'value' => $log->am_time_in, 'active' => $punch && $punch['slot'] === 'am_time_in'],
+                                    ['label' => 'AM Out', 'value' => $log->am_time_out, 'active' => $punch && $punch['slot'] === 'am_time_out'],
+                                    ['label' => 'PM In', 'value' => $log->pm_time_in, 'active' => $punch && $punch['slot'] === 'pm_time_in'],
+                                    ['label' => 'PM Out', 'value' => $log->pm_time_out, 'active' => $punch && $punch['slot'] === 'pm_time_out'],
+                                ];
+                            @endphp
+                            <li class="px-4 py-2.5 border-b border-white/5" data-user="{{ $log->user_id }}">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-white truncate text-[13px]">{{ $log->user->full_name }}</span>
+                                    @if($punch)
+                                        <span class="text-[10px] text-gray-500 whitespace-nowrap">{{ $punch['label'] }} · {{ $punch['time'] }}</span>
+                                    @endif
+                                </div>
+                                <div class="grid grid-cols-4 gap-1.5 mt-1.5">
+                                    @foreach($slots as $s)
+                                        <div class="rounded-md px-1 py-1 text-center {{ $s['active'] ? 'bg-brand-500/20 ring-1 ring-brand-400/40' : 'bg-white/5' }}">
+                                            <p class="text-[8px] uppercase tracking-wide {{ $s['active'] ? 'text-brand-200' : 'text-gray-500' }}">{{ $s['label'] }}</p>
+                                            <p class="text-[11px] tabular-nums {{ $s['value'] ? 'text-gray-100' : 'text-gray-600' }}">{{ $s['value'] ? \Illuminate\Support\Carbon::parse($s['value'])->format('g:i') : '—' }}</p>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </li>
                         @empty
                             <li id="stationLogEmpty" class="px-5 py-10 text-center text-gray-500 text-sm">No scans yet today.</li>
@@ -581,11 +599,20 @@
             }
 
             // The duty logbook panel: an intern's row moves to the top with
-            // their newest punch, or appears fresh on their first scan of
-            // the day. Mirrors the server-side ordering (recent punch first).
+            // their four slot chips (AM In / AM Out / PM In / PM Out) rebuilt
+            // from the scan response, the newest punch highlighted.
+            function slotChip(label, value, key, activeSlot) {
+                var empty = ! value;
+                var active = key === activeSlot;
+                var time = empty ? '—' : value.replace(/ (AM|PM)$/, '');
+                return '<div class="rounded-md px-1 py-1 text-center ' + (active ? 'bg-brand-500/20 ring-1 ring-brand-400/40' : 'bg-white/5') + '">' +
+                    '<p class="text-[8px] uppercase tracking-wide ' + (active ? 'text-brand-200' : 'text-gray-500') + '">' + label + '</p>' +
+                    '<p class="text-[11px] tabular-nums ' + (empty ? 'text-gray-600' : 'text-gray-100') + '">' + esc(time) + '</p></div>';
+            }
+
             function updateStationLog(data) {
                 var list = document.getElementById('stationLog');
-                if (!list || !data.intern) { return; }
+                if (!list || !data.intern || !data.log) { return; }
 
                 var empty = document.getElementById('stationLogEmpty');
                 if (empty) { empty.remove(); }
@@ -593,13 +620,21 @@
                 var existing = list.querySelector('[data-user="' + data.intern.id + '"]');
                 if (existing) { existing.remove(); }
 
+                var chips =
+                    slotChip('AM In', data.log.amIn, 'am_time_in', data.slot) +
+                    slotChip('AM Out', data.log.amOut, 'am_time_out', data.slot) +
+                    slotChip('PM In', data.log.pmIn, 'pm_time_in', data.slot) +
+                    slotChip('PM Out', data.log.pmOut, 'pm_time_out', data.slot);
+
                 var row = document.createElement('li');
                 row.dataset.user = data.intern.id;
-                row.className = 'px-5 py-2.5 flex items-center justify-between gap-3 fade-in';
+                row.className = 'px-4 py-2.5 border-b border-white/5 fade-in';
                 row.innerHTML =
-                    '<span class="text-white truncate">' + esc(data.intern.name) + '</span>' +
-                    '<span class="text-gray-400 tabular-nums whitespace-nowrap text-[13px]">' +
-                    esc(data.action || '') + (data.recordedAt ? ' · ' + esc(data.recordedAt) : '') + '</span>';
+                    '<div class="flex items-center justify-between gap-2">' +
+                    '<span class="text-white truncate text-[13px]">' + esc(data.intern.name) + '</span>' +
+                    '<span class="text-[10px] text-gray-500 whitespace-nowrap">' + esc(data.action || '') + (data.recordedAt ? ' · ' + esc(data.recordedAt) : '') + '</span>' +
+                    '</div>' +
+                    '<div class="grid grid-cols-4 gap-1.5 mt-1.5">' + chips + '</div>';
                 list.prepend(row);
 
                 while (list.children.length > 20) { list.lastElementChild.remove(); }
