@@ -12,6 +12,7 @@ tests
 .env.backup
 storage/app
 storage/logs
+storage/ojt-prod
 storage/framework/cache/data/*
 storage/framework/sessions/*
 storage/framework/views/*
