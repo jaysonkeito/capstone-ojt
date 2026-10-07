@@ -58,7 +58,10 @@ services:
     depends_on:
       - app
     ports:
-      - "80:80"
+      # Host port 8083 (the team's port 80 is reserved) — the Cloudflare
+      # Tunnel reaches web:80 over the compose network and needs no host
+      # binding at all; this mapping is for direct LAN access.
+      - "8083:80"
     volumes:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - public-www:/var/www/public:ro
