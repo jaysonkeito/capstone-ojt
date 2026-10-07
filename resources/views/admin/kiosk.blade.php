@@ -51,9 +51,9 @@
             </div>
         </div>
 
-        {{-- Split station: left half the scan flow, right half the day's
+        {{-- Split station: left 70% the scan flow, right 30% the day's
              logbook (read-only) over the live capture camera. --}}
-        <div class="flex-1 grid grid-cols-2 min-h-0">
+        <div class="flex-1 grid grid-cols-[7fr_3fr] min-h-0">
             <div class="flex flex-col border-r border-white/10 min-w-0">
 
         {{-- Mode toggle — Scanner (USB QR box), Camera (webcam), or Student ID (manual entry) --}}
