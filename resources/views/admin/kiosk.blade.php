@@ -46,8 +46,18 @@
                     <p id="clock" class="text-lg font-semibold tabular-nums">—</p>
                     <p id="date" class="text-[11px] text-gray-400">—</p>
                 </div>
+            @if(auth()->user()->isOffice())
+                {{-- Office scanner accounts have no dashboard behind the
+                     station — Exit would 403 them. Logout returns to the
+                     sign-in page instead. --}}
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="text-xs font-medium text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition">Logout</button>
+                </form>
+            @else
                 <a href="{{ route('admin.dashboard') }}"
                    class="text-xs font-medium text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition">Exit</a>
+            @endif
             </div>
         </div>
 
