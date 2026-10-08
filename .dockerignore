@@ -1,4 +1,6 @@
 # Never bake local/development state into the production image.
+.git
+.claude
 node_modules
 vendor
 android
