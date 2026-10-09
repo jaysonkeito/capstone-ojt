@@ -37,6 +37,17 @@
     </form>
 </div>
 
+@if($logs->count())
+    {{-- One ZIP of the day's captures, foldered by office and date inside. --}}
+    <div class="mb-5 flex justify-end">
+        <a href="{{ route('admin.kiosk-captures.download', ['date' => $date->format('Y-m-d')]) }}"
+            class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Download all captures
+        </a>
+    </div>
+@endif
+
 @if($logs->isEmpty())
     <div class="bg-white border border-gray-200 rounded-xl px-6 py-14 text-center">
         <div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mx-auto mb-4">

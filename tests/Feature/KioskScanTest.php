@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AuditLog;
+use App\Models\KioskSetting;
 use App\Models\OjtEnrollment;
 use App\Models\OjtLog;
 use App\Models\Office;
@@ -1451,4 +1452,43 @@ test('creating an office scanner account needs no person fields — its name der
         ->assertRedirect(route('admin.staff.index'));
 
     expect(User::where('role', 'office')->count())->toBe(2);
+});
+
+test('kiosk tab locks are managed from Settings, not the station page', function () {
+    $admin = makeStaff(['role' => 'admin']);
+
+    // Settings offers the lock switches; the station page itself has none.
+    $this->actingAs($admin)->get(route('admin.settings.edit'))
+        ->assertOk()
+        ->assertSee('Kiosk Station Tabs');
+
+    $this->actingAs($admin)->get(route('admin.kiosk.index'))
+        ->assertOk()
+        ->assertDontSee('Lock tabs');
+
+    // Saving them persists the campus-default lock row.
+    $this->actingAs($admin)->post(route('admin.kiosk.locks'), ['lock_camera' => '1'])
+        ->assertRedirect();
+
+    $locks = KioskSetting::locksFor(null);
+    expect($locks['lock_camera'])->toBeTrue()
+        ->and($locks['lock_scanner'])->toBeFalse()
+        ->and($locks['lock_manual'])->toBeFalse();
+
+    // The station greys out exactly the locked tab.
+    $this->actingAs($admin)->get(route('admin.kiosk.index'))
+        ->assertOk()
+        ->assertSee('"lock_camera":true', false)
+        ->assertSee('"lock_scanner":false', false);
+});
+
+test('a locked scanner tab refuses scans on the station', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    KioskSetting::updateOrCreate(['office_id' => null], ['lock_scanner' => true, 'updated_by' => $admin->id]);
+
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+
+    $this->actingAs($admin)->postJson(route('admin.kiosk.scan'), ['code' => $intern->scanQrPayload()])
+        ->assertJson(['state' => 'unknown_code']);
 });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\KioskSetting;
 use App\Models\NoClassDay;
 use App\Models\OjtSetting;
 use Illuminate\Http\Request;
@@ -50,6 +51,9 @@ class SettingsController extends Controller
             'noClassCount' => $noClassDays->count(),
             'prevMonth' => $month->copy()->subMonth()->format('Y-m'),
             'nextMonth' => $month->copy()->addMonth()->format('Y-m'),
+            // The campus-default kiosk tab locks this page's form edits —
+            // the station-side control lives on Settings, not the scanner.
+            'locks' => KioskSetting::locksFor(null),
         ]);
     }
 

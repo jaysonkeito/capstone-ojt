@@ -256,8 +256,16 @@ Route::middleware(['auth', 'profile-completed'])
             Route::post('/kiosk/manual', [KioskController::class, 'manual'])->name('kiosk.manual');
         });
 
+        // Station tab locks — supervisors manage their own office's station;
+        // admins may also pass the campus-wide null (managed as the default).
+        Route::middleware('role:admin,supervisor')->group(function () {
+            Route::post('/kiosk/locks', [KioskController::class, 'updateLocks'])->name('kiosk.locks');
+        });
+
         Route::middleware('role:admin,supervisor,coordinator,dean')->group(function () {
             Route::get('/kiosk-captures', [KioskController::class, 'captures'])->name('kiosk-captures.index');
+            // Every capture of a day as one ZIP, named "Office — DATE".
+            Route::get('/kiosk-captures/download', [KioskController::class, 'downloadCaptures'])->name('kiosk-captures.download');
         });
 
         Route::middleware('role:admin')->group(function () {

@@ -23,6 +23,11 @@
         .mode-btn { color: rgb(156 163 175); padding: .4rem .95rem; border-radius: .7rem; font-size: .8125rem; font-weight: 500; transition: color .15s, background-color .15s; }
         .mode-btn:hover { color: #fff; }
         .mode-btn.active { background: rgba(255,255,255,.12); color: #fff; }
+        /* A locked tab greys out, shows the lock glyph after its label, and
+           can't be opened — the desk operator sees it exists but isn't
+           available. */
+        .mode-btn.mode-locked { color: rgb(87 83 94); cursor: not-allowed; }
+        .mode-btn.mode-locked::after { content: ' 🔒'; font-size: .7em; }
     </style>
 </head>
 <body class="bg-gray-900 text-white h-screen overflow-hidden">
@@ -66,7 +71,9 @@
         <div class="flex-1 grid grid-cols-[6fr_4fr] min-h-0">
             <div class="flex flex-col border-r border-white/10 min-w-0">
 
-        {{-- Mode toggle — Scanner (USB QR box), Camera (webcam), or Student ID (manual entry) --}}
+        {{-- Mode toggle — Scanner (USB QR box), Camera (webcam), or Student ID (manual entry).
+             Which tabs are available is locked from the admin Settings page: a locked
+             tab greys out with a lock badge and cannot be opened on this station. --}}
         <div class="flex justify-center pt-5 pb-1">
             <div class="inline-flex items-center gap-1 rounded-2xl bg-white/5 border border-white/10 p-1">
                 <button type="button" data-mode="scanner" class="mode-btn active">Scanner</button>
@@ -323,10 +330,32 @@
                 if (studentId !== '') { submitManual(studentId); }
             });
 
-            // ---- mode switching ----
+            // ---- mode switching (locked tabs render greyed with a lock
+            //      badge and can't be opened on this station) ----
             const modeButtons = document.querySelectorAll('.mode-btn');
+            const lockedModes = @json($locks);
+
+            function applyLocks() {
+                modeButtons.forEach((btn) => {
+                    const locked = lockedModes['lock_' + btn.dataset.mode] === true;
+                    btn.classList.toggle('mode-locked', locked);
+                    btn.disabled = locked;
+                    btn.title = locked ? 'Locked by your supervisor' : '';
+                });
+
+                // If the current mode just got locked, fall back to the
+                // first unlocked one.
+                if (lockedModes['lock_' + mode] === true) {
+                    const fallback = ['scanner', 'camera', 'manual'].find((m) => lockedModes['lock_' + m] !== true);
+                    if (fallback) { switchMode(fallback); }
+                }
+            }
+
             modeButtons.forEach((btn) => {
-                btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+                btn.addEventListener('click', () => {
+                    if (btn.disabled) { return; }
+                    switchMode(btn.dataset.mode);
+                });
             });
 
             function updateModeButtons() {
@@ -337,6 +366,7 @@
 
             function switchMode(next) {
                 if (next === mode || busy) { return; }
+                if (lockedModes['lock_' + next] === true) { return; }
                 if (mode === 'camera') { stopCamera(); }
 
                 mode = next;
@@ -355,6 +385,8 @@
                     setTimeout(() => { try { studentIdInput.focus(); } catch (e) {} }, 60);
                 }
             }
+
+            applyLocks();
 
             // ---- Camera mode: decode QR frames with jsQR ----
             let stream = null;
@@ -606,7 +638,7 @@
                 // the duty logbook panel with their newest punch.
                 if (data.state === 'recorded') { updateStationLog(data); }
 
-                const delay = s.good ? 4500 : 6000;
+                const delay = s.good ? 3000 : 2000;
                 resetTimer = setTimeout(resetToIdle, delay);
             }
 

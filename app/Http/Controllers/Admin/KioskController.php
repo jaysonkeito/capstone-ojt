@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\KioskSetting;
 use App\Models\OjtLog;
 use App\Models\User;
+use App\Notifications\ScanRecorded;
 use App\Support\AttendanceRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -28,16 +30,22 @@ class KioskController extends Controller
     {
         $staff = request()->user();
 
+        // Which station tabs the office supervisor (or System Admin) has
+        // locked — the station greys them out and the endpoints refuse them.
+        $locks = KioskSetting::locksFor($staff->office_id);
+
         // The station's duty logbook — today's entries, alphabetical by
         // intern name, scoped exactly like the scans: an office scanner
-        // account and a supervisor see their office, admins and deans see
-        // everyone.
+        // account and a supervisor see their office, a coordinator-
+        // supervisor their office too, admins and deans see everyone.
         $stationLogs = OjtLog::query()
             ->whereDate('date', today())
             ->whereHas('user', function ($q) use ($staff) {
                 $q->where('role', 'intern');
 
-                if ($staff->isOffice() || $staff->isSupervisor()) {
+                if ($staff->isOffice()
+                    || $staff->isSupervisor()
+                    || ($staff->isCoordinator() && $staff->office_id !== null)) {
                     $q->where('office_id', $staff->office_id);
                 }
             })
@@ -46,7 +54,45 @@ class KioskController extends Controller
             ->sortBy(fn (OjtLog $log) => mb_strtolower($log->user->last_name.' '.$log->user->first_name))
             ->values();
 
-        return view('admin.kiosk', ['stationLogs' => $stationLogs]);
+        return view('admin.kiosk', [
+            'stationLogs' => $stationLogs,
+            'locks' => $locks,
+        ]);
+    }
+
+    /**
+     * Update an office's (or the campus-wide) station tab locks. The
+     * System Admin manages any office plus the null default; a supervisor
+     * only their own office.
+     */
+    public function updateLocks(Request $request)
+    {
+        $staff = $request->user();
+
+        $validated = $request->validate([
+            'office_id' => ['nullable', 'integer', 'exists:offices,id'],
+            'lock_scanner' => ['sometimes', 'boolean'],
+            'lock_camera' => ['sometimes', 'boolean'],
+            'lock_manual' => ['sometimes', 'boolean'],
+        ]);
+
+        $officeId = $validated['office_id'] ?? null;
+
+        if (! $staff->isAdmin() && ((int) $officeId !== (int) $staff->office_id)) {
+            abort(403, 'Supervisors manage their own office station only.');
+        }
+
+        KioskSetting::updateOrCreate(
+            ['office_id' => $officeId],
+            [
+                'lock_scanner' => $request->boolean('lock_scanner'),
+                'lock_camera' => $request->boolean('lock_camera'),
+                'lock_manual' => $request->boolean('lock_manual'),
+                'updated_by' => $staff->id,
+            ]
+        );
+
+        return back()->with('status', 'Station tab locks updated.');
     }
 
     /**
@@ -77,7 +123,13 @@ class KioskController extends Controller
 
                 if (! $staff->isAdmin() && ! $staff->isDean()) {
                     if ($staff->isCoordinator()) {
-                        $query->where('coordinator_id', $staff->id);
+                        $query->where(function ($q) use ($staff) {
+                            $q->where('coordinator_id', $staff->id);
+
+                            if ($staff->office_id !== null) {
+                                $q->orWhere('office_id', $staff->office_id);
+                            }
+                        });
                     } else {
                         $query->where('office_id', $staff->office_id);
                     }
@@ -101,6 +153,81 @@ class KioskController extends Controller
             'date' => $date,
             'search' => $search,
         ]);
+    }
+
+    /**
+     * Every capture on the viewed date as one ZIP, scoped exactly like the
+     * captures page. Inside the archive the photos land in a folder named
+     * for the office and the date ("MIS Office 2026-10-09/") — an admin
+     * downloading across several offices gets one folder per office.
+     */
+    public function downloadCaptures(Request $request)
+    {
+        $staff = $request->user();
+
+        try {
+            $date = Carbon::createFromFormat('Y-m-d', (string) $request->input('date')) ?: today();
+        } catch (\Exception) {
+            $date = today();
+        }
+
+        $logs = OjtLog::query()
+            ->whereDate('date', $date->toDateString())
+            ->whereNotNull('kiosk_captures')
+            ->whereHas('user', function ($query) use ($staff) {
+                $query->where('role', 'intern');
+
+                if (! $staff->isAdmin() && ! $staff->isDean()) {
+                    if ($staff->isCoordinator()) {
+                        $query->where(function ($q) use ($staff) {
+                            $q->where('coordinator_id', $staff->id);
+
+                            if ($staff->office_id !== null) {
+                                $q->orWhere('office_id', $staff->office_id);
+                            }
+                        });
+                    } else {
+                        $query->where('office_id', $staff->office_id);
+                    }
+                }
+            })
+            ->with('user.office:id,name')
+            ->get();
+
+        $disk = Storage::disk('public');
+        $files = [];
+
+        foreach ($logs as $log) {
+            foreach ($log->kiosk_captures ?? [] as $slot => $path) {
+                if ($disk->exists($path)) {
+                    $files[] = [$log, $slot, $path];
+                }
+            }
+        }
+
+        abort_if($files === [], 404, 'No scan captures to download for this date.');
+
+        $zip = new \ZipArchive;
+        $temp = tempnam(sys_get_temp_dir(), 'ojt-captures-');
+        $zip->open($temp, \ZipArchive::OVERWRITE);
+
+        $dateTag = $date->format('Y-m-d');
+
+        foreach ($files as [$log, $slot, $path]) {
+            $folder = preg_replace('/[^\w\s.-]/u', '', ($log->user?->office?->name ?? 'Unassigned office').' '.$dateTag);
+            $ext = pathinfo($path, PATHINFO_EXTENSION) ?: 'jpg';
+            // Log id keeps same-named interns' files from colliding; the slot
+            // keeps one intern's own captures apart.
+            $name = preg_replace('/[^\w\s.-]/u', '', $log->user->last_name.' '.$log->user->first_name)
+                .'_'.str_replace('_2', '-2', $slot).'-log'.$log->id.'.'.$ext;
+
+            $zip->addFromString($folder.'/'.$name, $disk->get($path));
+        }
+
+        $zip->close();
+
+        return response()->download($temp, 'Scan Captures '.$dateTag.'.zip')
+            ->deleteFileAfterSend(true);
     }
 
     /**
@@ -159,6 +286,14 @@ class KioskController extends Controller
             return $blocked;
         }
 
+        // A locked tab is a desk-policy decision, not a secret — say so.
+        if (KioskSetting::locksFor($request->user()->office_id)['lock_scanner']) {
+            return response()->json([
+                'state' => 'unknown_code',
+                'message' => 'Scanner mode is locked for this office — use another mode or ask your supervisor.',
+            ]);
+        }
+
         return response()->json($this->recordFor($request, $intern));
     }
 
@@ -205,6 +340,14 @@ class KioskController extends Controller
 
         if ($blocked = $this->guardOffice($request, $intern)) {
             return $blocked;
+        }
+
+        // A locked tab is a desk-policy decision, not a secret — say so.
+        if (KioskSetting::locksFor($request->user()->office_id)['lock_manual']) {
+            return response()->json([
+                'state' => 'unknown_code',
+                'message' => 'Student ID mode is locked for this office — use another mode or ask your supervisor.',
+            ]);
         }
 
         return response()->json($this->recordFor($request, $intern));
@@ -287,13 +430,28 @@ class KioskController extends Controller
                 ['recorded' => AttendanceRecorder::labelFor((string) $slot).' at '.now()->format('g:i A')],
                 $intern,
             );
+
+            // Same punch into the intern's own inbox — date, slot, and clock
+            // time, so the phone confirms what the station just accepted.
+            // Only when a time actually went on the books ('done' scans have
+            // no slot — the day was already full or the scan fell outside).
+            if ($slot !== null) {
+                $intern->notify(new ScanRecorded(
+                    $outcome['log'],
+                    AttendanceRecorder::labelFor((string) $slot),
+                    now()->format('g:i A'),
+                ));
+            }
         }
 
         // A return during the lunch window is recorded as PM Time In even
         // though the afternoon hasn't formally started — spell that out on
         // the result card so the label doesn't look like a mistake. The
-        // note (and its window) is shared with the intern dashboard banner.
-        $note = $slot === 'pm_time_in' ? AttendanceRecorder::lunchWindowNote(now()) : null;
+        // note (and its window) is shared with the intern dashboard banner,
+        // and both follow the intern's office schedule.
+        $note = $slot === 'pm_time_in'
+            ? AttendanceRecorder::lunchWindowNote(now(), $intern->office)
+            : null;
 
         $message = match ($outcome['state']) {
             'too_soon' => $intern->full_name.' scanned less than '

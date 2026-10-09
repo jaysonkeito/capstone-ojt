@@ -161,6 +161,34 @@
 
         <p class="text-xs text-gray-400 mt-3">Click a date to mark/unmark it as a no-class day (holidays, suspensions). Interns won't be expected to log hours on these dates.</p>
     </section>
+
+    {{-- Kiosk station tab locks — the control surface lives here, on
+         Settings, not on the scanner page itself. These apply as the
+         campus default for every office station without its own lock
+         row (KioskSetting falls back to the null-office row). --}}
+    <section class="bg-white border border-gray-200 rounded-xl p-6 sm:p-7 mt-8">
+        <h2 class="text-sm font-semibold text-gray-900 mb-1.5">Kiosk Station Tabs</h2>
+        <p class="text-xs text-gray-400 mb-4">Choose which tabs a desk scanner station offers. A locked tab shows on the station as greyed out with a lock badge and cannot be opened there.</p>
+        <form method="POST" action="{{ route('admin.kiosk.locks') }}" class="flex flex-wrap items-center gap-x-8 gap-y-3">
+            @csrf
+            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" name="lock_scanner" value="1" {{ old('lock_scanner', $locks['lock_scanner']) ? 'checked' : '' }}
+                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500/30">
+                Scanner (USB QR box)
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" name="lock_camera" value="1" {{ old('lock_camera', $locks['lock_camera']) ? 'checked' : '' }}
+                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500/30">
+                Camera (webcam)
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" name="lock_manual" value="1" {{ old('lock_manual', $locks['lock_manual']) ? 'checked' : '' }}
+                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500/30">
+                Student ID (manual entry)
+            </label>
+            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Save Tab Locks</button>
+        </form>
+    </section>
 </div>
 
 @push('scripts')
