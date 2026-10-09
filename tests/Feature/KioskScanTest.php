@@ -1492,3 +1492,35 @@ test('a locked scanner tab refuses scans on the station', function () {
     $this->actingAs($admin)->postJson(route('admin.kiosk.scan'), ['code' => $intern->scanQrPayload()])
         ->assertJson(['state' => 'unknown_code']);
 });
+
+test('the captures grid lists the newest punch first', function () {
+    Storage::fake('public');
+    $admin = makeStaff(['role' => 'admin']);
+
+    $early = makeIntern(['student_id' => 'T-9301', 'first_name' => 'Early', 'last_name' => 'Bird']);
+    $late = makeIntern(['student_id' => 'T-9302', 'first_name' => 'Late', 'last_name' => 'Owl']);
+
+    $earlyLog = makeLog($early, makeActiveEnrollment($early), times: ['am_time_in' => '08:00', 'pm_time_out' => '17:00']);
+    $lateLog = makeLog($late, makeActiveEnrollment($late), times: ['am_time_in' => '08:00', 'pm_time_out' => '17:30']);
+
+    // Same JSON insertion order on both logs; only the punch times differ —
+    // insertion order is exactly what used to shuffle the grid.
+    foreach ([$earlyLog, $lateLog] as $log) {
+        $captures = [];
+        foreach (['am_time_in', 'pm_time_out'] as $slot) {
+            $path = 'kiosk-captures/'.$log->user_id.'/'.today()->toDateString().'/'.$slot.'.jpg';
+            Storage::disk('public')->put($path, 'jpeg-bytes');
+            $captures[$slot] = $path;
+        }
+        $log->forceFill(['kiosk_captures' => $captures])->save();
+    }
+
+    $html = $this->actingAs($admin)->get(route('admin.kiosk-captures.index'))->assertOk()->getContent();
+
+    // The 5:30 PM card renders before the 5:00 PM card (and every card
+    // survives the build — flatMap's string-key collapse used to drop all
+    // but the last log's).
+    expect(substr_count($html, 'T-9301'))->toBe(2)
+        ->and(substr_count($html, 'T-9302'))->toBe(2)
+        ->and(strpos($html, '5:30 PM'))->toBeLessThan(strpos($html, '5:00 PM'));
+});

@@ -106,3 +106,37 @@ test('the trail survives deleting the user who made the change', function () {
     expect($entry->user_name)->toBe($staff->full_name)
         ->and(AuditLog::find($entry->id)->user_name)->toBe($staff->full_name);
 });
+
+test('array change values are stored as JSON, not arrays', function () {
+    $intern = makeIntern();
+    $enrollment = makeActiveEnrollment($intern);
+    $log = makeLog($intern, $enrollment);
+
+    // A scan-capture write updates the log's JSON-cast column; the trail
+    // diff must store printable strings so the page can never 500 on it.
+    $log->forceFill(['kiosk_captures' => ['am_time_in' => 'captures/face.jpg']])->save();
+
+    $entry = AuditLog::where('action', 'updated')->where('subject_type', 'OjtLog')->latest('id')->firstOrFail();
+
+    expect(is_string($entry->changes['kiosk_captures']['new']))->toBeTrue()
+        // AuditLog's own array cast re-encodes, so slashes may arrive
+        // escaped — the point is: printable string, not an array.
+        ->and($entry->changes['kiosk_captures']['new'])->toContain('face.jpg');
+});
+
+test('the activity page renders trail rows that already hold array values', function () {
+    // Rows written before the JSON normalization carry real arrays — the
+    // diff view stringifies them instead of crashing.
+    AuditLog::create([
+        'user_name' => 'System',
+        'user_role' => 'system',
+        'action' => 'updated',
+        'subject_type' => 'OjtLog',
+        'subject_id' => 1,
+        'subject_label' => 'Legacy row',
+        'changes' => ['kiosk_captures' => ['old' => [], 'new' => ['am_time_in' => 'captures/face.jpg']]],
+        'created_at' => now(),
+    ]);
+
+    $this->get(route('admin.audit-log.index'))->assertOk()->assertSee('kiosk_captures');
+});

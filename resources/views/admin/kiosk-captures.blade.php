@@ -37,7 +37,7 @@
     </form>
 </div>
 
-@if($logs->count())
+@if($cards->isNotEmpty())
     {{-- One ZIP of the day's captures, foldered by office and date inside. --}}
     <div class="mb-5 flex justify-end">
         <a href="{{ route('admin.kiosk-captures.download', ['date' => $date->format('Y-m-d')]) }}"
@@ -48,7 +48,7 @@
     </div>
 @endif
 
-@if($logs->isEmpty())
+@if($cards->isEmpty())
     <div class="bg-white border border-gray-200 rounded-xl px-6 py-14 text-center">
         <div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mx-auto mb-4">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="text-gray-300"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -58,11 +58,13 @@
     </div>
 @else
     <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        @foreach($logs as $log)
-            @foreach($log->kiosk_captures ?? [] as $slot => $path)
-                @php
-                    $time = $log->{$slot} ? \Illuminate\Support\Carbon::parse($log->{$slot})->format('g:i A') : '—';
-                @endphp
+        @foreach($cards as $card)
+            @php
+                $log = $card['log'];
+                $slot = $card['slot'];
+                $path = $card['path'];
+                $time = $log->{$slot} ? \Illuminate\Support\Carbon::parse($log->{$slot})->format('g:i A') : '—';
+            @endphp
                 <div class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
                     <div class="relative">
                         <button type="button" class="block w-full cursor-zoom-in"
@@ -101,7 +103,6 @@
                         </p>
                     </div>
                 </div>
-            @endforeach
         @endforeach
     </div>
 

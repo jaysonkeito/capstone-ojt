@@ -1,3 +1,9 @@
+@php
+    // Values already stored as arrays by older trail rows render as their
+    // JSON form — the diff view must never hit an array-to-string 500
+    // (e.g. a log's scan-capture map).
+    $displayable = fn ($value) => is_array($value) ? json_encode($value, JSON_UNESCAPED_SLASHES) : ($value ?? '—');
+@endphp
 @foreach($logs as $log)
     <tr class="border-b border-gray-100 align-top hover:bg-gray-50/70 audit-row" data-id="{{ $log->id }}">
         <td class="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">{{ $log->created_at?->format('M j, Y') }}<br>{{ $log->created_at?->format('g:i:s A') }}</td>
@@ -27,8 +33,8 @@
                     <div class="mt-1.5 space-y-1">
                         @foreach($log->changes as $field => $change)
                             <p><span class="font-medium text-gray-700">{{ $field }}:</span>
-                                <span class="text-red-600 line-through">{{ \Illuminate\Support\Str::limit((string) ($change['old'] ?? '—'), 40) }}</span>
-                                → <span class="text-green-700">{{ \Illuminate\Support\Str::limit((string) ($change['new'] ?? '—'), 40) }}</span></p>
+                                <span class="text-red-600 line-through">{{ \Illuminate\Support\Str::limit((string) $displayable($change['old'] ?? null), 40) }}</span>
+                                → <span class="text-green-700">{{ \Illuminate\Support\Str::limit((string) $displayable($change['new'] ?? null), 40) }}</span></p>
                         @endforeach
                     </div>
                 </details>

@@ -183,16 +183,27 @@
                                     @php
                                         $punch = $log->latest_punch;
                                         $shortName = $log->user->last_name.', '.mb_substr($log->user->first_name, 0, 1).'.';
-                                        $slotTime = fn (?string $v) => $v
-                                            ? \Illuminate\Support\Carbon::parse($v)->format('h:i A')
-                                            : '<span class="text-gray-600">—</span>';
+                                        $fmt = fn (?string $v) => $v ? \Illuminate\Support\Carbon::parse($v)->format('h:i A') : null;
+                                        // One slot column: the spine time, and — when the intern
+                                        // stepped out and came back — the "(2)" time beneath it in
+                                        // smaller text. The newest punch (spine or (2)) highlights.
+                                        $slotPair = function (?string $main, ?string $second, ?string $latestSlot, string $mainSlot, string $secondSlot) use ($fmt) {
+                                            $mainText = $fmt($main) ?? '<span class="text-gray-600">—</span>';
+                                            $mainClass = $latestSlot === $mainSlot ? 'text-brand-300 font-medium' : ($fmt($main) ? 'text-gray-300' : '');
+                                            $html = '<span class="'.$mainClass.'">'.$mainText.'</span>';
+                                            if ($second !== null) {
+                                                $secondClass = $latestSlot === $secondSlot ? 'text-brand-300 font-medium' : 'text-gray-500';
+                                                $html .= '<div class="text-[10px] leading-tight '.$secondClass.'">(2) '.$fmt($second).'</div>';
+                                            }
+                                            return $html;
+                                        };
                                     @endphp
                                     <tr data-user="{{ $log->user_id }}">
                                         <td class="px-3 py-2 text-white truncate max-w-[9rem]" title="{{ $log->user->full_name }}">{{ $shortName }}</td>
-                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'am_time_in' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->am_time_in) !!}</td>
-                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'am_time_out' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->am_time_out) !!}</td>
-                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'pm_time_in' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->pm_time_in) !!}</td>
-                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap {{ ($punch['slot'] ?? null) === 'pm_time_out' ? 'text-brand-300 font-medium' : 'text-gray-300' }}">{!! $slotTime($log->pm_time_out) !!}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap align-top">{!! $slotPair($log->am_time_in, $log->am_time_in_2, $punch['slot'] ?? null, 'am_time_in', 'am_time_in_2') !!}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap align-top">{!! $slotPair($log->am_time_out, $log->am_time_out_2, $punch['slot'] ?? null, 'am_time_out', 'am_time_out_2') !!}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap align-top">{!! $slotPair($log->pm_time_in, $log->pm_time_in_2, $punch['slot'] ?? null, 'pm_time_in', 'pm_time_in_2') !!}</td>
+                                        <td class="px-2 py-2 tabular-nums whitespace-nowrap align-top">{!! $slotPair($log->pm_time_out, $log->pm_time_out_2, $punch['slot'] ?? null, 'pm_time_out', 'pm_time_out_2') !!}</td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="5" class="px-5 py-10 text-center text-gray-500 text-sm">No scans yet today.</td></tr>
@@ -642,12 +653,18 @@
                 resetTimer = setTimeout(resetToIdle, delay);
             }
 
-            // The duty logbook table: the intern's row moves to the top with
-            // their four slot times rebuilt from the scan response, the
-            // newest punch highlighted. Mirrors the server-side ordering.
-            function slotCell(value, active) {
-                return '<td class="px-2 py-2 tabular-nums whitespace-nowrap ' + (active ? 'text-brand-300 font-medium' : 'text-gray-300') + '">' +
-                    (value ? esc(value) : '<span class="text-gray-600">—</span>') + '</td>';
+            // The duty logbook table: the intern's row re-inserts at its
+            // alphabetical position with the four slot times rebuilt from
+            // the scan response, the newest punch highlighted. A "(2)"
+            // step-out time renders beneath its column's spine time —
+            // mirrors the server-side table.
+            function slotCell(main, second, activeMain, activeSecond) {
+                var html = '<span class="' + (activeMain ? 'text-brand-300 font-medium' : (main ? 'text-gray-300' : '')) + '">' +
+                    (main ? esc(main) : '<span class="text-gray-600">—</span>') + '</span>';
+                if (second) {
+                    html += '<div class="text-[10px] leading-tight ' + (activeSecond ? 'text-brand-300 font-medium' : 'text-gray-500') + '">(2) ' + esc(second) + '</div>';
+                }
+                return '<td class="px-2 py-2 tabular-nums whitespace-nowrap align-top">' + html + '</td>';
             }
 
             function updateStationLog(data) {
@@ -665,10 +682,10 @@
                 row.className = 'fade-in';
                 row.innerHTML =
                     '<td class="px-3 py-2 text-white truncate max-w-[9rem]" title="' + esc(data.intern.name) + '">' + esc(data.intern.shortName) + '</td>' +
-                    slotCell(data.log.amIn, data.slot === 'am_time_in') +
-                    slotCell(data.log.amOut, data.slot === 'am_time_out') +
-                    slotCell(data.log.pmIn, data.slot === 'pm_time_in') +
-                    slotCell(data.log.pmOut, data.slot === 'pm_time_out');
+                    slotCell(data.log.amIn, data.log.amIn2, data.slot === 'am_time_in', data.slot === 'am_time_in_2') +
+                    slotCell(data.log.amOut, data.log.amOut2, data.slot === 'am_time_out', data.slot === 'am_time_out_2') +
+                    slotCell(data.log.pmIn, data.log.pmIn2, data.slot === 'pm_time_in', data.slot === 'pm_time_in_2') +
+                    slotCell(data.log.pmOut, data.log.pmOut2, data.slot === 'pm_time_out', data.slot === 'pm_time_out_2');
 
                 // Keep the table alphabetical — drop the row in at its name's
                 // position rather than the top.

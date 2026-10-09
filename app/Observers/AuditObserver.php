@@ -52,7 +52,7 @@ class AuditObserver
                 continue;
             }
 
-            $changes[$field] = ['old' => $old, 'new' => $new];
+            $changes[$field] = ['old' => $this->displayable($old), 'new' => $this->displayable($new)];
         }
 
         // Attribute-only touches (timestamps, token refreshes) are noise.
@@ -79,6 +79,17 @@ class AuditObserver
         }
 
         AuditLog::record('restored', $model);
+    }
+
+    /**
+     * A change value the trail's diff view can print. Array/json casts
+     * (a log's scan captures, the settings' working days) arrive as
+     * arrays from getChanges()/getOriginal() — store their JSON form so
+     * rendering never hits an array-to-string conversion.
+     */
+    private function displayable(mixed $value): mixed
+    {
+        return is_array($value) ? json_encode($value, JSON_UNESCAPED_SLASHES) : $value;
     }
 
     private function silenced(Model $model): bool

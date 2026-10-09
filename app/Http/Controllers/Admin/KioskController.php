@@ -148,8 +148,30 @@ class KioskController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        // One card per capture, newest punch first — the grid reads as a
+        // live feed of the day. The JSON map's insertion order (AM In
+        // always before PM Out) is what made the page feel shuffled.
+        // Built with a plain loop: flatMap() collapses with array_merge,
+        // whose string-key semantics would let every log's same-named slot
+        // (am_time_in…) overwrite the previous log's card.
+        $cards = collect();
+
+        foreach ($logs as $log) {
+            foreach ($log->kiosk_captures ?? [] as $slot => $path) {
+                $cards->push([
+                    'log' => $log,
+                    'slot' => $slot,
+                    'path' => $path,
+                    'at' => (string) ($log->{$slot} ?? '00:00:00'),
+                ]);
+            }
+        }
+
+        $cards = $cards->sortByDesc('at')->values();
+
         return view('admin.kiosk-captures', [
             'logs' => $logs,
+            'cards' => $cards,
             'date' => $date,
             'search' => $search,
         ]);
@@ -206,6 +228,9 @@ class KioskController extends Controller
         }
 
         abort_if($files === [], 404, 'No scan captures to download for this date.');
+
+        // Newest punch first inside each folder, matching the page's feed.
+        usort($files, fn ($a, $b) => strcmp((string) $b[0]->{$b[1]}, (string) $a[0]->{$a[1]}));
 
         $zip = new \ZipArchive;
         $temp = tempnam(sys_get_temp_dir(), 'ojt-captures-');
