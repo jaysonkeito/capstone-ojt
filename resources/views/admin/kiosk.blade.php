@@ -152,6 +152,19 @@
             </div>
         </div>
 
+        {{-- Rejected-scan toast — pinned above the stage so an error never
+             blocks the Student ID field: the station falls straight back to
+             the entry form and the user can type again right away. --}}
+        <div id="errorToast" class="hidden fixed top-4 inset-x-0 z-50 flex justify-center px-6 pointer-events-none">
+            <div class="fade-in flex items-center gap-3 rounded-2xl border border-red-500/50 bg-red-500/15 backdrop-blur px-5 py-3 shadow-2xl max-w-lg">
+                <span class="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-lg font-bold shrink-0">✕</span>
+                <div class="min-w-0">
+                    <p id="errorToastTitle" class="text-sm font-bold text-red-200 leading-tight"></p>
+                    <p id="errorToastBody" class="text-xs text-red-100/80 mt-0.5 break-words"></p>
+                </div>
+            </div>
+        </div>
+
         <div class="px-6 py-3 text-center text-[11px] text-gray-600 border-t border-white/10">
             Leave this page open on the front-desk computer. Interns can scan by device, camera, or Student ID.
         </div>
@@ -601,10 +614,34 @@
                     esc(intern.initials || '•') + '</div>';
             }
 
+            // Rejected scans never take over the stage — they flash as a
+            // toast pinned above it while the entry form returns instantly,
+            // so on the Student ID tab the next ID can be typed right away.
+            const errorToast = document.getElementById('errorToast');
+            let errorToastTimer = null;
+
+            function showErrorToast(data) {
+                const s = STATES[data.state] || STATES.error;
+                document.getElementById('errorToastTitle').textContent = titleFor(data);
+                document.getElementById('errorToastBody').textContent = data.message || '';
+
+                errorToast.classList.remove('hidden');
+                clearTimeout(errorToastTimer);
+                errorToastTimer = setTimeout(() => { errorToast.classList.add('hidden'); }, 2000);
+            }
+
             function showResult(data) {
                 const s = STATES[data.state] || STATES.error;
+
+                if (!s.good) {
+                    document.getElementById('processing').classList.add('hidden');
+                    resetToIdle();
+                    beep(false);
+                    showErrorToast(data);
+                    return;
+                }
+
                 const intern = data.intern || null;
-                const showDetails = ['recorded', 'done', 'out_of_order', 'too_soon'].includes(data.state);
 
                 let head;
                 if (intern) {
@@ -639,7 +676,7 @@
                     '<p class="text-gray-400 mt-1.5">' + subtitleFor(data) + '</p>' +
                     capture +
                     (data.note ? '<p class="mt-3 text-[13px] leading-relaxed text-gray-300">' + esc(data.note) + '</p>' : '') +
-                    (showDetails ? timesGrid(data.log) + progressBar(data.progress) : '') +
+                    timesGrid(data.log) + progressBar(data.progress) +
                     '</div>';
 
                 show(result);

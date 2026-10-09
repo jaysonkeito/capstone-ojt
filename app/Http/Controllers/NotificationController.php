@@ -45,4 +45,18 @@ class NotificationController extends Controller
 
         return back();
     }
+
+    /**
+     * Remove one notification from the inbox for good — reached by the
+     * delete button on wide screens or a left-swipe on a phone. The
+     * notification must belong to the current user.
+     */
+    public function destroy(Request $request, DatabaseNotification $notification)
+    {
+        abort_unless($notification->notifiable_id === $request->user()->id, 404);
+
+        $notification->delete();
+
+        return back()->with('status', 'Notification deleted.');
+    }
 }
