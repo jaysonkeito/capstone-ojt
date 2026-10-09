@@ -17,7 +17,7 @@
      punch is recent (last 30 min) and then clears itself. --}}
 @php($punch = $todayLog?->latest_punch)
 @php($lunchNote = $punch && $punch['slot'] === 'pm_time_in'
-    ? \App\Support\AttendanceRecorder::lunchWindowNote($punch['at'])
+    ? \App\Support\AttendanceRecorder::lunchWindowNote($punch['at'], $intern->office)
     : null)
 @if($punch && $punch['at']->gte(now()->subMinutes(30)))
     <div class="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 mb-6 flex items-center gap-3">

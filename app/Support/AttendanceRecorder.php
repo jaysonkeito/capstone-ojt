@@ -2,9 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\Office;
 use App\Models\OjtEnrollment;
 use App\Models\OjtLog;
-use App\Models\OjtSetting;
 use App\Models\User;
 use App\Observers\AuditObserver;
 use Illuminate\Support\Carbon;
@@ -124,6 +124,14 @@ class AttendanceRecorder
     {
         $time = $when->format('H:i');
 
+        // The intern's office working times where the office sets its own,
+        // else the campus-wide standard — the AM/PM split below and every
+        // slot boundary follow whichever schedule applies here.
+        $hours = HoursCalculator::hoursFor($intern->office);
+        $amEnd = substr($hours['am_end'], 0, 5);
+        $pmStart = substr($hours['pm_start'], 0, 5);
+        $pmEnd = substr($hours['pm_end'], 0, 5);
+
         $log = OjtLog::where('user_id', $intern->id)
             ->whereDate('date', $when->toDateString())
             ->first();
@@ -132,10 +140,10 @@ class AttendanceRecorder
         // instead of always assuming morning. An intern who skips the morning
         // and first scans in the afternoon opens the PM session (PM Time In)
         // and leaves the morning columns blank, rather than mislabeling, say,
-        // 1 PM as "AM Time In". Noon is the boundary: before 12:00 opens AM,
-        // 12:00 or later opens PM.
+        // 1 PM as "AM Time In". The boundary is the AM window's end (noon on
+        // the standard schedule): before it opens AM, from it on opens PM.
         if (! $log) {
-            $slot = $when->hour < 12 ? 'am_time_in' : 'pm_time_in';
+            $slot = $time < $amEnd ? 'am_time_in' : 'pm_time_in';
 
             $log = OjtLog::create([
                 'user_id' => $intern->id,
@@ -147,11 +155,6 @@ class AttendanceRecorder
 
             return ['state' => 'recorded', 'log' => $log, 'slot' => $slot];
         }
-
-        $settings = OjtSetting::current();
-        $amEnd = substr((string) $settings->am_time_out, 0, 5);
-        $pmStart = substr((string) $settings->pm_time_in, 0, 5);
-        $pmEnd = substr((string) $settings->pm_time_out, 0, 5);
 
         // The day is full once even the last gap slot carries a time.
         if (self::lastFilledSlot($log) === 'pm_time_out_2') {
@@ -208,7 +211,7 @@ class AttendanceRecorder
             'pm_time_in_2' => ['pm_time_out_2', null, null, null],
             // A log exists but has no times (admin created it bare) — open
             // the session the same way a first scan would.
-            default => [$when->hour < 12
+            default => [$time < $amEnd
                 ? 'am_time_in'
                 : 'pm_time_in', null, null, null],
         };
@@ -272,27 +275,26 @@ class AttendanceRecorder
     }
 
     /**
-     * The explanation for a time in during the lunch window — from noon,
-     * when the morning session ends, until the PM window opens — where the
-     * scan is recorded as PM Time In even though the afternoon hasn't
-     * formally started. Null outside that window. The kiosk result card and
-     * the intern dashboard banner both show it so the PM label doesn't look
-     * like a mistake to someone back before the afternoon starts.
+     * The explanation for a time in during the lunch window — after the
+     * morning window ends (noon on the standard schedule) but before the PM
+     * window opens — where the scan is recorded as PM Time In even though
+     * the afternoon hasn't formally started. Null outside that window. The
+     * kiosk result card and the intern dashboard banner both show it so the
+     * PM label doesn't look like a mistake to someone back before the
+     * afternoon starts.
      */
-    public static function lunchWindowNote(Carbon $when): ?string
+    public static function lunchWindowNote(Carbon $when, ?Office $office = null): ?string
     {
-        if ($when->lt($when->copy()->setTime(12, 0))) {
+        $hours = HoursCalculator::hoursFor($office);
+        $amEnd = $when->copy()->setTimeFromTimeString(substr($hours['am_end'], 0, 5));
+        $pmStart = $when->copy()->setTimeFromTimeString(substr($hours['pm_start'], 0, 5));
+
+        if ($when->lt($amEnd) || $when->gte($pmStart)) {
             return null;
         }
 
-        $pmStart = $when->copy()
-            ->setTimeFromTimeString(substr((string) OjtSetting::current()->pm_time_in, 0, 5));
-
-        if ($when->gte($pmStart)) {
-            return null;
-        }
-
-        return 'Counted as PM Time In — the morning ends at noon, so a scan from 12:00 PM to '
-            .$pmStart->format('g:i A').' opens the afternoon.';
+        return 'Counted as PM Time In — the morning ends at '.$amEnd->format('g:i A')
+            .', so a scan from '.$amEnd->format('g:i A').' to '.$pmStart->format('g:i A')
+            .' opens the afternoon.';
     }
 }

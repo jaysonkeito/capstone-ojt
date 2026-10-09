@@ -75,6 +75,36 @@
                 </div>
             </div>
 
+            {{-- Per-office working times: null columns mean the campus-wide
+                 standard from Settings applies; set these only when this
+                 office runs a different schedule. --}}
+            <div class="border-t border-gray-100 pt-5">
+                <label class="block text-sm font-medium text-gray-700">Working Times <span class="text-gray-400 font-normal text-xs">(optional)</span></label>
+                <p class="text-[11px] text-gray-400 mt-0.5 mb-3">Leave blank to use the campus-wide times from Settings. Set them only if this office runs a different schedule — interns and the desk scanner here follow these instead.</p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">AM Time In</label>
+                        <input type="time" name="am_time_in" value="{{ old('am_time_in', $office->am_time_in ? substr($office->am_time_in, 0, 5) : null) }}"
+                            class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">AM Time Out</label>
+                        <input type="time" name="am_time_out" value="{{ old('am_time_out', $office->am_time_out ? substr($office->am_time_out, 0, 5) : null) }}"
+                            class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">PM Time In</label>
+                        <input type="time" name="pm_time_in" value="{{ old('pm_time_in', $office->pm_time_in ? substr($office->pm_time_in, 0, 5) : null) }}"
+                            class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">PM Time Out</label>
+                        <input type="time" name="pm_time_out" value="{{ old('pm_time_out', $office->pm_time_out ? substr($office->pm_time_out, 0, 5) : null) }}"
+                            class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    </div>
+                </div>
+            </div>
+
             <div class="flex gap-2 pt-2">
                 <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">{{ $office->exists ? 'Save Changes' : 'Create Office' }}</button>
                 <a href="{{ route('admin.offices.index') }}" class="text-sm font-medium px-4 py-2 rounded-lg text-gray-500 hover:bg-gray-100 transition">Cancel</a>

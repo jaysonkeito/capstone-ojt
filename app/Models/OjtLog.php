@@ -56,8 +56,9 @@ class OjtLog extends Model
     {
         // Auto-compute regular/overtime/total hours from the AM/PM times
         // every time a log is saved — no one ever has to type OT by hand.
-        // The standard AM/PM window comes from the campus-wide settings
-        // (see OjtSetting::current()).
+        // The standard AM/PM window is the intern's office times where the
+        // office sets its own, else the campus-wide settings
+        // (see HoursCalculator::hoursFor()).
         static::saving(function (OjtLog $log) {
             $result = HoursCalculator::compute(
                 $log->am_time_in,
@@ -68,6 +69,7 @@ class OjtLog extends Model
                 $log->pm_time_out,
                 $log->pm_time_in_2,
                 $log->pm_time_out_2,
+                HoursCalculator::hoursFor($log->user?->office),
             );
 
             $log->regular_hours = $result['regular_hours'];

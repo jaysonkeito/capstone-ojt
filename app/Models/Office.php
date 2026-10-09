@@ -18,6 +18,10 @@ class Office extends Model
         'contact_email',
         'contact_phone',
         'is_active',
+        'am_time_in',
+        'am_time_out',
+        'pm_time_in',
+        'pm_time_out',
     ];
 
     protected function casts(): array

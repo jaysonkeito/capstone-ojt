@@ -2,13 +2,15 @@
 
 namespace App\Support;
 
+use App\Models\Office;
 use App\Models\OjtSetting;
 use Carbon\Carbon;
 
 /**
  * Turns a logbook-style AM IN/OUT + PM IN/OUT entry into regular vs.
- * overtime hours automatically, based on the campus-wide standard working
- * hours configured in `ojt_settings`.
+ * overtime hours automatically, based on the standard working hours —
+ * the intern's office times where set, else the campus-wide ones
+ * configured in `ojt_settings`.
  *
  * Rule: any time worked *within* the standard AM/PM windows counts as
  * regular hours. Any time clocked *outside* those windows — earlier than
@@ -37,6 +39,9 @@ class HoursCalculator
      * @param  string|null  $pmOut
      * @param  string|null  $pmIn2
      * @param  string|null  $pmOut2
+     * @param  array{am_start: string, am_end: string, pm_start: string, pm_end: string}|null  $hours
+     *                       the standard window to measure against — null
+     *                       resolves to the campus-wide settings
      * @return array{regular_hours: float, overtime_hours: float, total_hours: float}
      */
     public static function compute(
@@ -48,8 +53,9 @@ class HoursCalculator
         ?string $pmOut,
         ?string $pmIn2 = null,
         ?string $pmOut2 = null,
+        ?array $hours = null,
     ): array {
-        $standardHours = self::standardHours();
+        $standardHours = $hours ?? self::standardHours();
 
         $regularMinutes = 0;
         $overtimeMinutes = 0;
@@ -108,6 +114,26 @@ class HoursCalculator
         $overtimeMinutes = $totalMinutes - $regularMinutes;
 
         return [$regularMinutes, $overtimeMinutes];
+    }
+
+    /**
+     * The standard window that applies to an office's interns: the office's
+     * own working times (Offices → Edit) where set, falling back per-slot to
+     * the campus-wide settings. A null office — an unplaced intern — gets the
+     * campus window.
+     *
+     * @return array{am_start: string, am_end: string, pm_start: string, pm_end: string}
+     */
+    public static function hoursFor(?Office $office): array
+    {
+        $settings = OjtSetting::current();
+
+        return [
+            'am_start' => $office?->am_time_in ?: $settings->am_time_in,
+            'am_end' => $office?->am_time_out ?: $settings->am_time_out,
+            'pm_start' => $office?->pm_time_in ?: $settings->pm_time_in,
+            'pm_end' => $office?->pm_time_out ?: $settings->pm_time_out,
+        ];
     }
 
     /**
