@@ -306,15 +306,23 @@ class MonitorController extends Controller
 
     /**
      * The interns this monitor role may see: a coordinator's assigned
-     * interns, or a supervisor's office placements.
+     * interns, a supervisor's office placements — and a coordinator who
+     * also supervises an office (coordinator-supervisor) gets both sets.
      */
     private function scopedInterns(User $user)
     {
-        // Coordinators monitor the interns assigned to them; supervisors
-        // and deans-with-office monitor their office's interns.
+        // Coordinators monitor the interns assigned to them, plus their
+        // office's interns when they supervise one; supervisors and
+        // deans-with-office monitor their office's interns.
         return User::where('role', 'intern')->when(
             $user->isCoordinator(),
-            fn ($q) => $q->where('coordinator_id', $user->id),
+            fn ($q) => $q->where(function ($qq) use ($user) {
+                $qq->where('coordinator_id', $user->id);
+
+                if ($user->office_id !== null) {
+                    $qq->orWhere('office_id', $user->office_id);
+                }
+            }),
             fn ($q) => $q->where('office_id', $user->office_id),
         );
     }

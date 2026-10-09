@@ -21,15 +21,7 @@ class InternPolicy
      */
     public function monitor(User $user, User $intern): bool
     {
-        if (! $intern->isIntern()) {
-            return false;
-        }
-
-        if ($user->isCoordinator()) {
-            return $intern->coordinator_id === $user->id;
-        }
-
-        return $user->supervisesOffice($intern->office_id);
+        return $user->monitors($intern);
     }
 
     /**

@@ -288,13 +288,38 @@ class User extends Authenticatable
      */
     public function supervisesOffice(?int $officeId): bool
     {
-        if (! in_array($this->role, ['supervisor', 'dean'], true) || $officeId === null) {
+        if ($officeId === null || $this->isIntern()) {
             return false;
         }
 
-        return $this->isSupervisor()
-            ? $this->office_id === $officeId
-            : ($this->office_id !== null && $this->office_id === $officeId);
+        // Supervisors, deans who run their office's desk, and coordinators
+        // who take over an office's supervision — the office_id on the
+        // account is the supervisor link in all three cases.
+        if (! in_array($this->role, ['supervisor', 'dean', 'coordinator'], true)) {
+            return false;
+        }
+
+        return $this->office_id !== null && $this->office_id === $officeId;
+    }
+
+    /**
+     * Whether this monitor-role account may see and act on an intern: a
+     * coordinator's assigned interns, a supervisor's office placements —
+     * and a coordinator who also supervises an office (coordinator-
+     * supervisor) gets both sets. The single gate behind the monitoring
+     * dashboards and every act-on-an-intern policy.
+     */
+    public function monitors(User $intern): bool
+    {
+        if (! $intern->isIntern()) {
+            return false;
+        }
+
+        if ($this->isCoordinator() && $intern->coordinator_id === $this->id) {
+            return true;
+        }
+
+        return $this->supervisesOffice($intern->office_id);
     }
 
     /**

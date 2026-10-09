@@ -26,12 +26,19 @@ class RequestController extends Controller
         $user = $request->user();
 
         // Attendance requests awaiting a decision, scoped exactly like the
-        // dashboards: a coordinator's own interns, a supervisor's office.
+        // dashboards: a coordinator's own interns plus their office's when
+        // they supervise one, a supervisor's office.
         $pendingLogRequests = LogRequest::query()
             ->pending()
             ->with(['intern', 'ojtLog'])
             ->whereHas('intern', fn ($q) => $user->isCoordinator()
-                ? $q->where('coordinator_id', $user->id)
+                ? $q->where(function ($qq) use ($user) {
+                    $qq->where('coordinator_id', $user->id);
+
+                    if ($user->office_id !== null) {
+                        $qq->orWhere('office_id', $user->office_id);
+                    }
+                })
                 : $q->where('office_id', $user->office_id))
             ->orderBy('created_at')
             ->get();

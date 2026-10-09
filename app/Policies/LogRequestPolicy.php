@@ -19,11 +19,7 @@ class LogRequestPolicy
             return true;
         }
 
-        if ($user->isCoordinator()) {
-            return $logRequest->intern->coordinator_id === $user->id;
-        }
-
-        return $user->supervisesOffice($logRequest->intern->office_id);
+        return $user->monitors($logRequest->intern);
     }
 
     /**

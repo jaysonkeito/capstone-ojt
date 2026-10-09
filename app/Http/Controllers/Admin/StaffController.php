@@ -63,7 +63,8 @@ class StaffController extends Controller
             'password' => ['required', 'string', 'min:8'],
             // A supervisor represents exactly one office, and so does an
             // office scanner account — the kiosk resolves only that office's
-            // interns. Coordinators don't belong to one.
+            // interns. A coordinator may also take an office
+            // (coordinator-supervisor) or stay college-wide with none.
             'office_id' => ['required_if:role,supervisor', 'required_if:role,office', 'nullable', 'exists:offices,id'],
             // Coordinators and deans belong to a college; a supervisor's
             // college is optional — external offices may host interns from
@@ -90,7 +91,7 @@ class StaffController extends Controller
             'email' => $validated['email'],
             'password' => $validated['password'],
             'password_changed_at' => now(),
-            'office_id' => in_array($validated['role'], ['supervisor', 'dean', 'office'], true) ? ($validated['office_id'] ?? null) : null,
+            'office_id' => in_array($validated['role'], ['coordinator', 'supervisor', 'dean', 'office'], true) ? ($validated['office_id'] ?? null) : null,
             'student_id' => null,
             'target_hours' => 0,
             // Admin-provisioned staff skip the self-service approval gate and
@@ -161,7 +162,7 @@ class StaffController extends Controller
             'title' => $staff->isOffice() ? $staff->title : ($validated['title'] ?? null),
             'position' => $staff->isOffice() ? $staff->position : ($validated['position'] ?? null),
             'email' => $validated['email'],
-            'office_id' => in_array($staff->role, ['supervisor', 'dean', 'office'], true) ? ($validated['office_id'] ?? null) : null,
+            'office_id' => in_array($staff->role, ['coordinator', 'supervisor', 'dean', 'office'], true) ? ($validated['office_id'] ?? null) : null,
             'is_active' => $request->boolean('is_active', false),
             'approved_at' => now(),
         ]);
