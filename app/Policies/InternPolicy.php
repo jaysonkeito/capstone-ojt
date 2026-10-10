@@ -27,18 +27,23 @@ class InternPolicy
     /**
      * A supervisor recording a missed scan manually for an intern at
      * their office (the entry then lands in the pending review queue).
+     * Oversight-only roles — deans and Program Chairs — may not write
+     * entries, only see them.
      */
     public function createLog(User $user, User $intern): bool
     {
-        return $this->monitor($user, $intern);
+        return in_array($user->role, ['coordinator', 'supervisor'], true)
+            && $this->monitor($user, $intern);
     }
 
     /**
      * A supervisor certifying the intern's duty hours for a timesheet
-     * period — the formal per-month sign-off.
+     * period — the formal per-month sign-off. Same write gate: no
+     * oversight-only roles.
      */
     public function certify(User $user, User $intern): bool
     {
-        return $this->monitor($user, $intern);
+        return in_array($user->role, ['coordinator', 'supervisor'], true)
+            && $this->monitor($user, $intern);
     }
 }

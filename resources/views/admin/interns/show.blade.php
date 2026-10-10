@@ -27,7 +27,7 @@
     {{-- Tab bar — switching tabs is client-side; no navigation happens. --}}
     <div class="border-b border-gray-200 mb-6" role="tablist">
         <nav class="flex flex-wrap gap-1 -mb-px">
-            @foreach(['profile' => 'Intern\'s Profile', 'history' => 'Duty History', 'timesheet' => 'Time Frame', 'journal' => 'Daily Journal'] as $tabKey => $tabLabel)
+            @foreach(['profile' => 'Intern\'s Profile', 'history' => 'Duty History', 'timesheet' => 'Time Frame', 'journal' => 'Daily Journal', 'documents' => 'Documents'] as $tabKey => $tabLabel)
                 <button type="button" role="tab" data-tab-button="{{ $tabKey }}"
                     onclick="switchInternTab('{{ $tabKey }}')"
                     class="px-4 py-2.5 text-sm font-medium border-b-2 transition
@@ -474,6 +474,11 @@
             @endforelse
         </div>
     </div>
+
+    {{-- ============ Tab 5: Documents — requirement submissions + review ============ --}}
+    <div data-tab-panel="documents" class="hidden">
+        @include('partials.intern-documents-panel', ['intern' => $intern, 'submissions' => $submissions])
+    </div>
 </div>
 
 {{-- Edit-entry modals — one per duty day, shared by the Duty History and
@@ -493,7 +498,7 @@
 
 @push('scripts')
 <script>
-const TABS = ['profile', 'history', 'timesheet', 'journal'];
+const TABS = ['profile', 'history', 'timesheet', 'journal', 'documents'];
 
 // Hop from one day's edit modal to the adjacent day's without closing.
 function switchEditModal(fromId, toId) {

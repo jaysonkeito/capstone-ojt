@@ -70,9 +70,16 @@
             ? App\Models\LogRequest::query()->where('status', 'pending')->whereHas('intern', fn ($q) => $u->isCoordinator()
                 ? $q->where('coordinator_id', $u->id)
                 : $q->where('office_id', $u->office_id))->count()
+                + ($u->isCoordinator() || $u->isAdmin()
+                    ? App\Models\InternRequest::query()->where('status', 'pending')
+                        ->where(fn ($q) => $q->where('recipient_id', $u->id)
+                            ->orWhereHas('intern', fn ($iq) => $iq->where('coordinator_id', $u->id)))
+                        ->count()
+                    : 0)
             : 0;
         $pendingInternRequests = $u->isIntern()
             ? App\Models\LogRequest::where('intern_id', $u->id)->where('status', 'pending')->count()
+                + App\Models\InternRequest::where('intern_id', $u->id)->where('status', 'pending')->count()
             : 0;
 
         // Every link carries a 'group' — the sidebar renders a section header
@@ -114,6 +121,7 @@
                 ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
                 ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
+                ['route' => 'class-board.index', 'match' => 'class-board.*', 'icon' => 'team', 'label' => 'Class', 'group' => 'Workflow'],
                 ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
             ],
@@ -124,6 +132,14 @@
                 ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
                 ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
+                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
+            ],
+            // Program Chairs: read-only oversight of their college's interns
+            // (reached through their coordinators) and the request desk.
+            $u->isChair() => [
+                ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns', 'group' => 'People'],
+                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
             ],
             // Office scanner accounts: the station is their entire surface —
@@ -137,6 +153,8 @@
                 ['route' => 'intern.time-frame', 'match' => 'intern.time-frame', 'icon' => 'clock', 'label' => 'My Time Frame', 'group' => 'My OJT'],
                 ['route' => 'intern.documentation', 'match' => 'intern.documentation', 'icon' => 'image', 'label' => 'My Journal', 'group' => 'My OJT'],
                 ['route' => 'intern.requests.index', 'match' => 'intern.requests.*', 'icon' => 'file', 'label' => 'My Requests', 'group' => 'Requests', 'badge' => $pendingInternRequests ?: null],
+                ['route' => 'intern.coordinator-requests.index', 'match' => 'intern.coordinator-requests.*', 'icon' => 'file', 'label' => 'Coordinator Requests', 'group' => 'Requests'],
+                ['route' => 'class-board.index', 'match' => 'class-board.*', 'icon' => 'team', 'label' => 'My Class', 'group' => 'Class'],
                 ['route' => 'intern.personal-information.edit', 'match' => 'intern.personal-information.*', 'icon' => 'id-card', 'label' => 'Personal Info', 'group' => 'My Records'],
                 ['route' => 'intern.requirements.index', 'match' => 'intern.requirements.*', 'icon' => 'file', 'label' => 'Requirements', 'group' => 'My Records'],
             ],

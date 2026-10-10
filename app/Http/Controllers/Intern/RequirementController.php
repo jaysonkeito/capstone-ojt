@@ -18,7 +18,9 @@ class RequirementController extends Controller
     public function __construct(private RequirementDocumentService $service) {}
 
     /**
-     * List every requirement form with whether it comes pre-filled.
+     * List every requirement form with whether it comes pre-filled, plus
+     * the intern's submissions of each one — the return half: download,
+     * complete, submit back, and follow the coordinator's review.
      */
     public function index(Request $request)
     {
@@ -33,9 +35,18 @@ class RequirementController extends Controller
             ])
             ->values();
 
+        // Every submission this intern has made, grouped by requirement type;
+        // the newest one per type is the deciding status.
+        $submissions = \App\Models\SubmittedDocument::where('user_id', $request->user()->id)
+            ->with('reviewer:id,first_name,last_name')
+            ->latest()
+            ->get()
+            ->groupBy('type');
+
         return view('intern.requirements', [
             'intern' => $request->user(),
             'requirements' => $requirements,
+            'submissions' => $submissions,
         ]);
     }
 

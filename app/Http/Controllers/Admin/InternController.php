@@ -290,6 +290,12 @@ class InternController extends Controller
             'timesheetRows' => $timesheetRows,
             'timesheetTotals' => $timesheetTotals,
             'certification' => $certification,
+            // Documents tab — the intern's requirement submissions with
+            // their review states (the admin decides like the coordinator).
+            'submissions' => \App\Models\SubmittedDocument::where('user_id', $intern->id)
+                ->with('reviewer:id,first_name,last_name')
+                ->latest()
+                ->get(),
         ]);
     }
 

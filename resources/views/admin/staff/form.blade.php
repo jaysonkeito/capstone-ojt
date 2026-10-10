@@ -22,6 +22,7 @@
                         <option value="coordinator" {{ old('role', $staff->role) === 'coordinator' ? 'selected' : '' }}>OJT Coordinator — monitors the interns assigned to them, plus their office's interns if one is set</option>
                         <option value="supervisor" {{ old('role', $staff->role) === 'supervisor' ? 'selected' : '' }}>Supervisor — monitors the interns at their office</option>
                         <option value="dean" {{ old('role', $staff->role) === 'dean' ? 'selected' : '' }}>College Dean — approves coordinator and supervisor sign-ups for their college</option>
+                        <option value="chair" {{ old('role', $staff->role) === 'chair' ? 'selected' : '' }}>Program Chair — oversees their college's interns (one per program; CAS has two)</option>
                         <option value="office" {{ old('role', $staff->role) === 'office' ? 'selected' : '' }}>Office Scanner — scanner-only account for the kiosk PC; nothing else</option>
                     </select>
                 </div>

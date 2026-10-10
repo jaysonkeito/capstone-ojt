@@ -61,12 +61,34 @@ class RequestController extends Controller
             ? User::where('role', 'intern')->where('coordinator_id', $user->id)->where('is_active', true)->orderBy('last_name')->get()
             : collect();
 
+        // Interns' office-transfer and consultation requests awaiting the
+        // coordinator's (or named recipient's) decision.
+        $pendingInternRequests = \App\Models\InternRequest::query()
+            ->where('status', 'pending')
+            ->where(fn ($q) => $q->where('recipient_id', $user->id)
+                ->orWhereHas('intern', fn ($iq) => $iq->where('coordinator_id', $user->id)))
+            ->with(['intern:id,first_name,last_name,student_id,office_id', 'office:id,name'])
+            ->latest()
+            ->get();
+
+        // Requirement documents the coordinator's interns submitted,
+        // newest first — approve/reject lives on each intern's Documents
+        // tab, this is the queue that says who is waiting.
+        $pendingDocuments = \App\Models\SubmittedDocument::query()
+            ->where('status', 'pending')
+            ->whereHas('intern', fn ($q) => $q->where('coordinator_id', $user->id))
+            ->with(['intern:id,first_name,last_name,student_id'])
+            ->latest()
+            ->get();
+
         return view('monitor.requests', [
             'pendingLogRequests' => $pendingLogRequests,
             'placementRequests' => $placementRequests,
             'completionRecommendations' => $completionRecommendations,
             'myInterns' => $myInterns,
             'offices' => $user->isCoordinator() ? \App\Models\Office::orderBy('name')->get() : collect(),
+            'pendingInternRequests' => $pendingInternRequests,
+            'pendingDocuments' => $pendingDocuments,
         ]);
     }
 

@@ -103,6 +103,23 @@ class User extends Authenticatable
     }
 
     /**
+     * The requirement documents this intern has submitted for review.
+     */
+    public function submittedDocuments()
+    {
+        return $this->hasMany(SubmittedDocument::class);
+    }
+
+    /**
+     * The requests this intern has filed with their coordinator
+     * (office transfers, consultations).
+     */
+    public function coordinatorRequests()
+    {
+        return $this->hasMany(InternRequest::class, 'intern_id');
+    }
+
+    /**
      * The office this user belongs to — where an intern is placed, or the
      * office a supervisor represents.
      */
@@ -199,6 +216,16 @@ class User extends Authenticatable
     }
 
     /**
+     * Program Chair of a college — a college can have one per program
+     * (CAS has two). They monitor their college's interns (via those
+     * interns' coordinators) without supervising any office.
+     */
+    public function isChair(): bool
+    {
+        return $this->role === 'chair';
+    }
+
+    /**
      * Scanner-only account for the office's kiosk PC — it can run the
      * station and nothing else.
      */
@@ -277,7 +304,7 @@ class User extends Authenticatable
      */
     public function isMonitor(): bool
     {
-        return $this->isCoordinator() || $this->isSupervisor() || $this->isDean();
+        return $this->isCoordinator() || $this->isSupervisor() || $this->isDean() || $this->isChair();
     }
 
     /**
@@ -316,6 +343,13 @@ class User extends Authenticatable
         }
 
         if ($this->isCoordinator() && $intern->coordinator_id === $this->id) {
+            return true;
+        }
+
+        // A Program Chair oversees their college's interns — those whose
+        // coordinators belong to the chair's college.
+        if ($this->isChair() && $intern->coordinator
+            && $intern->coordinator->collegeCode() === $this->collegeCode()) {
             return true;
         }
 
@@ -557,6 +591,7 @@ class User extends Authenticatable
             'supervisor' => 'Supervisor',
             'dean' => 'College Dean',
             'office' => 'Office Scanner',
+            'chair' => 'Program Chair',
             default => ucfirst($this->role),
         };
     }
@@ -636,6 +671,20 @@ class User extends Authenticatable
 
         if ($staff->isSupervisor() || $staff->isDean()) {
             return $query->where('office_id', $staff->office_id);
+        }
+
+        if ($staff->isChair()) {
+            // The college's interns, reached through the coordinators that
+            // belong to the chair's college (college code on the account or
+            // its staff profile).
+            $college = $staff->collegeCode();
+
+            return $college === null
+                ? $query->whereRaw('0 = 1')
+                : $query->whereHas('coordinator', function ($q) use ($college) {
+                    $q->where('college_code', $college)
+                        ->orWhereHas('staffProfile', fn ($sq) => $sq->where('college_code', $college));
+                });
         }
 
         return $query->whereRaw('0 = 1');

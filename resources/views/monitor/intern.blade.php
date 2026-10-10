@@ -26,6 +26,20 @@
     </div>
 </div>
 
+{{-- Tab bar — client-side switching, deep-linkable via #hash. --}}
+<div class="border-b border-gray-200 mb-6" role="tablist">
+    <nav class="flex gap-6 -mb-px">
+        @foreach(['overview' => 'Overview', 'documents' => 'Documents'] as $tabKey => $tabLabel)
+            <button type="button" role="tab" data-tab-button="{{ $tabKey }}"
+                onclick="switchInternTab('{{ $tabKey }}')"
+                class="pb-3 px-1 border-b-2 text-sm font-medium transition-colors {{ $tabKey === 'overview' ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500' }}">
+                {{ $tabLabel }}
+            </button>
+        @endforeach
+    </nav>
+</div>
+
+<div data-tab-panel="overview">
 {{-- Placement --}}
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
     <div class="bg-white border border-gray-200 rounded-xl px-5 py-4 sm:col-span-2">
@@ -224,9 +238,40 @@
 @if($errors->any())
     <script>document.getElementById('reviewModal').classList.remove('hidden');</script>
 @endif
+</div>{{-- /overview panel --}}
+
+<div data-tab-panel="documents" class="hidden">
+    @include('partials.intern-documents-panel', ['intern' => $intern, 'submissions' => $submissions])
+</div>
 
 @push('scripts')
 <script>
+// Overview / Documents tabs — client-side, deep-linkable like the admin
+// profile's tabs.
+const INTERN_TABS = ['overview', 'documents'];
+
+function switchInternTab(key) {
+    if (! INTERN_TABS.includes(key)) { key = 'overview'; }
+
+    INTERN_TABS.forEach((name) => {
+        const panel = document.querySelector(`[data-tab-panel="${name}"]`);
+        const button = document.querySelector(`[data-tab-button="${name}"]`);
+        if (! panel || ! button) { return; }
+
+        const active = name === key;
+        panel.classList.toggle('hidden', ! active);
+        button.classList.toggle('border-brand-600', active);
+        button.classList.toggle('text-brand-700', active);
+        button.classList.toggle('border-transparent', ! active);
+        button.classList.toggle('text-gray-500', ! active);
+    });
+
+    history.replaceState(null, '', '#' + key);
+}
+
+const internHash = window.location.hash.slice(1);
+if (internHash && INTERN_TABS.includes(internHash) && internHash !== 'overview') { switchInternTab(internHash); }
+
 function openReview(button) {
     const form = document.getElementById('reviewForm');
     form.action = button.dataset.url;

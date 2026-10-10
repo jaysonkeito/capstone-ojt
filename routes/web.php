@@ -15,13 +15,18 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Intern\DashboardController as InternDashboardController;
+use App\Http\Controllers\Intern\CoordinatorRequestController as InternCoordinatorRequestController;
 use App\Http\Controllers\Intern\PersonalInformationController as InternPersonalInformationController;
 use App\Http\Controllers\Intern\RequestController as InternRequestController;
 use App\Http\Controllers\Intern\RequirementController as InternRequirementController;
+use App\Http\Controllers\Intern\SubmissionController as InternSubmissionController;
 use App\Http\Controllers\AppDownloadController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\MonitorController;
+use App\Http\Controllers\ClassBoardController;
+use App\Http\Controllers\Monitor\DocumentController as MonitorDocumentController;
+use App\Http\Controllers\Monitor\InternRequestController as MonitorInternRequestController;
 use App\Http\Controllers\Monitor\RequestController as MonitorRequestController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileCompletionController;
@@ -311,7 +316,7 @@ Route::middleware('auth')->group(function () {
 | its group-level role middleware would otherwise lock the admin out.
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin,coordinator,supervisor,dean', 'profile-completed'])
+Route::middleware(['auth', 'role:admin,coordinator,supervisor,dean,chair', 'profile-completed'])
     ->post('/monitor/requests/log/{logRequest}/decide', [MonitorRequestController::class, 'decide'])
     ->name('monitor.requests.log.decide');
 
@@ -326,7 +331,7 @@ Route::middleware(['auth', 'role:admin,coordinator,supervisor,dean', 'profile-co
 | and admin corrections remain the authoritative ways times change.
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:coordinator,supervisor,dean', 'profile-completed'])
+Route::middleware(['auth', 'role:coordinator,supervisor,dean,chair', 'profile-completed'])
     ->prefix('monitor')
     ->name('monitor.')
     ->group(function () {
@@ -362,6 +367,34 @@ Route::middleware(['auth', 'role:coordinator,supervisor,dean', 'profile-complete
             Route::post('/requests/placement', [MonitorRequestController::class, 'storePlacement'])->name('requests.placement.store');
             Route::post('/requests/completion', [MonitorRequestController::class, 'storeCompletion'])->name('requests.completion.store');
         });
+
+        // Interns' submitted requirement documents: anyone in scope may read
+        // the file; the intern's coordinator (or the System Admin) decides.
+        Route::get('/documents/{document}/download', [MonitorDocumentController::class, 'download'])->name('documents.download');
+        Route::post('/documents/{document}/review', [MonitorDocumentController::class, 'review'])
+            ->name('documents.review')
+            ->middleware('role:admin,coordinator');
+
+        // Interns' office-transfer and consultation requests: the intern's
+        // coordinator (or the named consultation recipient) decides; an
+        // approved transfer moves the placement on the spot.
+        Route::post('/intern-requests/{internRequest}/decide', [MonitorInternRequestController::class, 'decide'])
+            ->name('intern-requests.decide')
+            ->middleware('role:admin,coordinator,supervisor');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| Class board — the coordinator + their interns' shared channel. Membership
+| is derived from coordinator_id, never configured.
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:intern,coordinator', 'profile-completed'])
+    ->prefix('class')
+    ->name('class-board.')
+    ->group(function () {
+        Route::get('/', [ClassBoardController::class, 'index'])->name('index');
+        Route::post('/', [ClassBoardController::class, 'store'])->name('store');
     });
 
 /*
@@ -424,13 +457,28 @@ Route::middleware(['auth', 'role:intern', 'profile-completed'])
         // OJT requirement documents — the school's required forms, each
         // downloadable with the intern's information merged into the admin's
         // uploaded design, or as the blank official copy when none is uploaded.
+        // The download has a return half: the completed form is submitted
+        // back here and lands on the coordinator's review queue.
         Route::get('/requirements', [InternRequirementController::class, 'index'])->name('requirements.index');
         Route::get('/requirements/{type}', [InternRequirementController::class, 'download'])->name('requirements.download');
+        Route::post('/requirements/{type}', [InternSubmissionController::class, 'store'])->name('requirements.submit');
+        // The intern fetching their own submitted file (the review panel's
+        // View action for staff uses the monitor-side twin below).
+        Route::get('/requirements/files/{document}', [MonitorDocumentController::class, 'download'])
+            ->name('requirements.file');
+
+        // The intern's requests beyond attendance: applying to another
+        // office and consultations with their coordinator or supervisor.
+        Route::get('/coordinator-requests', [InternCoordinatorRequestController::class, 'index'])->name('coordinator-requests.index');
+        Route::post('/coordinator-requests', [InternCoordinatorRequestController::class, 'store'])->name('coordinator-requests.store');
+        Route::delete('/coordinator-requests/{internRequest}', [InternCoordinatorRequestController::class, 'destroy'])
+            ->name('coordinator-requests.destroy');
 
         // The My Journal page's Export Journal — the intern's daily journal
         // entries (message + photo) compiled into the school's Word Weekly
         // Progress Report, filled from the admin's uploaded template.
         Route::get('/journals/export', [InternDashboardController::class, 'exportJournals'])->name('journals.export');
+
 
         // The intern's attendance requests — corrections to recorded scan
         // times and absence reports, decided by their supervisor or

@@ -111,6 +111,12 @@ class MonitorController extends Controller
             'intern' => $intern,
             'logs' => $logs,
             'certifications' => app(\App\Support\TimesheetCertifier::class)->certificationsFor($intern),
+            // The Documents tab: every requirement submission this intern
+            // has made, newest first — the review panel groups by type.
+            'submissions' => \App\Models\SubmittedDocument::where('user_id', $intern->id)
+                ->with('reviewer:id,first_name,last_name')
+                ->latest()
+                ->get(),
         ]);
     }
 
@@ -306,14 +312,20 @@ class MonitorController extends Controller
 
     /**
      * The interns this monitor role may see: a coordinator's assigned
-     * interns, a supervisor's office placements — and a coordinator who
-     * also supervises an office (coordinator-supervisor) gets both sets.
+     * interns, a supervisor's office placements, a Program Chair's college
+     * — and a coordinator who also supervises an office
+     * (coordinator-supervisor) gets both sets.
      */
     private function scopedInterns(User $user)
     {
         // Coordinators monitor the interns assigned to them, plus their
         // office's interns when they supervise one; supervisors and
-        // deans-with-office monitor their office's interns.
+        // deans-with-office monitor their office's interns; Program Chairs
+        // monitor their college's interns through their coordinators.
+        if ($user->isChair()) {
+            return User::where('role', 'intern')->forStaff($user);
+        }
+
         return User::where('role', 'intern')->when(
             $user->isCoordinator(),
             fn ($q) => $q->where(function ($qq) use ($user) {

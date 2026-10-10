@@ -41,6 +41,10 @@ class FcmChannel
         'timesheet_certified' => 'Timesheet certified',
         'template_changed' => 'Document template changed',
         'scan_recorded' => 'Time recorded',
+        'document_submitted' => 'Document submitted',
+        'document_reviewed' => 'Document reviewed',
+        'intern_request_submitted' => 'New intern request',
+        'intern_request_decided' => 'Request decided',
     ];
 
     public function send($notifiable, Notification $notification): void
@@ -127,6 +131,10 @@ class FcmChannel
             'timesheet_certified' => ($data['certified_by'] ?? 'Your supervisor').' certified '.($data['period'] ?? 'a timesheet period').'.',
             'template_changed' => ($data['by'] ?? 'A coordinator').' '.$data['action'].' the '.($data['form'] ?? 'document').' template for '.($data['college'] ?? 'your college').'.',
             'scan_recorded' => ($data['slot'] ?? 'Time').' recorded at '.($data['recorded_at'] ?? '').' ('.($data['date'] ?? '').').',
+            'document_submitted' => ($data['intern'] ?? 'An intern').' submitted '.($data['document'] ?? 'a document').' for your review.',
+            'document_reviewed' => 'Your '.($data['document'] ?? 'document').' was '.($data['decision'] ?? 'reviewed').'.',
+            'intern_request_submitted' => ($data['intern'] ?? 'An intern').' sent a '.($data['request_kind'] ?? 'request').' request.',
+            'intern_request_decided' => 'Your '.($data['request_kind'] ?? 'request').' request was '.($data['decision'] ?? 'decided').'.',
             default => 'You have a new update in OJT Tracker.',
         };
     }
