@@ -24,7 +24,7 @@ class InternRequestController extends Controller
 
         $mayDecide = $staff->isAdmin()
             || $internRequest->recipient_id === $staff->id
-            || ($staff->isCoordinator() && $intern->coordinator_id === $staff->id);
+            || $staff->monitors($intern);
 
         abort_unless($mayDecide, 403, 'Only the intern\'s coordinator (or the named recipient) can decide this request.');
         abort_unless($internRequest->status === 'pending', 422, 'This request was already decided.');

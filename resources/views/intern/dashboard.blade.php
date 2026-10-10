@@ -10,6 +10,21 @@
     </div>
 </div>
 
+{{-- Announcements from the staff side — campus-wide, their class, their
+     office, or their coordinator college. Newest three, banner style. --}}
+@foreach($announcements as $announcement)
+    <div class="rounded-xl border border-brand-200 bg-brand-50/70 px-5 py-4 mb-5 flex items-start gap-3">
+        <span class="shrink-0 w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 15-6v14L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        </span>
+        <div class="min-w-0">
+            <p class="text-sm font-semibold text-brand-900">{{ $announcement->title }}</p>
+            <p class="text-sm text-brand-800/90 mt-0.5 leading-relaxed whitespace-pre-line">{{ $announcement->body }}</p>
+            <p class="text-[11px] text-brand-700/70 mt-1.5">{{ $announcement->author->full_name }} · {{ $announcement->created_at->format('M d, Y') }}</p>
+        </div>
+    </div>
+@endforeach
+
 {{-- Latest scan confirmation — mirrors on the intern's own screen the time
      their most recent scan recorded at the office desk scanner, so they still
      get a clear acknowledgement after the kiosk's result card clears. It's a
@@ -54,7 +69,7 @@
             <p class="text-xs text-gray-500 mt-0.5">Present your personal QR code to the scanner at the front desk. Each scan records your next time of the day (AM In → AM Out → PM In → PM Out).</p>
         </div>
     </div>
-    <a href="{{ route('intern.my-qr') }}"
+    <a href="{{ route('profile') }}#my-qr"
         class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition whitespace-nowrap">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 21v.01M21 17v.01M17 21h.01M14 21v.01"/></svg>
         Show My QR Code

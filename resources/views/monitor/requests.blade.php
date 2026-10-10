@@ -28,6 +28,16 @@
                         <span class="text-gray-400">· {{ $lr->date->format('M d, Y') }}</span>
                     </p>
                     <p class="text-sm text-gray-500 mt-0.5">“{{ $lr->reason }}”</p>
+                    @if($lr->proof_paths)
+                        <div class="flex gap-2 mt-2">
+                            @foreach($lr->proof_paths as $proof)
+                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($proof) }}" target="_blank" rel="noopener" title="Open proof full size">
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($proof) }}" loading="lazy"
+                                        alt="Proof attachment" class="w-14 h-14 rounded-lg object-cover border border-gray-200 hover:ring-2 hover:ring-brand-400 transition">
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
                     @if($lr->type === \App\Models\LogRequest::TYPE_CORRECTION)
                         <p class="text-xs text-gray-400 mt-1 tabular-nums">
                             Proposed times:

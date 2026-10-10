@@ -49,6 +49,23 @@ class DashboardController extends Controller
             ->whereDate('date', today())
             ->first();
 
+        // Announcements aimed at this intern: campus-wide posts, their
+        // coordinator's class posts, their office's posts, and their
+        // coordinator college's posts. The three newest active ones banner
+        // the dashboard.
+        $announcements = \App\Models\Announcement::query()
+            ->where('is_active', true)
+            ->where(function ($q) use ($intern) {
+                $q->where('audience', 'all')
+                    ->orWhere(fn ($qq) => $qq->where('audience', 'class')->where('coordinator_id', $intern->coordinator_id))
+                    ->orWhere(fn ($qq) => $qq->where('audience', 'office')->where('office_id', $intern->office_id))
+                    ->orWhere(fn ($qq) => $qq->where('audience', 'college')->where('college_code', $intern->coordinator?->collegeCode()));
+            })
+            ->with('author:id,first_name,last_name,role')
+            ->latest()
+            ->take(3)
+            ->get();
+
         // Build the duty-day calendar for the requested month (defaults to current month).
         $month = $request->filled('month')
             ? Carbon::createFromFormat('Y-m', $request->get('month'))->startOfMonth()
@@ -80,6 +97,7 @@ class DashboardController extends Controller
             'pastEnrollments' => $pastEnrollments,
             'logs' => $logs,
             'todayLog' => $todayLog,
+            'announcements' => $announcements,
             'month' => $month,
             'calendarWeeks' => $calendarWeeks,
             'prevMonth' => $month->copy()->subMonth()->format('Y-m'),
@@ -95,25 +113,11 @@ class DashboardController extends Controller
      * for day-to-day use and as a print-ready ID card to keep in a wallet
      * or lanyard as a backup when the phone's battery is flat.
      */
-    public function myQr(Request $request)
+    public function myQr(Request $request): RedirectResponse
     {
-        $intern = $request->user();
-
-        // High error correction so the code still reads when a printed card
-        // gets scuffed or a phone screen is smudged; scale 12 keeps it crisp
-        // both on-screen and on the ~2" card.
-        $options = new QROptions([
-            'outputInterface' => QRGdImagePNG::class,
-            'eccLevel' => EccLevel::H,
-            'scale' => 12,
-        ]);
-
-        $qrDataUri = (new QRCode($options))->render($intern->scanQrPayload());
-
-        return view('intern.my-qr', [
-            'intern' => $intern,
-            'qrDataUri' => $qrDataUri,
-        ]);
+        // The QR code lives on the Profile page now — this route survives
+        // only for cached service-worker copies and older app deep links.
+        return redirect()->to(route('profile').'#my-qr');
     }
 
     /**

@@ -92,20 +92,20 @@
     @forelse($notifications as $notification)
         @php [$summary, $comment] = $summaryFor($notification->data); $link = $linkFor($notification->data); @endphp
         {{-- Swipe row: the red delete zone sits behind the content, which
-             slides left under a finger on phones. On wide screens the plain
-             trash button in the row does the same job. --}}
+             slides left under a finger on phones. On wide screens the zone
+             doesn't exist at all — the plain trash button does the job. --}}
         <div class="relative overflow-hidden">
             <form method="POST" action="{{ route('notifications.destroy', $notification) }}"
-                class="absolute inset-y-0 right-0 w-24 flex items-center justify-end pr-4 bg-red-50 border-l-4 border-red-500"
+                class="md:hidden absolute inset-y-0 right-0 w-24 flex items-center justify-end pr-4 bg-red-50 border-l-4 border-red-500"
                 data-confirm-title="Delete notification"
                 data-confirm-message="Delete this notification permanently?"
                 data-confirm-action="Delete"
                 onsubmit="return askConfirm(this);">
                 @csrf
                 @method('DELETE')
-                <span class="text-xs font-semibold text-red-600 sm:hidden">Delete</span>
+                <span class="text-xs font-semibold text-red-600">Delete</span>
             </form>
-            <div class="swipe-content relative px-5 py-4 flex items-start gap-3 {{ $notification->unread() ? 'bg-brand-50/40' : 'bg-white' }}">
+            <div class="swipe-content relative px-5 py-4 flex items-start gap-3 {{ $notification->unread() ? 'bg-brand-50' : 'bg-white' }}">
                 <span class="mt-1 w-2 h-2 rounded-full shrink-0 {{ $notification->unread() ? 'bg-brand-500' : 'bg-gray-200' }}"></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm text-gray-900 {{ $notification->unread() ? 'font-medium' : '' }}">
@@ -120,11 +120,14 @@
                     @endif
                     <p class="text-[11px] text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                 </div>
-                <div class="flex items-center gap-1 shrink-0">
+                <div class="flex items-center gap-1.5 shrink-0">
                     @if($notification->unread())
                         <form method="POST" action="{{ route('notifications.read', $notification) }}">
                             @csrf
-                            <button type="submit" class="text-xs font-medium text-gray-400 hover:text-gray-700 px-2 py-1 rounded-md hover:bg-gray-100 transition">Mark read</button>
+                            <button type="submit" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-brand-700 px-2 py-1.5 rounded-md hover:bg-brand-50 transition">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                                Mark read
+                            </button>
                         </form>
                     @endif
                     <form method="POST" action="{{ route('notifications.destroy', $notification) }}"
@@ -134,8 +137,8 @@
                         onsubmit="return askConfirm(this);">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="hidden sm:inline-flex w-8 h-8 items-center justify-center rounded-md text-gray-300 hover:text-red-600 hover:bg-red-50 transition" title="Delete notification">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        <button type="submit" class="hidden sm:inline-flex w-8 h-8 items-center justify-center rounded-md text-gray-500 hover:text-red-600 hover:bg-red-50 transition" title="Delete notification">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
                     </form>
                 </div>

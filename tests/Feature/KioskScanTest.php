@@ -1246,54 +1246,35 @@ test('the captures page can be searched by name or Student ID', function () {
 });
 
 /*
- * Office scanner accounts — a second account per office, for the kiosk PC.
- * It can run the station and nothing else: no dashboards, no intern lists,
- * so the browser left open on the front desk all day exposes no supervisor
- * navigation to whoever walks up to it.
+ * The station runs under the supervisor's own account (the office scanner
+ * role was retired). Scans stay office-scoped, and leaving the station is
+ * password-confirmed — the "run as administrator" exit.
  */
 
-function makeOfficeScanner(Office $office, array $attributes = []): User
-{
-    return User::create([
-        'role' => 'office',
-        'first_name' => 'Front',
-        'last_name' => 'Desk',
-        'email' => fake()->unique()->safeEmail(),
-        'password' => 'password',
-        'password_changed_at' => now(),
-        'office_id' => $office->id,
-        'target_hours' => 0,
-        'is_active' => true,
-        'approved_at' => now(),
-        'profile_completed_at' => now(),
-        ...$attributes,
-    ]);
-}
-
-test('an office scanner account can run the kiosk for its own office', function () {
+test('a supervisor runs the kiosk for their office', function () {
     $office = makeOffice();
-    $scanner = makeOfficeScanner($office);
+    $supervisor = makeSupervisor($office);
     $intern = makeIntern(['office_id' => $office->id]);
     makeActiveEnrollment($intern);
 
     $this->travelTo(now()->setTime(8, 3));
 
-    $this->actingAs($scanner)->get(route('admin.kiosk.index'))->assertOk();
+    $this->actingAs($supervisor)->get(route('admin.kiosk.index'))->assertOk();
 
     $this->post(route('admin.kiosk.scan'), ['code' => $intern->scanQrPayload()])
         ->assertOk()
         ->assertJson(['state' => 'recorded', 'action' => 'AM Time In']);
 });
 
-test('an office scanner account cannot scan another office\'s interns', function () {
+test('the station refuses another office\'s interns', function () {
     $office = makeOffice();
-    $scanner = makeOfficeScanner($office);
+    $supervisor = makeSupervisor($office);
     $stranger = makeIntern(['student_id' => 'T-9401']);
     makeActiveEnrollment($stranger);
 
     $this->travelTo(now()->setTime(8, 3));
 
-    $this->actingAs($scanner)
+    $this->actingAs($supervisor)
         ->postJson(route('admin.kiosk.scan'), ['code' => $stranger->scanQrPayload()])
         ->assertOk()
         ->assertJson(['state' => 'not_assigned']);
@@ -1301,24 +1282,37 @@ test('an office scanner account cannot scan another office\'s interns', function
     expect(OjtLog::count())->toBe(0);
 });
 
-test('an office scanner account cannot reach any other section', function () {
-    $scanner = makeOfficeScanner(makeOffice());
+test('exiting the station requires the account\'s own password', function () {
+    $supervisor = makeSupervisor(makeOffice());
 
-    $this->actingAs($scanner);
+    $this->actingAs($supervisor);
 
-    foreach ([route('admin.dashboard'), route('admin.interns.index'), route('admin.logs.index'), route('admin.requests.index'), route('admin.kiosk-captures.index')] as $url) {
-        $this->get($url)->assertForbidden();
-    }
+    // A wrong password bounces back to the station with an error.
+    $this->post(route('admin.kiosk.exit'), ['password' => 'not-my-password'])
+        ->assertRedirect()
+        ->assertSessionHasErrors('password');
 
-    // The station itself stays open to them.
-    $this->get(route('admin.kiosk.index'))->assertOk();
+    // The right password leaves for the dashboard.
+    $this->post(route('admin.kiosk.exit'), ['password' => 'password'])
+        ->assertRedirect(route('admin.dashboard'));
 });
 
-test('signing in as an office scanner lands directly on the kiosk', function () {
-    $scanner = makeOfficeScanner(makeOffice());
+test('the retired office scanner role is no longer provisionable', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $office = makeOffice();
 
-    $this->post(route('login.store'), ['login' => $scanner->email, 'password' => 'password'])
-        ->assertRedirect(route('admin.kiosk.index'));
+    $this->actingAs($admin)
+        ->post(route('admin.staff.store'), [
+            'role' => 'office',
+            'office_id' => $office->id,
+            'first_name' => 'Front',
+            'last_name' => 'Desk',
+            'email' => 'scanner.mis@norsubscojt.online',
+            'password' => 'password',
+        ])
+        ->assertSessionHasErrors('role');
+
+    expect(User::where('role', 'office')->count())->toBe(0);
 });
 
 /*
@@ -1419,39 +1413,6 @@ test('a time-out scan records a time-out line on the activity trail', function (
 
     expect(AuditLog::where('action', 'time-out')->where('subject_id', $log->id)->exists())->toBeTrue()
         ->and(AuditLog::where('action', 'time-in')->where('subject_id', $log->id)->count())->toBe(1);
-});
-
-test('creating an office scanner account needs no person fields — its name derives from the office', function () {
-    $admin = makeStaff(['role' => 'admin']);
-    $office = makeOffice();
-
-    $this->actingAs($admin)
-        ->post(route('admin.staff.store'), [
-            'role' => 'office',
-            'office_id' => $office->id,
-            'email' => 'scanner.mis@norsubscojt.online',
-            'password' => 'password',
-        ])
-        ->assertRedirect(route('admin.staff.index'));
-
-    $scanner = User::where('role', 'office')->firstOrFail();
-
-    expect($scanner->first_name)->toBe('Scanner')
-        ->and($scanner->last_name)->toBe($office->name)
-        ->and($scanner->full_name)->toBe($office->name.', Scanner')
-        ->and($scanner->office_id)->toBe($office->id);
-
-    // A second scanner for the same office is fine — sessions are per device.
-    $this->actingAs($admin)
-        ->post(route('admin.staff.store'), [
-            'role' => 'office',
-            'office_id' => $office->id,
-            'email' => 'scanner2.mis@norsubscojt.online',
-            'password' => 'password',
-        ])
-        ->assertRedirect(route('admin.staff.index'));
-
-    expect(User::where('role', 'office')->count())->toBe(2);
 });
 
 test('kiosk tab locks are managed from Settings, not the station page', function () {

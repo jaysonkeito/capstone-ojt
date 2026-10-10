@@ -23,13 +23,12 @@
                         <option value="supervisor" {{ old('role', $staff->role) === 'supervisor' ? 'selected' : '' }}>Supervisor — monitors the interns at their office</option>
                         <option value="dean" {{ old('role', $staff->role) === 'dean' ? 'selected' : '' }}>College Dean — approves coordinator and supervisor sign-ups for their college</option>
                         <option value="chair" {{ old('role', $staff->role) === 'chair' ? 'selected' : '' }}>Program Chair — oversees their college's interns (one per program; CAS has two)</option>
-                        <option value="office" {{ old('role', $staff->role) === 'office' ? 'selected' : '' }}>Office Scanner — scanner-only account for the kiosk PC; nothing else</option>
                     </select>
                 </div>
             @endunless
 
             {{-- College — editable on both create and edit so existing staff can be assigned --}}
-            <div id="collegeField" class="mb-5 {{ ($staff->exists && $staff->isOffice()) ? 'hidden' : '' }}">
+            <div id="collegeField" class="mb-5">
                 <label class="block text-sm font-medium text-gray-700 mb-1.5">College</label>
                 <select name="college_code" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="">— None —</option>
@@ -42,10 +41,7 @@
                 <p class="text-[11px] text-gray-400 mt-1">Required for coordinators and deans. Supervisors of external offices may leave this blank — their sign-ups then go to the System Admin for approval.</p>
             </div>
 
-            {{-- An office scanner account is a station, not a person — the
-                 display name derives from its office, so the person fields
-                 and college don't apply. --}}
-            <div id="personFields" class="{{ ($staff->exists && $staff->isOffice()) ? 'hidden' : '' }}">
+            <div id="personFields">
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
@@ -93,8 +89,8 @@
                 </div>
             @endif
 
-            <div id="officeField" class="{{ ($staff->exists ? ! in_array($staff->role, ['coordinator', 'supervisor', 'dean', 'office']) : ! in_array(old('role', $staff->role), ['coordinator', 'supervisor', 'dean', 'office'])) ? 'hidden' : '' }}">
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Office <span class="text-gray-400 font-normal text-xs">(required for supervisors and office scanner accounts; optional for coordinators and deans — set it when they also supervise that office's interns and its desk scanner)</span></label>
+            <div id="officeField" class="{{ ($staff->exists ? ! in_array($staff->role, ['coordinator', 'supervisor', 'dean', 'chair']) : ! in_array(old('role', $staff->role), ['coordinator', 'supervisor', 'dean', 'chair'])) ? 'hidden' : '' }}">
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Office <span class="text-gray-400 font-normal text-xs">(required for supervisors; optional for coordinators, deans, and Program Chairs — set it when they also supervise that office's interns and its desk scanner)</span></label>
                 <select name="office_id" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="">Select office</option>
                     @foreach($offices as $office)
@@ -126,10 +122,7 @@
     // Office scanner accounts are stations, not people — picking the role
     // hides the person fields and college, and shows the office instead.
     function syncStaffRoleFields(role) {
-        var isOffice = role === 'office';
-        document.getElementById('officeField').classList.toggle('hidden', ! (isOffice || role === 'supervisor' || role === 'coordinator'));
-        document.getElementById('personFields').classList.toggle('hidden', isOffice);
-        document.getElementById('collegeField').classList.toggle('hidden', isOffice);
+        document.getElementById('officeField').classList.toggle('hidden', ! (role === 'supervisor' || role === 'coordinator' || role === 'chair' || role === 'dean'));
     }
 </script>
 @endpush

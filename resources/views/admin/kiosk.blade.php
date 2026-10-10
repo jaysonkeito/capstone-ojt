@@ -51,18 +51,12 @@
                     <p id="clock" class="text-lg font-semibold tabular-nums">—</p>
                     <p id="date" class="text-[11px] text-gray-400">—</p>
                 </div>
-            @if(auth()->user()->isOffice())
-                {{-- Office scanner accounts have no dashboard behind the
-                     station — Exit would 403 them. Logout returns to the
-                     sign-in page instead. --}}
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="text-xs font-medium text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition">Logout</button>
-                </form>
-            @else
-                <a href="{{ route('admin.dashboard') }}"
-                   class="text-xs font-medium text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition">Exit</a>
-            @endif
+                {{-- Exit the way an OS leaves an elevated app: confirm first,
+                     then prove it's really the operator with their password.
+                     Keeps a stray tap on an unattended desk from closing the
+                     station. --}}
+                <button type="button" onclick="openExitConfirm()"
+                    class="text-xs font-medium text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition">Exit</button>
             </div>
         </div>
 
@@ -246,9 +240,84 @@
     {{-- Capture field moved above; the verification camera lives in the
          right-bottom panel and is driven by the same JS as before. --}}
 
+    {{-- Exit confirmation — the "run as administrator" pattern: confirm
+         intent, then prove identity with the account's own password. --}}
+    <div id="exitModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="px-6 pt-6 pb-5 text-center">
+                <div class="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-4">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                </div>
+                <h2 class="text-base font-semibold text-gray-900">Do you want to exit the Scanner?</h2>
+                <p class="text-xs text-gray-500 mt-1">Leaving closes this station. Only the signed-in staff member can confirm it.</p>
+
+                <form method="POST" action="{{ route('admin.kiosk.exit') }}" class="mt-5 space-y-3 text-left">
+                    @csrf
+                    <div id="exitPasswordBlock" class="hidden">
+                        <label for="exit_password" class="block text-xs font-medium text-gray-600 mb-1">Your password</label>
+                        <input type="password" name="password" id="exit_password" autocomplete="current-password"
+                            class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                        @error('password') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="flex gap-2 pt-1">
+                        <button type="button" onclick="closeExitConfirm()"
+                            class="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium py-2 rounded-lg transition">No</button>
+                        <button type="button" id="exitYesBtn" onclick="confirmExit()"
+                            class="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium py-2 rounded-lg transition">Yes</button>
+                        <button type="submit" id="exitSubmitBtn" class="hidden flex-1 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium py-2 rounded-lg transition">Confirm</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
         (function () {
             let mode = 'scanner'; // 'scanner' | 'camera' | 'manual'
+
+            // ---- exit confirmation (Yes → password, No → stay) ----
+            const exitModal = document.getElementById('exitModal');
+            const exitYesBtn = document.getElementById('exitYesBtn');
+            const exitSubmitBtn = document.getElementById('exitSubmitBtn');
+            const exitPasswordBlock = document.getElementById('exitPasswordBlock');
+            let exitConfirmed = false;
+
+            function openExitConfirm() {
+                exitModal.classList.remove('hidden');
+                resetExitFlow();
+            }
+
+            function resetExitFlow() {
+                exitConfirmed = false;
+                exitYesBtn.classList.remove('hidden');
+                exitSubmitBtn.classList.add('hidden');
+                exitPasswordBlock.classList.add('hidden');
+                document.getElementById('exit_password').value = '';
+            }
+
+            function closeExitConfirm() {
+                exitModal.classList.add('hidden');
+                resetExitFlow();
+            }
+
+            function confirmExit() {
+                exitConfirmed = true;
+                exitYesBtn.classList.add('hidden');
+                exitPasswordBlock.classList.remove('hidden');
+                exitSubmitBtn.classList.remove('hidden');
+                document.getElementById('exit_password').focus();
+            }
+
+            window.openExitConfirm = openExitConfirm;
+            window.closeExitConfirm = closeExitConfirm;
+            window.confirmExit = confirmExit;
+
+            // A wrong password comes back as a validation error with the
+            // page reloaded — reopen the modal mid-flow so it's visible.
+            @if($errors->has('password'))
+                openExitConfirm();
+                confirmExit();
+            @endif
 
             const input = document.getElementById('scanInput');
             const idle = document.getElementById('idle');

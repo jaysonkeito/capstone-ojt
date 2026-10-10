@@ -25,7 +25,7 @@ const OFFLINE_URL = '/offline.html';
 // exactly as before — it just isn't cached.
 const CACHEABLE_PAGES = [
     '/intern/dashboard',
-    '/intern/my-qr',
+    '/profile',
     '/intern/time-frame',
     '/intern/documentation',
     '/notifications',

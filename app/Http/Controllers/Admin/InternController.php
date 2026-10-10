@@ -135,7 +135,7 @@ class InternController extends Controller
             'training_starts_on' => ['nullable', 'date'],
             'password' => ['nullable', 'string', 'min:6'],
             'office_id' => ['nullable', 'exists:offices,id'],
-            'coordinator_id' => ['nullable', Rule::exists('users', 'id')->where('role', 'coordinator')],
+            'coordinator_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($q) => $q->whereIn('role', ['coordinator', 'chair']))],
         ]);
 
         $email = $validated['email'] ?: "{$validated['student_id']}@norsubscojt.online";
@@ -323,7 +323,7 @@ class InternController extends Controller
             'training_starts_on' => ['nullable', 'date'],
             'is_active' => ['sometimes', 'boolean'],
             'office_id' => ['nullable', 'exists:offices,id'],
-            'coordinator_id' => ['nullable', Rule::exists('users', 'id')->where('role', 'coordinator')],
+            'coordinator_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($q) => $q->whereIn('role', ['coordinator', 'chair']))],
         ]);
 
         $intern->update([

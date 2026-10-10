@@ -30,11 +30,27 @@ class RequestController extends Controller
     /**
      * File a correction or an absence report. Validation (existing log
      * for corrections, no log for absences, no duplicate pending request)
-     * lives in StoreAttendanceRequest.
+     * lives in StoreAttendanceRequest; up to two proof photos travel
+     * alongside the reason.
      */
     public function store(StoreAttendanceRequest $request, RequestDecider $decider)
     {
-        $logRequest = $decider->submitAttendanceRequest($request->user(), $request->validated());
+        $validated = $request->validated();
+
+        $proofPaths = [];
+        foreach ($request->file('proofs', []) as $proof) {
+            $proofPaths[] = $proof->storeAs(
+                "request-proofs/{$request->user()->id}",
+                now()->format('Ymd-His').'-'.\Illuminate\Support\Str::random(6).'.'.$proof->getClientOriginalExtension(),
+                'public',
+            );
+        }
+
+        if ($proofPaths !== []) {
+            $validated['proof_paths'] = $proofPaths;
+        }
+
+        $logRequest = $decider->submitAttendanceRequest($request->user(), $validated);
 
         return redirect()->route('intern.requests.index')
             ->with('status', "Your {$logRequest->type_label} for {$logRequest->date->format('M d, Y')} was submitted — your supervisor and coordinator have been notified.");

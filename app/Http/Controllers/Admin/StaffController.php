@@ -19,7 +19,7 @@ class StaffController extends Controller
      */
     public function index(Request $request)
     {
-        $staff = User::whereIn('role', ['coordinator', 'supervisor', 'office', 'chair'])
+        $staff = User::whereIn('role', ['coordinator', 'supervisor', 'chair'])
             // Pending self-service sign-ups live in Approvals, not here.
             ->where(function ($q) {
                 $q->where('is_active', true)->orWhereNotNull('approved_at');
@@ -50,22 +50,19 @@ class StaffController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'role' => ['required', Rule::in(['coordinator', 'supervisor', 'dean', 'office', 'chair'])],
-            // An office scanner account is a station, not a person — its
-            // display name derives from the office ("«office» Scanner"), so
-            // the person fields don't apply.
-            'first_name' => [$request->input('role') === 'office' ? 'nullable' : 'required', 'string', 'max:255'],
+            'role' => ['required', Rule::in(['coordinator', 'supervisor', 'dean', 'chair'])],
+            'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => [$request->input('role') === 'office' ? 'nullable' : 'required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:50'],
             'position' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            // A supervisor represents exactly one office, and so does an
-            // office scanner account — the kiosk resolves only that office's
-            // interns. A coordinator may also take an office
-            // (coordinator-supervisor) or stay college-wide with none.
-            'office_id' => ['required_if:role,supervisor', 'required_if:role,office', 'nullable', 'exists:offices,id'],
+            // A supervisor represents exactly one office — the desk station
+            // and the intern list resolve to it. A coordinator, dean, or
+            // Program Chair may also hold an office they supervise, or stay
+            // college-wide with none.
+            'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
             // Coordinators, deans, and Program Chairs belong to a college; a
             // supervisor's college is optional — external offices may host
             // interns from any college, so their sign-ups fall to the System
@@ -79,21 +76,16 @@ class StaffController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        // The scanner account's name comes from its office — nobody types it.
-        // Stored directory-style (last, first) so it reads like every other
-        // staff row: "Test Office, Scanner".
-        $office = $validated['role'] === 'office' ? Office::find($validated['office_id']) : null;
-
         $user = User::create([
             'role' => $validated['role'],
-            'first_name' => $office ? 'Scanner' : $validated['first_name'],
-            'last_name' => $office?->name ?? $validated['last_name'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
             'title' => $validated['title'] ?? null,
             'position' => $validated['position'] ?? null,
             'email' => $validated['email'],
             'password' => $validated['password'],
             'password_changed_at' => now(),
-            'office_id' => in_array($validated['role'], ['coordinator', 'supervisor', 'dean', 'office'], true) ? ($validated['office_id'] ?? null) : null,
+            'office_id' => in_array($validated['role'], ['coordinator', 'supervisor', 'dean', 'chair'], true) ? ($validated['office_id'] ?? null) : null,
             'student_id' => null,
             'target_hours' => 0,
             // Admin-provisioned staff skip the self-service approval gate and
@@ -114,13 +106,10 @@ class StaffController extends Controller
             'supervisor' => 'Supervisor',
             'dean' => 'College Dean',
             'chair' => 'Program Chair',
-            'office' => 'Office Scanner',
             default => 'OJT Coordinator',
         };
 
-        $displayName = $office
-            ? "{$office->name}, Scanner"
-            : trim("{$validated['first_name']} {$validated['last_name']}");
+        $displayName = trim("{$validated['first_name']} {$validated['last_name']}");
 
         return redirect()->route('admin.staff.index')->with('status', "{$label} account created for {$displayName}.");
     }
@@ -141,15 +130,13 @@ class StaffController extends Controller
         abort_unless($this->isManagedStaff($staff), 404);
 
         $validated = $request->validate([
-            // Names are skipped for office scanner accounts — they were
-            // derived from the office at creation and stay that way.
-            'first_name' => [$staff->isOffice() ? 'nullable' : 'required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => [$staff->isOffice() ? 'nullable' : 'required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:50'],
             'position' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($staff->id)],
-            'office_id' => ['required_if:role,supervisor', 'required_if:role,office', 'nullable', 'exists:offices,id'],
+            'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
             // Role isn't editable here — the account's current role decides
             // whether the college is required.
             'college_code' => [
@@ -160,12 +147,12 @@ class StaffController extends Controller
         ]);
 
         $staff->update([
-            'first_name' => $staff->isOffice() ? $staff->first_name : $validated['first_name'],
-            'last_name' => $staff->isOffice() ? $staff->last_name : $validated['last_name'],
-            'title' => $staff->isOffice() ? $staff->title : ($validated['title'] ?? null),
-            'position' => $staff->isOffice() ? $staff->position : ($validated['position'] ?? null),
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'title' => $validated['title'] ?? null,
+            'position' => $validated['position'] ?? null,
             'email' => $validated['email'],
-            'office_id' => in_array($staff->role, ['coordinator', 'supervisor', 'dean', 'office'], true) ? ($validated['office_id'] ?? null) : null,
+            'office_id' => in_array($staff->role, ['coordinator', 'supervisor', 'dean', 'chair'], true) ? ($validated['office_id'] ?? null) : null,
             'is_active' => $request->boolean('is_active', false),
             'approved_at' => now(),
         ]);
@@ -196,7 +183,7 @@ class StaffController extends Controller
 
     public function restore($staffId)
     {
-        $staff = User::onlyTrashed()->whereIn('role', ['coordinator', 'supervisor', 'office', 'chair'])->findOrFail($staffId);
+        $staff = User::onlyTrashed()->whereIn('role', ['coordinator', 'supervisor', 'chair'])->findOrFail($staffId);
 
         $staff->restore();
         $staff->update(['is_active' => true]);
@@ -213,7 +200,7 @@ class StaffController extends Controller
      */
     public function forceDelete($staffId)
     {
-        $staff = User::onlyTrashed()->whereIn('role', ['coordinator', 'supervisor', 'office', 'chair'])->findOrFail($staffId);
+        $staff = User::onlyTrashed()->whereIn('role', ['coordinator', 'supervisor', 'chair'])->findOrFail($staffId);
 
         $label = $staff->role_label;
         $name = $staff->full_name;
@@ -224,13 +211,13 @@ class StaffController extends Controller
     }
 
     /**
-     * A staff account the admin manages here: a coordinator/supervisor/office
+     * A staff account the admin manages here: a coordinator/supervisor/chair
      * scanner who is either active or admin-provisioned. Pending self-service
      * sign-ups are handled exclusively from the Approvals section.
      */
     protected function isManagedStaff(User $staff): bool
     {
-        return in_array($staff->role, ['coordinator', 'supervisor', 'office', 'chair'])
+        return in_array($staff->role, ['coordinator', 'supervisor', 'chair'])
             && ($staff->is_active || $staff->approved_at !== null);
     }
 }

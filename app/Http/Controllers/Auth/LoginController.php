@@ -121,12 +121,6 @@ class LoginController extends Controller
             return route('admin.dashboard');
         }
 
-        // Office scanner accounts land straight on the station — they exist
-        // for the kiosk PC and have no other surface.
-        if ($user->isOffice()) {
-            return route('admin.kiosk.index');
-        }
-
         if ($user->needsProfileCompletion()) {
             return route('profile-completion.edit');
         }

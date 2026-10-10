@@ -52,6 +52,7 @@ class LogRequest extends Model
         'date',
         ...self::TIME_FIELDS,
         'reason',
+        'proof_paths',
         'status',
         'decided_by',
         'decision_comment',
@@ -63,6 +64,7 @@ class LogRequest extends Model
         return [
             'date' => 'date',
             'decided_at' => 'datetime',
+            'proof_paths' => 'array',
         ];
     }
 

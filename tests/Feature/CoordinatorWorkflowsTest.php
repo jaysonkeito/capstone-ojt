@@ -291,3 +291,75 @@ test('a program chair cannot record manual entries or certify hours', function (
         ->and($chair->can('certify', $intern))->toBeFalse()
         ->and($chair->can('monitor', $intern))->toBeTrue();
 });
+
+// ---------- One person, several hats ----------
+
+test('one person can be Program Chair and office supervisor at once', function () {
+    $office = Office::create(['name' => 'CSIT Faculty Office', 'type' => 'internal']);
+    $chair = makeStaff(['role' => 'chair', 'office_id' => $office->id, 'profile_completed_at' => now()]);
+    $chair->staffProfile()->create(['college_code' => 'cas']);
+
+    // An intern placed at their office AND assigned to them as coordinator.
+    $intern = makeIntern(['student_id' => 'T-7800', 'office_id' => $office->id, 'coordinator_id' => $chair->id]);
+    makeActiveEnrollment($intern);
+
+    expect($chair->monitors($intern))->toBeTrue()
+        ->and($chair->supervisesOffice($office->id))->toBeTrue()
+        ->and($chair->can('createLog', $intern))->toBeTrue()
+        ->and($chair->can('certify', $intern))->toBeTrue();
+
+    // Runs the desk station: scans their office's interns.
+    $this->travelTo(now()->setTime(8, 3));
+    $this->actingAs($chair)
+        ->post(route('admin.kiosk.scan'), ['code' => $intern->scanQrPayload()])
+        ->assertOk()
+        ->assertJson(['state' => 'recorded', 'action' => 'AM Time In']);
+
+    // Decides their intern's transfer request — approval moves the placement.
+    $target = Office::create(['name' => 'Other Office', 'type' => 'internal']);
+    $request = InternRequest::create([
+        'intern_id' => $intern->id,
+        'type' => 'office_transfer',
+        'office_id' => $target->id,
+        'message' => 'Moving closer to home.',
+        'status' => 'pending',
+    ]);
+
+    $this->post(route('monitor.intern-requests.decide', $request), [
+        'decision' => 'approved',
+        'remarks' => 'Approved — report Monday.',
+    ])->assertRedirect();
+
+    expect($intern->fresh()->office_id)->toBe($target->id)
+        ->and($request->fresh()->status)->toBe('approved');
+});
+
+test('a staff announcement reaches the right interns only', function () {
+    $coordinator = makeCoordinator();
+    $mine = makeCoordinatorIntern($coordinator, ['student_id' => 'T-7901']);
+    $otherIntern = makeIntern(['student_id' => 'T-7902']);
+
+    $this->actingAs($coordinator)
+        ->post(route('admin.announcements.store'), [
+            'title' => 'No duty Monday',
+            'body' => 'Campus holiday — stay home.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $announcement = \App\Models\Announcement::firstOrFail();
+    expect($announcement->audience)->toBe('class')
+        ->and($announcement->coordinator_id)->toBe($coordinator->id);
+
+    // The class's dashboard banners it; other interns never see it.
+    $this->actingAs($mine)->get(route('intern.dashboard'))
+        ->assertOk()
+        ->assertSee('No duty Monday');
+    $this->actingAs($otherIntern)->get(route('intern.dashboard'))
+        ->assertOk()
+        ->assertDontSee('No duty Monday');
+
+    // And the inbox notification arrived.
+    expect($mine->notifications()->where('type', \App\Notifications\AnnouncementPublished::class)->exists())->toBeTrue()
+        ->and($otherIntern->notifications()->count())->toBe(0);
+});

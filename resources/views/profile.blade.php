@@ -159,5 +159,15 @@
             </div>
         </div>
     </div>
+
+    @if($user->isIntern() && $qrDataUri)
+        {{-- The personal time-in/out code used to be its own page — it
+             lives here now, with the printable badge download. --}}
+        <div id="my-qr" class="max-w-xl mx-auto mt-8">
+            <h2 class="text-sm font-semibold text-gray-900 mb-1">My QR Code</h2>
+            <p class="text-xs text-gray-400 mb-4">Your personal time-in / time-out code — show it to the scanner at the office to clock in and out.</p>
+            @include('intern.partials.qr-card', ['intern' => $user, 'qrDataUri' => $qrDataUri])
+        </div>
+    @endif
 </div>
 @endsection

@@ -1,14 +1,6 @@
-@extends('layouts.app')
-
-@section('title', 'My QR Code')
-
-@section('content')
-<div class="max-w-xl mx-auto">
-
-    <div class="mb-6">
-        <h1 class="text-xl font-semibold tracking-tight text-gray-900">My QR Code</h1>
-        <p class="text-sm text-gray-500 mt-0.5">Your personal time-in / time-out code. Show it to the scanner at the office to clock in and out.</p>
-    </div>
+{{-- The intern's QR badge card: on-screen badge, download button, and the
+     canvas script that renders the printable PNG. Expects $intern and
+     $qrDataUri. Lives on the Profile page (it used to be its own page). --}}
 
     {{-- One code, one card: the ID badge is both what you hold up to the desk
          scanner and what you download. The QR is sized large enough to read
@@ -53,11 +45,9 @@
         </p>
     </div>
 
-</div>
-@endsection
 
-@push('scripts')
-<script>
+
+    <script>
 (function () {
     // Everything the canvas needs, handed over from the server. The QR is a
     // base64 PNG data URI (never taints the canvas); the avatar may be absent
@@ -257,5 +247,4 @@
 
     window.downloadBadge = downloadBadge;
 })();
-</script>
-@endpush
+    </script>

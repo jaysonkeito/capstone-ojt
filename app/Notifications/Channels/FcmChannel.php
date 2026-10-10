@@ -45,6 +45,7 @@ class FcmChannel
         'document_reviewed' => 'Document reviewed',
         'intern_request_submitted' => 'New intern request',
         'intern_request_decided' => 'Request decided',
+        'announcement' => 'Announcement',
     ];
 
     public function send($notifiable, Notification $notification): void
@@ -135,6 +136,7 @@ class FcmChannel
             'document_reviewed' => 'Your '.($data['document'] ?? 'document').' was '.($data['decision'] ?? 'reviewed').'.',
             'intern_request_submitted' => ($data['intern'] ?? 'An intern').' sent a '.($data['request_kind'] ?? 'request').' request.',
             'intern_request_decided' => 'Your '.($data['request_kind'] ?? 'request').' request was '.($data['decision'] ?? 'decided').'.',
+            'announcement' => ($data['author'] ?? 'Your coordinator').': '.($data['title'] ?? 'Announcement'),
             default => 'You have a new update in OJT Tracker.',
         };
     }

@@ -36,6 +36,7 @@
                 'settings' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.06 2.06 0 1 1-2.9 2.9l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V20a2.06 2.06 0 1 1-4.12 0v-.09a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2.06 2.06 0 1 1-2.9-2.9l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H4a2.06 2.06 0 1 1 0-4.12h.09a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.06 2.06 0 1 1 2.9-2.9l.06.06a1.7 1.7 0 0 0 1.87.34H10a1.7 1.7 0 0 0 1-1.55V4a2.06 2.06 0 1 1 4.12 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2.06 2.06 0 1 1 2.9 2.9l-.06.06a1.7 1.7 0 0 0-.34 1.87V10a1.7 1.7 0 0 0 1.55 1H20a2.06 2.06 0 1 1 0 4.12h-.09a1.7 1.7 0 0 0-1.51 1z"/>',
                 'dashboard' => '<rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5.5" rx="1.5"/><rect x="13.5" y="11.5" width="7.5" height="9" rx="1.5"/><rect x="3" y="15" width="7.5" height="5.5" rx="1.5"/>',
                 'logout' => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
+                'megaphone' => '<path d="m3 11 15-6v14L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
                 'check' => '<path d="M20 6 9 17l-5-5"/>',
                 'menu' => '<path d="M4 6h16M4 12h16M4 18h16"/>',
                 'building' => '<rect x="4" y="2" width="16" height="20" rx="1.5"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/>',
@@ -95,6 +96,7 @@
                 ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
                 ['route' => 'admin.requests.index', 'match' => 'admin.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingAdminRequests ?: null],
+                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
                 ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'icon' => 'file', 'label' => 'Activity Log', 'group' => 'System'],
                 ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
@@ -109,6 +111,7 @@
                 ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => 'Attendance'],
                 ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
+                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
             ],
             // Coordinators run the school-side program: their interns, the
@@ -121,6 +124,7 @@
                 ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
                 ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
+                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
                 ['route' => 'class-board.index', 'match' => 'class-board.*', 'icon' => 'team', 'label' => 'Class', 'group' => 'Workflow'],
                 ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
                 ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
@@ -133,6 +137,7 @@
                 ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
+                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
             ],
             // Program Chairs: read-only oversight of their college's interns
             // (reached through their coordinators) and the request desk.
@@ -141,15 +146,10 @@
                 ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
                 ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
                 ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
-            ],
-            // Office scanner accounts: the station is their entire surface —
-            // they exist so the kiosk PC's session exposes nothing else.
-            $u->isOffice() => [
-                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => ''],
+                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
             ],
             default => [
                 ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard', 'group' => 'My OJT'],
-                ['route' => 'intern.my-qr', 'match' => 'intern.my-qr', 'icon' => 'qr', 'label' => 'My QR Code', 'group' => 'My OJT'],
                 ['route' => 'intern.time-frame', 'match' => 'intern.time-frame', 'icon' => 'clock', 'label' => 'My Time Frame', 'group' => 'My OJT'],
                 ['route' => 'intern.documentation', 'match' => 'intern.documentation', 'icon' => 'image', 'label' => 'My Journal', 'group' => 'My OJT'],
                 ['route' => 'intern.requests.index', 'match' => 'intern.requests.*', 'icon' => 'file', 'label' => 'My Requests', 'group' => 'Requests', 'badge' => $pendingInternRequests ?: null],

@@ -19,7 +19,7 @@
         <option value="coordinator" {{ request('role') === 'coordinator' ? 'selected' : '' }}>OJT Coordinators</option>
         <option value="supervisor" {{ request('role') === 'supervisor' ? 'selected' : '' }}>Supervisors</option>
         <option value="dean" {{ request('role') === 'dean' ? 'selected' : '' }}>College Deans</option>
-        <option value="office" {{ request('role') === 'office' ? 'selected' : '' }}>Office Scanners</option>
+        <option value="chair" {{ request('role') === 'chair' ? 'selected' : '' }}>Program Chairs</option>
     </select>
     @if(request('role'))
         <a href="{{ route('admin.staff.index') }}" class="text-sm font-medium text-gray-400 hover:text-gray-700 px-2 py-2">Clear</a>
@@ -154,7 +154,7 @@
                     <option value="coordinator">OJT Coordinator — monitors the interns assigned to them</option>
                     <option value="supervisor">Supervisor — monitors the interns at their office</option>
                     <option value="dean">College Dean — approves coordinator and supervisor sign-ups for their college</option>
-                    <option value="office">Office Scanner — scanner-only account for the kiosk PC; nothing else</option>
+                    <option value="chair">Program Chair — oversees their college's interns</option>
                 </select>
             </div>
             <div id="modalCollegeField">
@@ -238,13 +238,8 @@
 
 @push('scripts')
 <script>
-    // Office scanner accounts are stations, not people — picking the role
-    // hides the person fields and college, and shows the office instead.
     function syncModalStaffRoleFields(role) {
-        var isOffice = role === 'office';
-        document.getElementById('modalOfficeField').classList.toggle('hidden', ! (isOffice || role === 'supervisor'));
-        document.getElementById('modalPersonFields').classList.toggle('hidden', isOffice);
-        document.getElementById('modalCollegeField').classList.toggle('hidden', isOffice);
+        document.getElementById('modalOfficeField').classList.toggle('hidden', ! (role === 'supervisor' || role === 'coordinator' || role === 'dean' || role === 'chair'));
     }
 </script>
 @endpush

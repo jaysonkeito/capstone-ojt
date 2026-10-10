@@ -36,7 +36,7 @@ class DocumentController extends Controller
         $intern = $document->intern;
 
         $mayDecide = $staff->isAdmin()
-            || ($staff->isCoordinator() && $staff->monitors($intern));
+            || (in_array($staff->role, ['coordinator', 'chair'], true) && $staff->monitors($intern));
 
         abort_unless($mayDecide, 403, 'Only the intern\'s coordinator or the System Admin can review documents.');
 

@@ -111,6 +111,23 @@ class User extends Authenticatable
     }
 
     /**
+     * The intern's personal time-in/out code as an inline PNG data URI —
+     * high error correction (H) so a scuffed printed card or smudged
+     * screen still scans; scale 12 keeps it crisp on screen and on the
+     * ~2" badge.
+     */
+    public function qrDataUri(): string
+    {
+        $options = new \chillerlan\QRCode\QROptions([
+            'outputInterface' => \chillerlan\QRCode\Output\QRGdImagePNG::class,
+            'eccLevel' => \chillerlan\QRCode\Common\EccLevel::H,
+            'scale' => 12,
+        ]);
+
+        return (new \chillerlan\QRCode\QRCode($options))->render($this->scanQrPayload());
+    }
+
+    /**
      * The requests this intern has filed with their coordinator
      * (office transfers, consultations).
      */
@@ -226,12 +243,13 @@ class User extends Authenticatable
     }
 
     /**
-     * Scanner-only account for the office's kiosk PC — it can run the
-     * station and nothing else.
+     * The office scanner role was retired: a supervisor (or a coordinator
+     * / dean / Program Chair with an office) runs the desk station with
+     * their own account, and leaving it requires their password.
      */
     public function isOffice(): bool
     {
-        return $this->role === 'office';
+        return false;
     }
 
     /**
@@ -309,9 +327,10 @@ class User extends Authenticatable
 
     /**
      * Whether this staff member supervises a specific office: a supervisor
-     * with that office assigned, or a dean whose office accepts interns
-     * (dean's offices commonly host OJT interns, making the dean their
-     * de-facto supervisor). Deans without an office supervise nothing.
+     * with that office assigned, or a dean, coordinator, or Program Chair
+     * whose account holds the same link (offices commonly host OJT interns
+     * and one person often wears both hats — the office_id on the account
+     * is the supervisor link in every case). No office, no supervision.
      */
     public function supervisesOffice(?int $officeId): bool
     {
@@ -319,10 +338,7 @@ class User extends Authenticatable
             return false;
         }
 
-        // Supervisors, deans who run their office's desk, and coordinators
-        // who take over an office's supervision — the office_id on the
-        // account is the supervisor link in all three cases.
-        if (! in_array($this->role, ['supervisor', 'dean', 'coordinator'], true)) {
+        if (! in_array($this->role, ['supervisor', 'dean', 'coordinator', 'chair'], true)) {
             return false;
         }
 
@@ -331,10 +347,10 @@ class User extends Authenticatable
 
     /**
      * Whether this monitor-role account may see and act on an intern: a
-     * coordinator's assigned interns, a supervisor's office placements —
-     * and a coordinator who also supervises an office (coordinator-
-     * supervisor) gets both sets. The single gate behind the monitoring
-     * dashboards and every act-on-an-intern policy.
+     * coordinator's (or chair's) assigned interns, a supervisor's office
+     * placements, a Program Chair's college — and any account that also
+     * supervises an office gets those interns too. The single gate behind
+     * the monitoring dashboards and every act-on-an-intern policy.
      */
     public function monitors(User $intern): bool
     {
@@ -342,7 +358,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($this->isCoordinator() && $intern->coordinator_id === $this->id) {
+        if (($this->isCoordinator() || $this->isChair()) && $intern->coordinator_id === $this->id) {
             return true;
         }
 
@@ -590,7 +606,6 @@ class User extends Authenticatable
             'coordinator' => 'OJT Coordinator',
             'supervisor' => 'Supervisor',
             'dean' => 'College Dean',
-            'office' => 'Office Scanner',
             'chair' => 'Program Chair',
             default => ucfirst($this->role),
         };
@@ -674,17 +689,26 @@ class User extends Authenticatable
         }
 
         if ($staff->isChair()) {
-            // The college's interns, reached through the coordinators that
-            // belong to the chair's college (college code on the account or
-            // its staff profile).
+            // A Program Chair's interns: the college's (through the
+            // coordinators of that college), plus any office they
+            // supervise and any interns assigned to them directly —
+            // one person can hold the chair and the office at once.
             $college = $staff->collegeCode();
 
-            return $college === null
-                ? $query->whereRaw('0 = 1')
-                : $query->whereHas('coordinator', function ($q) use ($college) {
-                    $q->where('college_code', $college)
-                        ->orWhereHas('staffProfile', fn ($sq) => $sq->where('college_code', $college));
-                });
+            return $query->where(function ($q) use ($staff, $college) {
+                $q->where('coordinator_id', $staff->id);
+
+                if ($staff->office_id !== null) {
+                    $q->orWhere('office_id', $staff->office_id);
+                }
+
+                if ($college !== null) {
+                    $q->orWhereHas('coordinator', function ($cq) use ($college) {
+                        $cq->where('college_code', $college)
+                            ->orWhereHas('staffProfile', fn ($sq) => $sq->where('college_code', $college));
+                    });
+                }
+            });
         }
 
         return $query->whereRaw('0 = 1');

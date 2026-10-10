@@ -25,25 +25,22 @@ class InternPolicy
     }
 
     /**
-     * A supervisor recording a missed scan manually for an intern at
-     * their office (the entry then lands in the pending review queue).
-     * Oversight-only roles — deans and Program Chairs — may not write
-     * entries, only see them.
+     * Recording a missed scan manually for an intern — the office
+     * supervisor's task, whoever holds that office (supervisor,
+     * coordinator-supervisor, dean- or chair-supervisor). Oversight
+     * without an office never writes entries.
      */
     public function createLog(User $user, User $intern): bool
     {
-        return in_array($user->role, ['coordinator', 'supervisor'], true)
-            && $this->monitor($user, $intern);
+        return $user->supervisesOffice($intern->office_id);
     }
 
     /**
-     * A supervisor certifying the intern's duty hours for a timesheet
-     * period — the formal per-month sign-off. Same write gate: no
-     * oversight-only roles.
+     * Certifying the intern's duty hours for a timesheet period — the
+     * formal per-month sign-off, same office-supervision gate.
      */
     public function certify(User $user, User $intern): bool
     {
-        return in_array($user->role, ['coordinator', 'supervisor'], true)
-            && $this->monitor($user, $intern);
+        return $user->supervisesOffice($intern->office_id);
     }
 }

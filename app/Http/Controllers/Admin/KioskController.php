@@ -35,17 +35,15 @@ class KioskController extends Controller
         $locks = KioskSetting::locksFor($staff->office_id);
 
         // The station's duty logbook — today's entries, alphabetical by
-        // intern name, scoped exactly like the scans: an office scanner
-        // account and a supervisor see their office, a coordinator-
-        // supervisor their office too, admins and deans see everyone.
+        // intern name, scoped exactly like the scans: staff with an office
+        // (supervisor, coordinator-supervisor, dean- or chair-supervisor)
+        // see that office, admins and office-less deans see everyone.
         $stationLogs = OjtLog::query()
             ->whereDate('date', today())
             ->whereHas('user', function ($q) use ($staff) {
                 $q->where('role', 'intern');
 
-                if ($staff->isOffice()
-                    || $staff->isSupervisor()
-                    || ($staff->isCoordinator() && $staff->office_id !== null)) {
+                if (! $staff->isAdmin() && ! $staff->isDean() && $staff->office_id !== null) {
                     $q->where('office_id', $staff->office_id);
                 }
             })
@@ -122,17 +120,16 @@ class KioskController extends Controller
                 $query->where('role', 'intern');
 
                 if (! $staff->isAdmin() && ! $staff->isDean()) {
-                    if ($staff->isCoordinator()) {
-                        $query->where(function ($q) use ($staff) {
-                            $q->where('coordinator_id', $staff->id);
+                    // One scope for every monitor flavor: the interns
+                    // assigned to them, plus their office's when they
+                    // supervise one.
+                    $query->where(function ($q) use ($staff) {
+                        $q->where('coordinator_id', $staff->id);
 
-                            if ($staff->office_id !== null) {
-                                $q->orWhere('office_id', $staff->office_id);
-                            }
-                        });
-                    } else {
-                        $query->where('office_id', $staff->office_id);
-                    }
+                        if ($staff->office_id !== null) {
+                            $q->orWhere('office_id', $staff->office_id);
+                        }
+                    });
                 }
 
                 if ($search !== '') {
@@ -200,17 +197,16 @@ class KioskController extends Controller
                 $query->where('role', 'intern');
 
                 if (! $staff->isAdmin() && ! $staff->isDean()) {
-                    if ($staff->isCoordinator()) {
-                        $query->where(function ($q) use ($staff) {
-                            $q->where('coordinator_id', $staff->id);
+                    // One scope for every monitor flavor: the interns
+                    // assigned to them, plus their office's when they
+                    // supervise one.
+                    $query->where(function ($q) use ($staff) {
+                        $q->where('coordinator_id', $staff->id);
 
-                            if ($staff->office_id !== null) {
-                                $q->orWhere('office_id', $staff->office_id);
-                            }
-                        });
-                    } else {
-                        $query->where('office_id', $staff->office_id);
-                    }
+                        if ($staff->office_id !== null) {
+                            $q->orWhere('office_id', $staff->office_id);
+                        }
+                    });
                 }
             })
             ->with('user.office:id,name')
@@ -261,6 +257,23 @@ class KioskController extends Controller
      * session forward (and quietly re-authenticate through the remember-me
      * cookie) so a long gap between scans never signs the station out mid-day.
      */
+    /**
+     * Leave the station — the second half of the exit confirmation. The
+     * station's session user proves it's really them with their own
+     * password before the browser leaves the scanner page, the same
+     * pattern an OS uses when closing an elevated app.
+     */
+    public function exitStation(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'password' => ['required', 'current_password:web'],
+        ], [
+            'password.current_password' => "That password doesn't match the signed-in account.",
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('status', 'Scanner closed — the station can be reopened anytime from the Scanner page.');
+    }
+
     public function ping(): Response
     {
         return response()->noContent();

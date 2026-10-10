@@ -12,7 +12,7 @@
     {{-- New request --}}
     <div class="bg-white border border-gray-200 rounded-xl p-5 mb-8">
         <h2 class="text-sm font-semibold text-gray-900 mb-4">Raise a request</h2>
-        <form method="POST" action="{{ route('intern.requests.store') }}" class="space-y-4">
+        <form method="POST" action="{{ route('intern.requests.store') }}" enctype="multipart/form-data" class="space-y-4">
             @csrf
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -52,6 +52,15 @@
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">{{ old('reason') }}</textarea>
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">Proof <span class="text-gray-400 font-normal text-xs">(optional — up to 2 photos: an excuse note, the corrected entry, anything that shows the day)</span></label>
+                <input type="file" name="proofs[]" multiple accept="image/*" capture="environment"
+                    class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand-50 file:text-brand-700 file:text-xs file:font-medium hover:file:bg-brand-100">
+                @error('proofs') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                @error('proofs.0') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                @error('proofs.1') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+            </div>
+
             <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition">Submit request</button>
         </form>
     </div>
@@ -69,6 +78,16 @@
                                 {{ $lr->date->format('M d, Y') }}
                             </p>
                             <p class="text-sm text-gray-500 mt-0.5">“{{ $lr->reason }}”</p>
+                            @if($lr->proof_paths)
+                                <div class="flex gap-2 mt-2">
+                                    @foreach($lr->proof_paths as $proof)
+                                        <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($proof) }}" target="_blank" rel="noopener">
+                                            <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($proof) }}" loading="lazy"
+                                                alt="Proof attachment" class="w-14 h-14 rounded-lg object-cover border border-gray-200 hover:ring-2 hover:ring-brand-400 transition">
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
                             @if($lr->status !== 'pending')
                                 <p class="text-xs text-gray-400 mt-1">
                                     {{ $lr->decidedBy?->full_name ?? 'Decided' }} · {{ $lr->decided_at?->format('M d, Y') }}

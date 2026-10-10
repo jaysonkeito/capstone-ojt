@@ -156,7 +156,7 @@ test('saving the student profile unlocks the dashboard and persists the details'
 
     // Every section unlocks after the single save.
     $this->get(route('intern.dashboard'))->assertOk();
-    $this->get(route('intern.my-qr'))->assertOk();
+    $this->get(route('intern.my-qr'))->assertRedirect(route('profile').'#my-qr');
     $this->get(route('intern.documentation'))->assertOk();
     $this->get(route('intern.personal-information.edit'))->assertOk();
     $this->get(route('intern.requirements.index'))->assertOk();

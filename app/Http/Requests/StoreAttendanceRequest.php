@@ -32,6 +32,10 @@ class StoreAttendanceRequest extends FormRequest
             'date' => ['required', 'date', 'before_or_equal:today'],
             ...LogTimes::rules(),
             'reason' => ['required', 'string', 'max:2000'],
+            // Up to two photos as proof — an excuse note, the corrected
+            // entry, whatever shows the truth of the day.
+            'proofs' => ['nullable', 'array', 'max:2'],
+            'proofs.*' => ['image', 'mimes:jpeg,jpg,png,webp', 'max:4096'],
         ];
     }
 

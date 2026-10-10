@@ -11,10 +11,17 @@ class ProfileController extends Controller
     /**
      * The Profile page — every role gets one. Photo, contact info, and
      * (for staff) name are editable; the password form lives here too.
+     * Interns also get their personal QR badge on this page (it used to
+     * be a separate My QR Code page).
      */
     public function create(Request $request)
     {
-        return view('profile', ['user' => $request->user()]);
+        $user = $request->user();
+
+        return view('profile', [
+            'user' => $user,
+            'qrDataUri' => $user->isIntern() ? $user->qrDataUri() : null,
+        ]);
     }
 
     /**

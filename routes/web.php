@@ -22,6 +22,7 @@ use App\Http\Controllers\Intern\RequirementController as InternRequirementContro
 use App\Http\Controllers\Intern\SubmissionController as InternSubmissionController;
 use App\Http\Controllers\AppDownloadController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\AnnouncementsController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\ClassBoardController;
@@ -252,13 +253,16 @@ Route::middleware(['auth', 'profile-completed'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        // The station itself: the office scanner account runs it, and its
-        // guardOffice resolves only that office's interns.
-        Route::middleware('role:admin,supervisor,dean,office')->group(function () {
+        // The station itself: supervisors (and coordinators/deans with an
+        // office, plus admins) run it, and its guardOffice resolves only
+        // their office's interns. Exit is password-confirmed (see
+        // exitStation).
+        Route::middleware('role:admin,supervisor,dean,coordinator,chair')->group(function () {
             Route::get('/kiosk', [KioskController::class, 'index'])->name('kiosk.index');
             Route::get('/kiosk/ping', [KioskController::class, 'ping'])->name('kiosk.ping');
             Route::post('/kiosk/scan', [KioskController::class, 'scan'])->name('kiosk.scan');
             Route::post('/kiosk/manual', [KioskController::class, 'manual'])->name('kiosk.manual');
+            Route::post('/kiosk/exit', [KioskController::class, 'exitStation'])->name('kiosk.exit');
         });
 
         // Station tab locks — supervisors manage their own office's station;
@@ -275,6 +279,15 @@ Route::middleware(['auth', 'profile-completed'])
 
         Route::middleware('role:admin')->group(function () {
             Route::delete('/kiosk-captures/{log}/{slot}', [KioskController::class, 'deleteCapture'])->name('kiosk-captures.delete');
+        });
+
+        // Announcements to interns — the author's role decides the audience
+        // (admin → all, dean/chair → college, supervisor → office,
+        // coordinator → class); every targeted intern is notified.
+        Route::middleware('role:admin,coordinator,supervisor,dean,chair')->group(function () {
+            Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements.index');
+            Route::post('/announcements', [AnnouncementsController::class, 'store'])->name('announcements.store');
+            Route::delete('/announcements/{announcement}', [AnnouncementsController::class, 'destroy'])->name('announcements.destroy');
         });
     });
 
@@ -340,7 +353,8 @@ Route::middleware(['auth', 'role:coordinator,supervisor,dean,chair', 'profile-co
 
         // Supervisors record a scan an intern missed — saved as pending
         // for the admin to confirm (see LogReview::submitManualEntry).
-        Route::middleware('role:supervisor')->group(function () {
+        // A chair holding the office supervises it the same way.
+        Route::middleware('role:supervisor,chair')->group(function () {
             Route::get('/logs/create', [MonitorController::class, 'createLog'])->name('logs.create');
             Route::post('/logs', [MonitorController::class, 'storeLog'])->name('logs.store');
         });
@@ -354,8 +368,9 @@ Route::middleware(['auth', 'role:coordinator,supervisor,dean,chair', 'profile-co
         Route::get('/interns/{intern}/weekly-report', [MonitorController::class, 'weeklyReport'])->name('interns.weekly-report');
 
         // Supervisors certify an intern's duty hours for a timesheet period
-        // (the formal per-month sign-off on the Word timesheet).
-        Route::middleware('role:supervisor')->group(function () {
+        // (the formal per-month sign-off on the Word timesheet); chairs
+        // holding the office certify too.
+        Route::middleware('role:supervisor,chair')->group(function () {
             Route::post('/interns/{intern}/certify', [MonitorController::class, 'certify'])->name('interns.certify');
         });
 
@@ -363,7 +378,7 @@ Route::middleware(['auth', 'role:coordinator,supervisor,dean,chair', 'profile-co
         // plus the coordinator's own placement/completion requests to the admin.
         Route::get('/requests', [MonitorRequestController::class, 'index'])->name('requests.index');
 
-        Route::middleware('role:coordinator')->group(function () {
+        Route::middleware('role:coordinator,chair')->group(function () {
             Route::post('/requests/placement', [MonitorRequestController::class, 'storePlacement'])->name('requests.placement.store');
             Route::post('/requests/completion', [MonitorRequestController::class, 'storeCompletion'])->name('requests.completion.store');
         });
@@ -380,7 +395,7 @@ Route::middleware(['auth', 'role:coordinator,supervisor,dean,chair', 'profile-co
         // approved transfer moves the placement on the spot.
         Route::post('/intern-requests/{internRequest}/decide', [MonitorInternRequestController::class, 'decide'])
             ->name('intern-requests.decide')
-            ->middleware('role:admin,coordinator,supervisor');
+            ->middleware('role:admin,coordinator,supervisor,chair');
     });
 
 /*

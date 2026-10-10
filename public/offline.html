@@ -4,37 +4,114 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#4f46e5">
-    <title>OJT Tracker — Offline</title>
+    <title>You're offline — OJT Tracker</title>
     <style>
+        /* The error-page layout: a plain white canvas, an oversized heading,
+           short explanatory paragraphs, and a decorative dashed-line motif
+           to the right — stacked on phones, side-by-side on laptops. */
         :root { color-scheme: light; }
-        body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-               background: #f3f4f6; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #111827; }
-        .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 40px 32px;
-                max-width: 340px; margin: 24px; text-align: center; }
-        .badge { width: 56px; height: 56px; border-radius: 14px; background: #4f46e5; margin: 0 auto 20px;
-                 display: flex; align-items: center; justify-content: center; }
-        h1 { font-size: 17px; margin: 0 0 8px; font-weight: 600; }
-        p { font-size: 13.5px; line-height: 1.55; color: #6b7280; margin: 0; }
-        button { margin-top: 24px; width: 100%; border: 0; border-radius: 10px; padding: 11px 16px;
-                 background: #4f46e5; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; }
-        button:active { background: #4338ca; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; background: #fff; color: #111827;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            display: flex; flex-direction: column;
+        }
+        .topbar {
+            display: flex; align-items: center; gap: 10px;
+            padding: 14px 20px; border-bottom: 1px solid #f3f4f6;
+        }
+        .topbar .logo {
+            width: 28px; height: 28px; border-radius: 8px; background: #111827;
+            color: #fff; font-size: 12px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .topbar .brand { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; }
+        .topbar .brand small { display: block; font-size: 9px; font-weight: 500;
+            color: #9ca3af; text-transform: uppercase; letter-spacing: 0.14em; }
+        main {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 40px 24px; gap: 48px; flex-wrap: wrap;
+        }
+        .copy { max-width: 560px; }
+        h1 {
+            font-size: clamp(40px, 7vw, 64px); line-height: 1.05;
+            letter-spacing: -0.03em; font-weight: 700; margin: 0 0 24px;
+        }
+        .copy p { font-size: 15px; line-height: 1.65; color: #4b5563; margin: 0 0 16px; }
+        .actions { margin-top: 28px; display: flex; gap: 10px; flex-wrap: wrap; }
+        button, a.action {
+            display: inline-flex; align-items: center; gap: 8px;
+            border: 0; border-radius: 10px; padding: 11px 20px; cursor: pointer;
+            background: #4f46e5; color: #fff; font-size: 14px; font-weight: 500;
+            font-family: inherit; text-decoration: none;
+        }
+        button:active, a.action:active { background: #4338ca; }
+        button.ghost, a.ghost { background: #fff; color: #374151;
+            border: 1px solid #e5e7eb; }
+        button.ghost:active, a.ghost:active { background: #f9fafb; }
+        .hidden { display: none !important; }
+
+        /* The dashed motif — offline globe with a severed connection. */
+        .art { flex: 0 1 380px; min-width: 220px; display: flex; justify-content: center; }
+        .art svg { width: 100%; max-width: 380px; height: auto; }
+
+        .footnote {
+            padding: 14px 20px; border-top: 1px solid #f3f4f6;
+            font-size: 11.5px; color: #9ca3af;
+            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+        }
+        @media (max-width: 700px) {
+            main { flex-direction: column-reverse; text-align: center; padding: 32px 20px; }
+            .art { flex-basis: 200px; }
+            .actions { justify-content: center; }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <div class="badge">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/>
-                <rect x="4" y="14" width="6" height="6" rx="1.5"/>
-                <path d="M14.5 14.5h2m3 0h.01M14.5 20h2m3-5.5v.01M19.5 20h.01"/>
+    <div class="topbar">
+        <div class="logo">N</div>
+        <div class="brand">NORSU OJT<small>CAS</small></div>
+    </div>
+
+    <main>
+        <div class="copy">
+            <h1>You're offline</h1>
+            <p>This page needs a connection to load. Check that Wi-Fi or mobile data is turned on, then try again.</p>
+            <p id="offline-copy">Pages you've already opened still show the data from your last visit, and anything you write while offline uploads once you're back online.</p>
+            <div class="actions">
+                <button onclick="location.reload()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                    Try again
+                </button>
+                <a id="open-dashboard" class="ghost hidden" href="/intern/dashboard">Open my dashboard</a>
+            </div>
+        </div>
+
+        <div class="art" aria-hidden="true">
+            <svg viewBox="0 0 380 300" fill="none">
+                <!-- dashed rings, echoing the reference's circle motif -->
+                <circle cx="230" cy="140" r="96" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="3 5"/>
+                <circle cx="140" cy="170" r="56" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="3 5"/>
+                <circle cx="320" cy="190" r="40" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="3 5"/>
+                <path d="M60 250h270" stroke="#d1d5db" stroke-width="1.5" stroke-dasharray="3 5"/>
+                <!-- globe -->
+                <circle cx="230" cy="140" r="52" stroke="#6b7280" stroke-width="2"/>
+                <ellipse cx="230" cy="140" rx="24" ry="52" stroke="#6b7280" stroke-width="1.5"/>
+                <path d="M182 124h96M182 156h96" stroke="#6b7280" stroke-width="1.5"/>
+                <!-- the severed link: plug + broken line -->
+                <path d="M118 214c26 0 34-22 56-22" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
+                <path d="M210 192c14 0 22 8 34 8" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6"/>
+                <circle cx="112" cy="214" r="9" fill="#fff" stroke="#9ca3af" stroke-width="2"/>
+                <circle cx="250" cy="200" r="6" fill="#4f46e5"/>
             </svg>
         </div>
-        <h1>You're offline</h1>
-        <p id="offline-copy">This page needs a connection the first time you open it. Your My QR Code page and anything you've looked at recently still work — try the back button.</p>
-        <a id="open-dashboard" href="/intern/dashboard" class="hidden"
-           style="display:block;margin-top:24px;width:100%;border:0;border-radius:10px;padding:11px 16px;background:#4f46e5;color:#fff;font-size:14px;font-weight:500;text-decoration:none;box-sizing:border-box;">Open my dashboard</a>
-        <button onclick="location.reload()">Try again</button>
+    </main>
+
+    <div class="footnote">
+        <span>OJT Tracker — works offline with your last synced data</span>
+        <span id="footnote-state">No connection</span>
     </div>
+
     <script>
         // If this device has signed in before, its dashboard is cached — offer
         // a way in. A device that has never signed in genuinely needs a
@@ -48,6 +125,16 @@
                 }
             });
         }
+
+        // Flip the footnote the moment the connection returns.
+        const state = document.getElementById('footnote-state');
+        const update = () => {
+            if (navigator.onLine) {
+                state.textContent = 'Connection restored — try again';
+            }
+        };
+        window.addEventListener('online', update);
+        update();
     </script>
 </body>
 </html>
