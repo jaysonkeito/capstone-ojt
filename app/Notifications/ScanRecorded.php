@@ -9,7 +9,8 @@ use Illuminate\Notifications\Notification;
 /**
  * Sent to an intern right after the kiosk records one of their punches —
  * confirms the time in/out the station just accepted, with the date, the
- * slot, and the recorded clock time.
+ * slot, the recorded clock time, and the kiosk's verification photo of
+ * the moment (downloadable from the inbox).
  */
 class ScanRecorded extends Notification
 {
@@ -19,6 +20,7 @@ class ScanRecorded extends Notification
         public OjtLog $log,
         public string $slotLabel,
         public string $recordedAt,
+        public ?string $capturePath = null,
     ) {}
 
     /**
@@ -40,6 +42,9 @@ class ScanRecorded extends Notification
             'date' => $this->log->date->toDateString(),
             'slot' => $this->slotLabel,
             'recorded_at' => $this->recordedAt,
+            // The verification frame captured at the instant of the scan —
+            // null when the station's camera was off or denied.
+            'capture' => $this->capturePath,
         ];
     }
 }

@@ -84,6 +84,10 @@
                     ($data['slot'] ?? 'Time').' recorded at '.($data['recorded_at'] ?? '').' on '.$date.'.',
                     null,
                 ],
+                'intern_reported' => [
+                    "{$data['reporter']} reported {$data['intern']}.",
+                    $data['reason'] ?? null,
+                ],
                 default => ['You have a new notification.', null],
             };
         };
@@ -117,6 +121,22 @@
                     </p>
                     @if($comment)
                         <p class="text-sm text-gray-500 mt-0.5">“{{ $comment }}”</p>
+                    @endif
+                    @if(($notification->data['kind'] ?? null) === 'scan_recorded' && ($notification->data['capture'] ?? null))
+                        {{-- The kiosk's verification photo of the scan —
+                             tappable to view, with a direct download. --}}
+                        @php($captureUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($notification->data['capture']))
+                        <div class="flex items-center gap-2 mt-2">
+                            <a href="{{ $captureUrl }}" target="_blank" rel="noopener">
+                                <img src="{{ $captureUrl }}" loading="lazy" alt="Scan verification photo"
+                                    class="w-14 h-14 rounded-lg object-cover border border-gray-200 hover:ring-2 hover:ring-brand-400 transition">
+                            </a>
+                            <a href="{{ $captureUrl }}" download
+                                class="inline-flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:underline">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 21h14"/></svg>
+                                Download photo
+                            </a>
+                        </div>
                     @endif
                     <p class="text-[11px] text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
                 </div>

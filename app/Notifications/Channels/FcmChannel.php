@@ -48,6 +48,7 @@ class FcmChannel
         'announcement' => 'Announcement',
         'class_message' => 'Class message',
         'chat_reported' => 'Chat reported',
+        'intern_reported' => 'Intern reported',
     ];
 
     public function send($notifiable, Notification $notification): void
@@ -141,6 +142,7 @@ class FcmChannel
             'announcement' => ($data['author'] ?? 'Your coordinator').': '.($data['title'] ?? 'Announcement'),
             'class_message' => ($data['author'] ?? 'Someone').': '.($data['preview'] ?? 'sent a message'),
             'chat_reported' => ($data['reporter'] ?? 'A member').' reported the '.($data['chat'] ?? 'class chat').'.',
+            'intern_reported' => ($data['reporter'] ?? 'Staff').' reported '.($data['intern'] ?? 'an intern').'.',
             default => 'You have a new update in OJT Tracker.',
         };
     }

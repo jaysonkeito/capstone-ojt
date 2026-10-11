@@ -4,6 +4,8 @@ use App\Models\ClassMember;
 use App\Models\ClassMessage;
 use App\Models\DocumentTemplate;
 use App\Models\InternRequest;
+use App\Models\OjtEnrollment;
+use App\Models\OjtLog;
 use App\Models\Office;
 use App\Models\SubmittedDocument;
 use App\Models\User;
@@ -469,4 +471,58 @@ test('muting the class silences its notifications for the member', function () {
     $this->actingAs($coordinator)->post(route('class-board.store'), ['body' => 'loud test'])->assertRedirect();
 
     expect($intern->notifications()->where('type', \App\Notifications\ClassMessagePosted::class)->exists())->toBeTrue();
+});
+
+// ---------- Staff reporting an intern ----------
+
+test('a supervisor can report an intern and the System Admin is notified', function () {
+    $office = Office::create(['name' => 'Report Office', 'type' => 'internal']);
+    $supervisor = makeSupervisor($office);
+    $intern = makeIntern(['student_id' => 'T-8201', 'office_id' => $office->id]);
+    $admin = makeStaff(['role' => 'admin']);
+
+    $this->actingAs($supervisor)
+        ->post(route('monitor.interns.report', $intern), [
+            'reason' => 'The 8:03 AM scan was their classmate — the capture shows a different face.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $report = \App\Models\InternReport::firstOrFail();
+    expect($report->intern_id)->toBe($intern->id)
+        ->and($report->reporter_id)->toBe($supervisor->id)
+        ->and($admin->notifications()->where('type', \App\Notifications\InternReported::class)->exists())->toBeTrue();
+
+    // The admin's inbox renders the report with its reason.
+    $this->actingAs($admin)->get(route('notifications.index'))
+        ->assertOk()
+        ->assertSee('reported')
+        ->assertSee('different face');
+});
+
+test('staff cannot report interns outside their scope', function () {
+    $otherSupervisor = makeSupervisor(Office::create(['name' => 'Far Office', 'type' => 'internal']));
+    $stranger = makeIntern(['student_id' => 'T-8202']);
+
+    $this->actingAs($otherSupervisor)
+        ->post(route('monitor.interns.report', $stranger), ['reason' => 'nope'])
+        ->assertForbidden();
+
+    expect(\App\Models\InternReport::count())->toBe(0);
+});
+
+test('punch notifications carry the scan capture', function () {
+    Storage::fake('public');
+    $intern = makeIntern();
+    makeActiveEnrollment($intern);
+    $log = makeLog($intern, OjtEnrollment::where('user_id', $intern->id)->firstOrFail(), times: ['am_time_in' => '08:00']);
+    $path = 'kiosk-captures/test/am_time_in.jpg';
+    Storage::disk('public')->put($path, 'jpeg');
+
+    $intern->notify(new \App\Notifications\ScanRecorded($log, 'AM Time In', '8:00 AM', $path));
+
+    $page = $this->actingAs($intern)->get(route('notifications.index'))->assertOk();
+
+    $page->assertSee('AM Time In recorded at 8:00 AM on '.now()->format('M d, Y').'.')
+        ->assertSee('Download photo');
 });

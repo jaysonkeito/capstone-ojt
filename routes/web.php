@@ -390,6 +390,12 @@ Route::middleware(['auth', 'role:coordinator,supervisor,dean,chair', 'profile-co
             ->name('documents.review')
             ->middleware('role:admin,coordinator');
 
+        // Staff file a formal report on an intern — proxy scans, fabricated
+        // entries, conduct. Goes to the System Admin.
+        Route::post('/interns/{intern}/report', [MonitorController::class, 'reportIntern'])
+            ->name('interns.report')
+            ->middleware('role:admin,coordinator,supervisor,chair');
+
         // Interns' office-transfer and consultation requests: the intern's
         // coordinator (or the named consultation recipient) decides; an
         // approved transfer moves the placement on the spot.

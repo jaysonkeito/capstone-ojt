@@ -311,6 +311,37 @@ class MonitorController extends Controller
     }
 
     /**
+     * File a formal report against an intern — the paper trail for a
+     * suspected proxy scan ("the QR was scanned but it wasn't them"), a
+     * fabricated entry, or duty conduct. Any staff member who monitors
+     * the intern may file one; the System Admin gets it in their inbox.
+     */
+    public function reportIntern(Request $request, User $intern)
+    {
+        abort_unless($intern->isIntern(), 404);
+
+        $staff = $request->user();
+
+        abort_unless($staff->isAdmin() || $staff->monitors($intern), 403, 'You can only report interns you monitor.');
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $report = \App\Models\InternReport::create([
+            'intern_id' => $intern->id,
+            'reporter_id' => $staff->id,
+            'reason' => $validated['reason'],
+        ]);
+
+        foreach (User::where('role', 'admin')->where('is_active', true)->whereKeyNot($staff->id)->get() as $admin) {
+            $admin->notify(new \App\Notifications\InternReported($report, $intern->full_name, $staff->full_name));
+        }
+
+        return redirect()->back()->with('status', "Report filed on {$intern->full_name} — the System Admin has been notified.");
+    }
+
+    /**
      * The interns this monitor role may see: a coordinator's assigned
      * interns, a supervisor's office placements, a Program Chair's college
      * — and a coordinator who also supervises an office

@@ -23,6 +23,21 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
             Time Frame
         </a>
+
+        {{-- Formal report — proxy scans, fabricated entries, conduct. --}}
+        <details class="relative">
+            <summary class="cursor-pointer select-none list-none inline-flex items-center gap-1.5 bg-white border border-red-200 hover:bg-red-50 text-red-600 text-sm font-medium px-3 py-2 rounded-lg transition">Report…</summary>
+            <form method="POST" action="{{ route('monitor.interns.report', $intern) }}" class="absolute right-0 z-20 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl p-4 space-y-2">
+                @csrf
+                <p class="text-xs text-gray-500">File a formal report on {{ $intern->first_name }} — the System Admin reads it.</p>
+                <textarea name="reason" rows="3" required maxlength="1000" placeholder="e.g. The AM scan at 8:03 was their classmate — the capture shows a different face."
+                    class="w-full px-3 py-2 rounded-lg border-gray-200 text-xs focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition"></textarea>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="this.closest('details').removeAttribute('open')" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg transition">Cancel</button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition">File report</button>
+                </div>
+            </form>
+        </details>
     </div>
 </div>
 

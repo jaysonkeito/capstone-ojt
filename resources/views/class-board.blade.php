@@ -13,7 +13,7 @@
     $iLeft = $prefs->left_at !== null && ! $isCoordinator;
 @endphp
 
-<div id="chatShell" class="flex h-[calc(100dvh-11rem)] min-h-[30rem] border border-gray-200 rounded-2xl overflow-hidden bg-white">
+<div id="chatShell" class="flex h-[calc(100dvh-7.5rem)] md:h-[calc(100dvh-6rem)] min-h-[30rem] border border-gray-200 rounded-2xl overflow-hidden bg-white">
 
     {{-- ============ Left: chats list (desktop; mobile shows it first) ============ --}}
     <aside id="chatListPane" class="flex flex-col w-full md:w-72 lg:w-80 shrink-0 border-r border-gray-100 min-w-0 overflow-hidden">
@@ -66,7 +66,7 @@
     </aside>
 
     {{-- ============ Center: the conversation ============ --}}
-    <section id="chatPane" class="flex-1 flex-col min-w-0 bg-white">
+    <section id="chatPane" class="hidden md:flex flex-1 flex-col min-w-0 bg-white">
         {{-- Chat header --}}
         <div class="px-4 py-2.5 border-b border-gray-100 flex items-center gap-3 shrink-0">
             <button type="button" onclick="showListView()" class="md:hidden text-gray-500 hover:text-gray-900 p-1" aria-label="Back to chats">
@@ -327,8 +327,11 @@
     const form = document.getElementById('chatForm');
     const input = document.getElementById('chatInput');
     const typingRow = document.getElementById('typingRow');
-    let lastMsgId = document.querySelector('.chat-msg[data-msg-id]')
-        ? Number(document.querySelector('.chat-msg:last-of-type[data-msg-id]').dataset.msgId) : 0;
+    // The newest message id on the page — the poll asks for everything
+    // after it. (Never :last-of-type here: the typing row is a div too,
+    // so that selector matched nothing and crashed the whole script.)
+    const renderedMsgs = document.querySelectorAll('.chat-msg[data-msg-id]');
+    let lastMsgId = renderedMsgs.length ? Number(renderedMsgs[renderedMsgs.length - 1].dataset.msgId) : 0;
     let sending = false;
 
     feed.scrollTop = feed.scrollHeight;
@@ -347,11 +350,10 @@
         listPane.classList.remove('hidden');
     };
 
-    // Start on the conversation for desktop, the list for phones.
-    if (window.matchMedia('(min-width: 768px)').matches) {
-        chatPane.classList.remove('hidden');
-        chatPane.classList.add('flex');
-    } else {
+    // The panes carry their desktop layout in the markup (md:flex) — JS
+    // only has to manage the mobile two-screen flow, so a script error
+    // can never leave the board half-drawn.
+    if (! window.matchMedia('(min-width: 768px)').matches) {
         chatPane.classList.add('hidden');
         chatPane.classList.remove('flex');
     }

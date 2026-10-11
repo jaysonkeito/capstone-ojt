@@ -469,15 +469,20 @@ class KioskController extends Controller
                 $intern,
             );
 
-            // Same punch into the intern's own inbox — date, slot, and clock
-            // time, so the phone confirms what the station just accepted.
-            // Only when a time actually went on the books ('done' scans have
-            // no slot — the day was already full or the scan fell outside).
+            // Same punch into the intern's own inbox — date, slot, clock
+            // time, and the verification photo of the moment, so the phone
+            // confirms what the station just accepted. Only when a time
+            // actually went on the books ('done' scans have no slot — the
+            // day was already full or the scan fell outside).
             if ($slot !== null) {
                 $intern->notify(new ScanRecorded(
                     $outcome['log'],
                     AttendanceRecorder::labelFor((string) $slot),
                     now()->format('g:i A'),
+                    // The stored path (not the URL) — storeCapture filled
+                    // this same instance, and the inbox derives a fresh URL
+                    // at render time, whatever the host is.
+                    $outcome['log']->kiosk_captures[$slot] ?? null,
                 ));
             }
         }
