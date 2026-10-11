@@ -3,7 +3,7 @@
 @section('title', 'Announcements')
 
 @section('content')
-<div class="max-w-3xl">
+<div>
     <div class="mb-8">
         <h1 class="text-xl font-semibold tracking-tight text-gray-900">Announcements</h1>
         <p class="text-sm text-gray-500 mt-0.5">Posts reach {{ $audienceLabel }} — on their dashboard banner and in their notification inbox.</p>

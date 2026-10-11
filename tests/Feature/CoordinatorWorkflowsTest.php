@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ClassMember;
 use App\Models\ClassMessage;
 use App\Models\DocumentTemplate;
 use App\Models\InternRequest;
@@ -362,4 +363,110 @@ test('a staff announcement reaches the right interns only', function () {
     // And the inbox notification arrived.
     expect($mine->notifications()->where('type', \App\Notifications\AnnouncementPublished::class)->exists())->toBeTrue()
         ->and($otherIntern->notifications()->count())->toBe(0);
+});
+
+// ---------- Messenger-style class board ----------
+
+test('posting via the chat composer returns the message as JSON', function () {
+    $coordinator = makeCoordinator();
+    $intern = makeCoordinatorIntern($coordinator);
+
+    $this->actingAs($intern)
+        ->postJson(route('class-board.store'), ['body' => 'Hello from the composer!'])
+        ->assertOk()
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('message.body', 'Hello from the composer!')
+        ->assertJsonPath('message.mine', true);
+
+    // The feed endpoint hands the same message to other members' polls.
+    $this->actingAs($coordinator)
+        ->getJson(route('class-board.feed', ['after' => 0]))
+        ->assertOk()
+        ->assertJsonCount(1, 'messages')
+        ->assertJsonPath('messages.0.body', 'Hello from the composer!')
+        ->assertJsonPath('messages.0.mine', false);
+});
+
+test('class message notifications reach members but skip muted and departed ones', function () {
+    $coordinator = makeCoordinator();
+    $plain = makeCoordinatorIntern($coordinator, ['student_id' => 'T-8101']);
+    $mutedMember = makeCoordinatorIntern($coordinator, ['student_id' => 'T-8102']);
+    $gone = makeCoordinatorIntern($coordinator, ['student_id' => 'T-8103']);
+
+    ClassMember::for($coordinator->id, $mutedMember->id)->update(['muted_at' => now()]);
+    ClassMember::for($coordinator->id, $gone->id)->update(['left_at' => now()]);
+
+    $this->actingAs($coordinator)
+        ->post(route('class-board.store'), ['body' => 'Reminder: forms on Friday.'])
+        ->assertRedirect();
+
+    expect($plain->notifications()->where('type', \App\Notifications\ClassMessagePosted::class)->exists())->toBeTrue()
+        ->and($mutedMember->notifications()->where('type', \App\Notifications\ClassMessagePosted::class)->exists())->toBeFalse()
+        ->and($gone->notifications()->where('type', \App\Notifications\ClassMessagePosted::class)->exists())->toBeFalse();
+});
+
+test('a member can leave the class and be added back by the coordinator', function () {
+    $coordinator = makeCoordinator();
+    $intern = makeCoordinatorIntern($coordinator);
+
+    $this->actingAs($intern)->post(route('class-board.leave'))->assertRedirect();
+
+    // Left: hidden from the board's member list, and posting is refused.
+    $board = $this->actingAs($coordinator)->get(route('class-board.index'))->assertOk();
+    $board->assertSee('Left the class');
+    $this->actingAs($intern)->post(route('class-board.store'), ['body' => 'let me in?'])->assertForbidden();
+
+    // The coordinator adds them back.
+    $this->actingAs($coordinator)->post(route('class-board.members.add-back', $intern))->assertRedirect();
+
+    $this->actingAs($intern)
+        ->post(route('class-board.store'), ['body' => 'I am back!'])
+        ->assertRedirect();
+});
+
+test('the coordinator renames the class chat', function () {
+    $coordinator = makeCoordinator();
+    $intern = makeCoordinatorIntern($coordinator);
+
+    $this->actingAs($coordinator)
+        ->post(route('class-board.rename'), ['name' => 'BSIT OJT 2026'])
+        ->assertRedirect();
+
+    // The custom name is what every member's board shows.
+    $this->actingAs($intern)->get(route('class-board.index'))
+        ->assertOk()
+        ->assertSee('BSIT OJT 2026');
+
+    // Interns cannot rename.
+    $this->actingAs($intern)
+        ->post(route('class-board.rename'), ['name' => 'My Class Now'])
+        ->assertForbidden();
+});
+
+test('reporting the class chat notifies the System Admin', function () {
+    $admin = makeStaff(['role' => 'admin']);
+    $coordinator = makeCoordinator();
+    $intern = makeCoordinatorIntern($coordinator);
+
+    $this->actingAs($intern)
+        ->post(route('class-board.report'), ['reason' => 'Spam in the chat.'])
+        ->assertRedirect();
+
+    expect($admin->notifications()->where('type', \App\Notifications\ChatReported::class)->exists())->toBeTrue();
+});
+
+test('muting the class silences its notifications for the member', function () {
+    $coordinator = makeCoordinator();
+    $intern = makeCoordinatorIntern($coordinator);
+
+    $this->actingAs($intern)->post(route('class-board.mute'))->assertRedirect();
+    $this->actingAs($coordinator)->post(route('class-board.store'), ['body' => 'quiet test'])->assertRedirect();
+
+    expect($intern->notifications()->where('type', \App\Notifications\ClassMessagePosted::class)->exists())->toBeFalse();
+
+    // Unmute restores them.
+    $this->actingAs($intern)->post(route('class-board.mute'))->assertRedirect();
+    $this->actingAs($coordinator)->post(route('class-board.store'), ['body' => 'loud test'])->assertRedirect();
+
+    expect($intern->notifications()->where('type', \App\Notifications\ClassMessagePosted::class)->exists())->toBeTrue();
 });

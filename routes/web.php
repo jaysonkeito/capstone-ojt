@@ -410,6 +410,14 @@ Route::middleware(['auth', 'role:intern,coordinator', 'profile-completed'])
     ->group(function () {
         Route::get('/', [ClassBoardController::class, 'index'])->name('index');
         Route::post('/', [ClassBoardController::class, 'store'])->name('store');
+        Route::get('/feed', [ClassBoardController::class, 'feed'])->name('feed');
+        Route::post('/mute', [ClassBoardController::class, 'toggleMute'])->name('mute');
+        Route::post('/leave', [ClassBoardController::class, 'leave'])->name('leave');
+        Route::post('/rename', [ClassBoardController::class, 'rename'])->name('rename');
+        Route::post('/report', [ClassBoardController::class, 'report'])->name('report');
+        Route::post('/members/{member}/add-back', [ClassBoardController::class, 'addBack'])
+            ->name('members.add-back')
+            ->middleware('role:coordinator');
     });
 
 /*
