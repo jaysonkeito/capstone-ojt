@@ -90,7 +90,7 @@ services:
   # ------------------------------------------------------------ profile: tls
   # Renewal loop for the public-IP deployment. Issue the first certificate
   # once with:  docker compose run --rm certbot certonly --webroot
-  #   -w /var/www/public -d norsubscojt.online -d www.norsubscojt.online
+  #   -w /var/www/public -d $CERT_DOMAIN -d www.$CERT_DOMAIN
   # then bring up the stack with docker-compose.tls.yml (443 + TLS vhost).
   certbot:
     image: certbot/certbot
@@ -104,7 +104,7 @@ services:
   # --------------------------------------------------------- profile: tunnel
   # For servers behind campus NAT with no port forwarding: create a
   # remotely-managed tunnel in the Cloudflare dashboard for
-  # norsubscojt.online -> http://web:80, put its token in .env as
+  # your domain -> http://web:80, put its token in .env as
   # CLOUDFLARE_TUNNEL_TOKEN, then `docker compose --profile tunnel up -d`.
   cloudflared:
     image: cloudflare/cloudflared:latest

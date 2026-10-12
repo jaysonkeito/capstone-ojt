@@ -1,10 +1,11 @@
-# OJT Tracker — HTTPS vhost, used once Let's Encrypt certificates exist.
-# Mounted over default.conf by docker-compose.tls.yml (see the guide): port 80
-# only serves ACME challenges and redirects everything else; port 443 is the app.
-
+# OJT Tracker — HTTPS vhost template, used once Let's Encrypt certificates
+# exist. Mounted by docker-compose.tls.yml into /etc/nginx/templates, where
+# the official nginx image substitutes ${CERT_DOMAIN} at boot — set
+# CERT_DOMAIN in .env to the live domain. Port 80 only serves ACME
+# challenges and redirects everything else; port 443 is the app.
 server {
     listen 80;
-    server_name norsubscojt.online www.norsubscojt.online;
+    server_name ${CERT_DOMAIN} www.${CERT_DOMAIN};
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/public;
@@ -18,10 +19,10 @@ server {
 server {
     listen 443 ssl;
     http2 on;
-    server_name norsubscojt.online www.norsubscojt.online;
+    server_name ${CERT_DOMAIN} www.${CERT_DOMAIN};
 
-    ssl_certificate     /etc/letsencrypt/live/norsubscojt.online/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/norsubscojt.online/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/${CERT_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${CERT_DOMAIN}/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_session_cache   shared:SSL:10m;
 
