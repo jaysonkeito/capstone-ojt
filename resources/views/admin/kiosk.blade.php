@@ -298,6 +298,8 @@
             function closeExitConfirm() {
                 exitModal.classList.add('hidden');
                 resetExitFlow();
+                // Modal closed — the scan input can own the keyboard again.
+                focusInput();
             }
 
             function confirmExit() {
@@ -342,8 +344,13 @@
             let busy = false; // a POST is in flight — don't overlap requests
 
             // ---- keep the capture field focused, but ONLY in Scanner mode ----
+            // The exit dialog owns the keyboard while it's open: without the
+            // guard, these focus-keepers steal every keystroke back from the
+            // password field (click/touch/blur all re-focus the scan input),
+            // so typed characters vanish and Enter submits a bogus scan.
             function focusInput() {
                 if (mode !== 'scanner') { return; }
+                if (! document.getElementById('exitModal').classList.contains('hidden')) { return; }
                 try { input.focus(); } catch (e) {}
             }
 
