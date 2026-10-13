@@ -256,7 +256,7 @@
                     <div id="exitPasswordBlock" class="hidden">
                         <label for="exit_password" class="block text-xs font-medium text-gray-600 mb-1">Your password</label>
                         <input type="password" name="password" id="exit_password" autocomplete="current-password"
-                            class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                            class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                         @error('password') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div class="flex gap-2 pt-1">
