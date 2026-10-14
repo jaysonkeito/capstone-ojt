@@ -45,9 +45,16 @@ class Office extends Model
         return $this->hasMany(User::class)->where('role', 'intern');
     }
 
+    /**
+     * Every account that supervises this office: its primary role OR any
+     * extra role — a coordinator who also supervises the office counts.
+     */
     public function supervisors()
     {
-        return $this->hasMany(User::class)->where('role', 'supervisor');
+        return $this->hasMany(User::class)->where(function ($q) {
+            $q->where('role', 'supervisor')
+                ->orWhereHas('roles', fn ($r) => $r->where('role', 'supervisor'));
+        });
     }
 
     public function getTypeLabelAttribute(): string

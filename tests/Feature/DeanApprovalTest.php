@@ -133,13 +133,16 @@ test('a coordinator can still approve a supervisor sign-up that carries their co
 
 test('the staff form saves a supervisor without a college', function () {
     $admin = approvalUser('admin');
-    $supervisor = makeStaff(['role' => 'supervisor']);
+    $office = Office::create(['name' => 'External Partner Office', 'type' => 'external']);
+    $supervisor = makeStaff(['role' => 'supervisor', 'office_id' => $office->id, 'approved_at' => now(), 'profile_completed_at' => now()]);
 
     $this->actingAs($admin)->put(route('admin.staff.update', $supervisor), [
+        'roles' => ['supervisor'],
+        'primary_role' => 'supervisor',
         'first_name' => 'Ext',
         'last_name' => 'External',
         'email' => $supervisor->email,
-        'office_id' => $supervisor->office_id,
+        'office_id' => $office->id,
         'college_code' => '',
         'is_active' => true,
     ])->assertRedirect(route('admin.staff.index'));

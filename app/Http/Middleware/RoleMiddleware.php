@@ -25,7 +25,9 @@ class RoleMiddleware
             return redirect()->guest(route('login'));
         }
 
-        if (! in_array($user->role, $roles, true)) {
+        // hasRole covers multi-role staff: holding any ONE of the listed
+        // roles — primary or extra — admits the account.
+        if (! $user->hasRole(...$roles)) {
             abort(403, 'You are not authorized to access this page.');
         }
 

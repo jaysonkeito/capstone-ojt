@@ -6,7 +6,7 @@
 <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
     <div>
         <h1 class="text-xl font-semibold tracking-tight text-gray-900">Staff</h1>
-        <p class="text-sm text-gray-500 mt-0.5">OJT Coordinators and office Supervisors — monitoring accounts.</p>
+        <p class="text-sm text-gray-500 mt-0.5">Coordinators, supervisors, deans, and Program Chairs — monitoring accounts.</p>
     </div>
     <button type="button" onclick="document.getElementById('addStaffModal').classList.remove('hidden')"
         class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition">+ Add Staff</button>
@@ -52,12 +52,16 @@
                         </div>
                     </td>
                     <td class="px-4 py-3">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $member->isCoordinator() ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-600' }}">
-                            {{ $member->role_label }}
-                        </span>
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($member->allRoles() as $role)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium {{ $role === 'coordinator' ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ ['coordinator' => 'OJT Coordinator', 'supervisor' => 'Supervisor', 'dean' => 'College Dean', 'chair' => 'Program Chair'][$role] ?? ucfirst($role) }}@if($role === $member->role) <span class="ml-1 text-[9px] uppercase tracking-wide opacity-60">main</span>@endif
+                                </span>
+                            @endforeach
+                        </div>
                     </td>
                     <td class="px-4 py-3 text-gray-500">{{ $member->office?->name ?? '—' }}</td>
-                    <td class="px-4 py-3 text-center text-gray-700 tabular-nums">{{ $member->isCoordinator() ? $member->coordinated_interns_count : $member->office?->interns()->count() }}</td>
+                    <td class="px-4 py-3 text-center text-gray-700 tabular-nums">{{ $member->hasRole('coordinator') ? $member->coordinated_interns_count : $member->office?->interns()->count() }}</td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center gap-1.5 text-xs font-medium {{ $member->is_active ? 'text-emerald-700' : 'text-gray-400' }}">
                             <span class="w-1.5 h-1.5 rounded-full {{ $member->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
@@ -91,8 +95,13 @@
 {{-- Soft-deleted staff, restorable --}}
 @php
     $deletedStaff = App\Models\User::onlyTrashed()
-        ->whereIn('role', ['coordinator', 'supervisor'])
-        ->when(request('role'), fn ($q, $role) => $q->where('role', $role))
+        ->where(function ($q) {
+            $q->whereIn('role', App\Models\User::STAFF_ROLES)
+                ->orWhereHas('roles', fn ($r) => $r->whereIn('role', App\Models\User::STAFF_ROLES));
+        })
+        ->when(request('role'), fn ($q, $role) => $q->where(function ($qq) use ($role) {
+            $qq->where('role', $role)->orWhereHas('roles', fn ($r) => $r->where('role', $role));
+        }))
         ->orderBy('last_name')
         ->get();
 @endphp
@@ -148,14 +157,26 @@
         <form method="POST" action="{{ route('admin.staff.store') }}" class="space-y-4">
             @csrf
             <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Role</label>
-                <select name="role" required onchange="syncModalStaffRoleFields(this.value)"
+                <label class="block text-xs font-medium text-gray-600 mb-1">Roles <span class="text-gray-400 font-normal">(check all that apply)</span></label>
+                <div class="space-y-1.5">
+                    @foreach(['coordinator' => 'OJT Coordinator — monitors the interns assigned to them', 'supervisor' => 'Supervisor — monitors the interns at their office', 'dean' => 'College Dean — approves sign-ups for their college', 'chair' => 'Program Chair — oversees their college\'s interns'] as $roleValue => $roleDescription)
+                        <label class="flex items-start gap-2 rounded-lg border border-gray-200 px-3 py-2 cursor-pointer hover:border-brand-300 transition">
+                            <input type="checkbox" name="roles[]" value="{{ $roleValue }}" data-modal-staff-role
+                                {{ $roleValue === 'coordinator' ? 'checked' : '' }} onchange="syncModalStaffRoleFields()"
+                                class="mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500/20">
+                            <span class="text-xs text-gray-700">{{ $roleDescription }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                @error('roles') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Priority Role <span class="text-gray-400 font-normal">(the main hat)</span></label>
+                <select name="primary_role" id="modalPrimaryRoleSelect" required
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
-                    <option value="coordinator">OJT Coordinator — monitors the interns assigned to them</option>
-                    <option value="supervisor">Supervisor — monitors the interns at their office</option>
-                    <option value="dean">College Dean — approves coordinator and supervisor sign-ups for their college</option>
-                    <option value="chair">Program Chair — oversees their college's interns</option>
+                    <option value="coordinator">OJT Coordinator</option>
                 </select>
+                @error('primary_role') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
             </div>
             <div id="modalCollegeField">
                 <label class="block text-xs font-medium text-gray-600 mb-1">College <span class="text-gray-400 font-normal">(optional for supervisors)</span></label>
@@ -208,7 +229,7 @@
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                 @error('password') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
             </div>
-            <div id="modalOfficeField" class="hidden">
+            <div id="modalOfficeField">
                 <label class="block text-xs font-medium text-gray-600 mb-1">Office <span class="text-gray-400 font-normal">(required for supervisors)</span></label>
                 <select name="office_id" class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
                     <option value="">Select office</option>
@@ -238,8 +259,25 @@
 
 @push('scripts')
 <script>
-    function syncModalStaffRoleFields(role) {
-        document.getElementById('modalOfficeField').classList.toggle('hidden', ! (role === 'supervisor' || role === 'coordinator' || role === 'dean' || role === 'chair'));
+    const modalRoleLabels = {
+        coordinator: 'OJT Coordinator',
+        supervisor: 'Supervisor',
+        dean: 'College Dean',
+        chair: 'Program Chair',
+    };
+
+    // Mirror of the form page's priority-role sync, for the Add-Staff modal.
+    function syncModalStaffRoleFields() {
+        const checked = [...document.querySelectorAll('input[data-modal-staff-role]:checked')].map(input => input.value);
+
+        const select = document.getElementById('modalPrimaryRoleSelect');
+        const current = select.value;
+        select.innerHTML = checked.map(role =>
+            `<option value="${role}" ${role === current ? 'selected' : ''}>${modalRoleLabels[role]}</option>`
+        ).join('');
+        if (! checked.includes(current) && checked.length > 0) {
+            select.value = checked[0];
+        }
     }
 </script>
 @endpush

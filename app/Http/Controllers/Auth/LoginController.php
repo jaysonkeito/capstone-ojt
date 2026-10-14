@@ -125,7 +125,9 @@ class LoginController extends Controller
             return route('profile-completion.edit');
         }
 
-        if ($user->isDean()) {
+        // Landing follows the PRIORITY role (users.role) — the hat the
+        // account wears first — not any extra role from the pivot.
+        if ($user->role === 'dean') {
             // A dean who also coordinates a program lands on their interns;
             // otherwise straight to the approvals desk.
             return App\Models\User::where('coordinator_id', $user->id)->exists()

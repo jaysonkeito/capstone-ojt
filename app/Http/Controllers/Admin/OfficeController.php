@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\KioskSetting;
+use App\Models\OjtSetting;
 use App\Models\Office;
+use App\Support\HoursCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +29,51 @@ class OfficeController extends Controller
     public function create()
     {
         return view('admin.offices.form', ['office' => new Office]);
+    }
+
+    /**
+     * One office's full record: placement details, contact, the working
+     * times its interns' hours are measured against, kiosk tab locks,
+     * and everyone placed here.
+     */
+    public function show(Office $office)
+    {
+        $office->loadCount(['interns', 'supervisors']);
+
+        $interns = $office->interns()
+            ->with(['coordinator:id,first_name,last_name', 'currentEnrollment'])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        $supervisors = $office->supervisors()
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        // Effective working times (office overrides where set) next to the
+        // campus defaults, so the page can mark which slots are overridden.
+        $campus = OjtSetting::current();
+        $hours = HoursCalculator::hoursFor($office);
+
+        $format = fn (?string $time) => $time
+            ? \Illuminate\Support\Carbon::parse($time)->format('g:i A')
+            : null;
+
+        $slots = [
+            ['label' => 'AM In', 'office' => $office->am_time_in, 'campus' => $campus->am_time_in, 'effective' => $format($hours['am_start'])],
+            ['label' => 'AM Out', 'office' => $office->am_time_out, 'campus' => $campus->am_time_out, 'effective' => $format($hours['am_end'])],
+            ['label' => 'PM In', 'office' => $office->pm_time_in, 'campus' => $campus->pm_time_in, 'effective' => $format($hours['pm_start'])],
+            ['label' => 'PM Out', 'office' => $office->pm_time_out, 'campus' => $campus->pm_time_out, 'effective' => $format($hours['pm_end'])],
+        ];
+
+        return view('admin.offices.show', [
+            'office' => $office,
+            'interns' => $interns,
+            'supervisors' => $supervisors,
+            'slots' => $slots,
+            'locks' => KioskSetting::locksFor($office->id),
+        ]);
     }
 
     public function store(Request $request)

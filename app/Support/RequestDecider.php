@@ -42,7 +42,10 @@ class RequestDecider
         ]);
 
         $recipients = $intern->office_id
-            ? User::where('role', 'supervisor')->where('office_id', $intern->office_id)->where('is_active', true)->get()
+            ? User::where('office_id', $intern->office_id)
+                ->where(fn ($q) => $q->where('role', 'supervisor')
+                    ->orWhereHas('roles', fn ($r) => $r->where('role', 'supervisor')))
+                ->where('is_active', true)->get()
             : collect();
 
         if ($intern->coordinator_id) {

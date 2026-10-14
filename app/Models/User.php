@@ -36,6 +36,13 @@ class User extends Authenticatable
      */
     public const SCAN_QR_PREFIX = 'OJTID:';
 
+    /**
+     * The staff roles an account can hold — the user_roles pivot backs
+     * extra roles beyond the primary one. Admins and interns are
+     * identities, not hats, and never appear in the pivot.
+     */
+    public const STAFF_ROLES = ['coordinator', 'supervisor', 'dean', 'chair'];
+
     protected $fillable = [
         'role',
         'college_code',
@@ -201,6 +208,15 @@ class User extends Authenticatable
         return $this->hasOne(StaffProfile::class);
     }
 
+    /**
+     * Every role the account holds beyond its primary one (users.role) —
+     * the user_roles pivot. Only staff accounts carry rows.
+     */
+    public function roles()
+    {
+        return $this->hasMany(UserRole::class);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Role helpers
@@ -217,19 +233,59 @@ class User extends Authenticatable
         return $this->role === 'intern';
     }
 
+    /**
+     * Whether the account holds ANY of the given roles — its primary role
+     * (users.role) or any extra one from the user_roles pivot. Every
+     * capability check funnels through this, so a coordinator-supervisor
+     * passes both roles' gates.
+     */
+    public function hasRole(string ...$roles): bool
+    {
+        if (in_array($this->role, $roles, true)) {
+            return true;
+        }
+
+        if (! in_array($this->role, self::STAFF_ROLES, true)) {
+            return false;
+        }
+
+        return $this->roles->contains(fn (UserRole $extra) => in_array($extra->role, $roles, true));
+    }
+
+    /**
+     * Every role the account holds, primary (the priority role) first —
+     * the order the sidebar merge and staff badges follow.
+     *
+     * @return list<string>
+     */
+    public function allRoles(): array
+    {
+        $roles = [$this->role];
+
+        if (in_array($this->role, self::STAFF_ROLES, true)) {
+            foreach ($this->roles as $extra) {
+                if (! in_array($extra->role, $roles, true)) {
+                    $roles[] = $extra->role;
+                }
+            }
+        }
+
+        return $roles;
+    }
+
     public function isCoordinator(): bool
     {
-        return $this->role === 'coordinator';
+        return $this->hasRole('coordinator');
     }
 
     public function isSupervisor(): bool
     {
-        return $this->role === 'supervisor';
+        return $this->hasRole('supervisor');
     }
 
     public function isDean(): bool
     {
-        return $this->role === 'dean';
+        return $this->hasRole('dean');
     }
 
     /**
@@ -239,7 +295,7 @@ class User extends Authenticatable
      */
     public function isChair(): bool
     {
-        return $this->role === 'chair';
+        return $this->hasRole('chair');
     }
 
     /**
@@ -297,7 +353,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if (! in_array($this->role, ['dean', 'coordinator'], true)) {
+        if (! $this->hasRole('dean', 'coordinator')) {
             return false;
         }
 
@@ -338,7 +394,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if (! in_array($this->role, ['supervisor', 'dean', 'coordinator', 'chair'], true)) {
+        if (! $this->hasRole('supervisor', 'dean', 'coordinator', 'chair')) {
             return false;
         }
 
@@ -670,8 +726,10 @@ class User extends Authenticatable
 
     /**
      * Staff-wide scoping: the interns this account may see and manage —
-     * every intern for admins, those assigned to a coordinator, or those
-     * placed at a supervisor's office. Non-staff roles match nothing.
+     * every intern for admins, otherwise the UNION of each held role's
+     * scope: a coordinator's assigned interns, a supervisor's office
+     * placements, a Program Chair's college. A coordinator who also
+     * supervises an office sees both sets. Non-staff roles match nothing.
      */
     public function scopeForStaff($query, self $staff)
     {
@@ -679,39 +737,57 @@ class User extends Authenticatable
             return $query;
         }
 
-        if ($staff->isCoordinator() || ($staff->isDean() && $staff->office_id)) {
-            // A dean supervising their office's interns coordinates them.
-            return $query->where('coordinator_id', $staff->id);
-        }
+        return $query->where(function ($outer) use ($staff) {
+            $matched = false;
 
-        if ($staff->isSupervisor() || $staff->isDean()) {
-            return $query->where('office_id', $staff->office_id);
-        }
+            if ($staff->hasRole('coordinator')) {
+                $outer->orWhere('coordinator_id', $staff->id);
+                $matched = true;
+            }
 
-        if ($staff->isChair()) {
-            // A Program Chair's interns: the college's (through the
-            // coordinators of that college), plus any office they
-            // supervise and any interns assigned to them directly —
-            // one person can hold the chair and the office at once.
-            $college = $staff->collegeCode();
+            if ($staff->hasRole('supervisor') && $staff->office_id !== null) {
+                $outer->orWhere('office_id', $staff->office_id);
+                $matched = true;
+            }
 
-            return $query->where(function ($q) use ($staff, $college) {
-                $q->where('coordinator_id', $staff->id);
-
+            if ($staff->hasRole('dean')) {
                 if ($staff->office_id !== null) {
-                    $q->orWhere('office_id', $staff->office_id);
+                    // A dean supervising their office's interns coordinates them.
+                    $outer->orWhere('coordinator_id', $staff->id);
+                } else {
+                    $outer->orWhere('office_id', $staff->office_id);
                 }
+                $matched = true;
+            }
 
-                if ($college !== null) {
-                    $q->orWhereHas('coordinator', function ($cq) use ($college) {
-                        $cq->where('college_code', $college)
-                            ->orWhereHas('staffProfile', fn ($sq) => $sq->where('college_code', $college));
-                    });
-                }
-            });
-        }
+            if ($staff->hasRole('chair')) {
+                // A Program Chair's interns: the college's (through the
+                // coordinators of that college), plus any office they
+                // supervise and any interns assigned to them directly —
+                // one person can hold the chair and the office at once.
+                $college = $staff->collegeCode();
 
-        return $query->whereRaw('0 = 1');
+                $outer->orWhere(function ($q) use ($staff, $college) {
+                    $q->where('coordinator_id', $staff->id);
+
+                    if ($staff->office_id !== null) {
+                        $q->orWhere('office_id', $staff->office_id);
+                    }
+
+                    if ($college !== null) {
+                        $q->orWhereHas('coordinator', function ($cq) use ($college) {
+                            $cq->where('college_code', $college)
+                                ->orWhereHas('staffProfile', fn ($sq) => $sq->where('college_code', $college));
+                        });
+                    }
+                });
+                $matched = true;
+            }
+
+            if (! $matched) {
+                $outer->whereRaw('0 = 1');
+            }
+        });
     }
 
     /**

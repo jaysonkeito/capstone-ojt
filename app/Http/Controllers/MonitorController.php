@@ -342,31 +342,34 @@ class MonitorController extends Controller
     }
 
     /**
-     * The interns this monitor role may see: a coordinator's assigned
-     * interns, a supervisor's office placements, a Program Chair's college
-     * — and a coordinator who also supervises an office
-     * (coordinator-supervisor) gets both sets.
+     * The interns this monitor-role account may see: the UNION of every
+     * held role's scope — a coordinator's assigned interns plus their
+     * office's when one is set, a supervisor's (or dean's) office
+     * placements, a Program Chair's college. A coordinator-supervisor
+     * sees both sets.
      */
     private function scopedInterns(User $user)
     {
-        // Coordinators monitor the interns assigned to them, plus their
-        // office's interns when they supervise one; supervisors and
-        // deans-with-office monitor their office's interns; Program Chairs
-        // monitor their college's interns through their coordinators.
         if ($user->isChair()) {
             return User::where('role', 'intern')->forStaff($user);
         }
 
-        return User::where('role', 'intern')->when(
-            $user->isCoordinator(),
-            fn ($q) => $q->where(function ($qq) use ($user) {
-                $qq->where('coordinator_id', $user->id);
+        return User::where('role', 'intern')->where(function ($q) use ($user) {
+            $matched = false;
 
-                if ($user->office_id !== null) {
-                    $qq->orWhere('office_id', $user->office_id);
-                }
-            }),
-            fn ($q) => $q->where('office_id', $user->office_id),
-        );
+            if ($user->hasRole('coordinator')) {
+                $q->orWhere('coordinator_id', $user->id);
+                $matched = true;
+            }
+
+            if (($user->hasRole('supervisor') || $user->hasRole('dean')) && $user->office_id !== null) {
+                $q->orWhere('office_id', $user->office_id);
+                $matched = true;
+            }
+
+            if (! $matched) {
+                $q->whereRaw('0 = 1');
+            }
+        });
     }
 }

@@ -143,18 +143,21 @@ class InternController extends Controller
         // Optional on the form — absent from API-style requests entirely.
         $initialPassword = ($validated['password'] ?? null) ?: null;
 
-        // Monitors create interns inside their own scope: a supervisor's
-        // hires go to their office, a coordinator's to their list.
+        // Monitors create interns inside their own scope: every held role
+        // contributes — a supervisor's hires go to their office, a
+        // coordinator's to their list; a coordinator-supervisor gets both.
         $staff = $request->user();
         $officeId = $validated['office_id'] ?? null;
         $coordinatorId = $validated['coordinator_id'] ?? null;
-        if ($staff->isSupervisor()) {
+        if ($staff->hasRole('supervisor')) {
             $officeId = $staff->office_id;
-        } elseif ($staff->isDean() && $staff->office_id) {
+        }
+        if ($staff->hasRole('dean') && $staff->office_id) {
             // A dean supervising their office's interns creates them there.
             $officeId = $staff->office_id;
             $coordinatorId = $staff->id;
-        } elseif ($staff->isCoordinator()) {
+        }
+        if ($staff->hasRole('coordinator')) {
             $coordinatorId = $staff->id;
         }
 

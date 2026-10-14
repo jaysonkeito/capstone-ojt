@@ -28,7 +28,7 @@
             @forelse($offices as $office)
                 <tr class="hover:bg-gray-50/60 transition-colors">
                     <td class="px-5 py-3">
-                        <p class="font-medium text-gray-900">{{ $office->name }}</p>
+                        <a href="{{ route('admin.offices.show', $office) }}" class="font-medium text-gray-900 hover:text-brand-700">{{ $office->name }}</a>
                         @if($office->address)
                             <p class="text-xs text-gray-400">{{ $office->address }}</p>
                         @endif

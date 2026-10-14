@@ -85,80 +85,101 @@
 
         // Every link carries a 'group' — the sidebar renders a section header
         // whenever the group changes, so related items read as one block.
-        $navLinks = match (true) {
-            $u->isAdmin() => [
-                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
-                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
-                ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff', 'group' => 'People'],
-                ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices', 'group' => 'People'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
-                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => 'Attendance'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
-                ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
-                ['route' => 'admin.requests.index', 'match' => 'admin.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingAdminRequests ?: null],
-                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
-                ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'icon' => 'file', 'label' => 'Activity Log', 'group' => 'System'],
-                ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
-                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
-            ],
-            // Supervisors run their office's program: the scoped dashboard,
-            // their interns, the logbook and the office scanner. Templates stay
-            // with the Coordinator and the System Admin.
-            $u->isSupervisor() => [
-                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
-                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
-                ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => 'Attendance'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
-                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
-                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
-                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
-            ],
-            // Coordinators run the school-side program: their interns, the
-            // logbook, staff accounts, offices, plus templates and settings.
-            $u->isCoordinator() => [
-                ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
-                ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
-                ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff', 'group' => 'People'],
-                ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices', 'group' => 'People'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
-                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
-                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
-                ['route' => 'class-board.index', 'match' => 'class-board.*', 'icon' => 'team', 'label' => 'Class', 'group' => 'Workflow'],
-                ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
-                ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
-            ],
-            // Deans: approvals desk, plus the coordinator's monitoring tools
-            // when they also coordinate a program's interns.
-            $u->isDean() => [
-                ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns', 'group' => 'People'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
-                ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
-                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
-                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
-            ],
-            // Program Chairs: read-only oversight of their college's interns
-            // (reached through their coordinators) and the request desk.
-            $u->isChair() => [
-                ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns', 'group' => 'People'],
-                ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
-                ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
-                ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
-                ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
-            ],
-            default => [
-                ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard', 'group' => 'My OJT'],
-                ['route' => 'intern.time-frame', 'match' => 'intern.time-frame', 'icon' => 'clock', 'label' => 'My Time Frame', 'group' => 'My OJT'],
-                ['route' => 'intern.documentation', 'match' => 'intern.documentation', 'icon' => 'image', 'label' => 'My Journal', 'group' => 'My OJT'],
-                ['route' => 'intern.requests.index', 'match' => 'intern.requests.*', 'icon' => 'file', 'label' => 'My Requests', 'group' => 'Requests', 'badge' => $pendingInternRequests ?: null],
-                ['route' => 'intern.coordinator-requests.index', 'match' => 'intern.coordinator-requests.*', 'icon' => 'file', 'label' => 'Coordinator Requests', 'group' => 'Requests'],
-                ['route' => 'class-board.index', 'match' => 'class-board.*', 'icon' => 'team', 'label' => 'My Class', 'group' => 'Class'],
-                ['route' => 'intern.personal-information.edit', 'match' => 'intern.personal-information.*', 'icon' => 'id-card', 'label' => 'Personal Info', 'group' => 'My Records'],
-                ['route' => 'intern.requirements.index', 'match' => 'intern.requirements.*', 'icon' => 'file', 'label' => 'Requirements', 'group' => 'My Records'],
-            ],
+        // Multi-role staff get the UNION of their roles' links (priority
+        // role first, deduped by route), so a coordinator-supervisor sees
+        // the coordinator menu plus the Scanner.
+        $navFor = function (string $role) use ($pendingApprovals, $pendingAdminRequests, $pendingMonitorRequests, $pendingInternRequests): array {
+            return match ($role) {
+                'admin' => [
+                    ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
+                    ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
+                    ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff', 'group' => 'People'],
+                    ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices', 'group' => 'People'],
+                    ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                    ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => 'Attendance'],
+                    ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                    ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
+                    ['route' => 'admin.requests.index', 'match' => 'admin.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingAdminRequests ?: null],
+                    ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
+                    ['route' => 'admin.audit-log.index', 'match' => 'admin.audit-log.*', 'icon' => 'file', 'label' => 'Activity Log', 'group' => 'System'],
+                    ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
+                    ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
+                ],
+                // Supervisors run their office's program: the scoped dashboard,
+                // their interns, the logbook and the office scanner. Templates stay
+                // with the Coordinator and the System Admin.
+                'supervisor' => [
+                    ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
+                    ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
+                    ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                    ['route' => 'admin.kiosk.index', 'match' => 'admin.kiosk.*', 'icon' => 'scan', 'label' => 'Scanner', 'group' => 'Attendance'],
+                    ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                    ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
+                    ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
+                    ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
+                ],
+                // Coordinators run the school-side program: their interns, the
+                // logbook, staff accounts, offices, plus templates and settings.
+                'coordinator' => [
+                    ['route' => 'admin.dashboard', 'match' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'group' => ''],
+                    ['route' => 'admin.interns.index', 'match' => 'admin.interns.*', 'icon' => 'users', 'label' => 'Interns', 'group' => 'People'],
+                    ['route' => 'admin.staff.index', 'match' => 'admin.staff.*', 'icon' => 'team', 'label' => 'Staff', 'group' => 'People'],
+                    ['route' => 'admin.offices.index', 'match' => 'admin.offices.*', 'icon' => 'building', 'label' => 'Offices', 'group' => 'People'],
+                    ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                    ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                    ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow', 'badge' => $pendingMonitorRequests ?: null],
+                    ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
+                    ['route' => 'class-board.index', 'match' => 'class-board.*', 'icon' => 'team', 'label' => 'Class', 'group' => 'Workflow'],
+                    ['route' => 'admin.document-templates.index', 'match' => 'admin.document-templates.*', 'icon' => 'file', 'label' => 'Templates', 'group' => 'System'],
+                    ['route' => 'admin.settings.edit', 'match' => 'admin.settings.*', 'icon' => 'settings', 'label' => 'Settings', 'group' => 'System'],
+                ],
+                // Deans: approvals desk, plus the coordinator's monitoring tools
+                // when they also coordinate a program's interns.
+                'dean' => [
+                    ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns', 'group' => 'People'],
+                    ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                    ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                    ['route' => 'admin.approvals.index', 'match' => 'admin.approvals.*', 'icon' => 'check', 'label' => 'Approvals', 'group' => 'Workflow', 'badge' => $pendingApprovals ?: null],
+                    ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
+                    ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
+                ],
+                // Program Chairs: read-only oversight of their college's interns
+                // (reached through their coordinators) and the request desk.
+                'chair' => [
+                    ['route' => 'monitor.dashboard', 'match' => 'monitor.dashboard', 'icon' => 'dashboard', 'label' => 'My Interns', 'group' => 'People'],
+                    ['route' => 'admin.logs.index', 'match' => 'admin.logs.*', 'icon' => 'clock', 'label' => 'Logbook', 'group' => 'Attendance'],
+                    ['route' => 'admin.kiosk-captures.index', 'match' => 'admin.kiosk-captures.*', 'icon' => 'image', 'label' => 'Scan Captures', 'group' => 'Attendance'],
+                    ['route' => 'monitor.requests.index', 'match' => 'monitor.requests.*', 'icon' => 'file', 'label' => 'Requests', 'group' => 'Workflow'],
+                    ['route' => 'admin.announcements.index', 'match' => 'admin.announcements.*', 'icon' => 'megaphone', 'label' => 'Announcements', 'group' => 'Workflow'],
+                ],
+                'intern' => [
+                    ['route' => 'intern.dashboard', 'match' => 'intern.dashboard', 'icon' => 'home', 'label' => 'My Dashboard', 'group' => 'My OJT'],
+                    ['route' => 'intern.time-frame', 'match' => 'intern.time-frame', 'icon' => 'clock', 'label' => 'My Time Frame', 'group' => 'My OJT'],
+                    ['route' => 'intern.documentation', 'match' => 'intern.documentation', 'icon' => 'image', 'label' => 'My Journal', 'group' => 'My OJT'],
+                    ['route' => 'intern.requests.index', 'match' => 'intern.requests.*', 'icon' => 'file', 'label' => 'My Requests', 'group' => 'Requests', 'badge' => $pendingInternRequests ?: null],
+                    ['route' => 'intern.coordinator-requests.index', 'match' => 'intern.coordinator-requests.*', 'icon' => 'file', 'label' => 'Coordinator Requests', 'group' => 'Requests'],
+                    ['route' => 'class-board.index', 'match' => 'class-board.*', 'icon' => 'team', 'label' => 'My Class', 'group' => 'Class'],
+                    ['route' => 'intern.personal-information.edit', 'match' => 'intern.personal-information.*', 'icon' => 'id-card', 'label' => 'Personal Info', 'group' => 'My Records'],
+                    ['route' => 'intern.requirements.index', 'match' => 'intern.requirements.*', 'icon' => 'file', 'label' => 'Requirements', 'group' => 'My Records'],
+                ],
+                default => [],
+            };
         };
+
+        // Merge every held role's links — primary role first, duplicates by
+        // route keep the primary's entry — then keep the sidebar's canonical
+        // section order (Dashboard, People, Attendance, Workflow, System;
+        // intern-only groups keep their own single-role order).
+        $navLinks = [];
+        foreach ($u->allRoles() as $navRole) {
+            foreach ($navFor($navRole) as $link) {
+                $navLinks[$link['route']] ??= $link;
+            }
+        }
+        $navLinks = array_values($navLinks);
+
+        $navGroupOrder = ['' => 0, 'People' => 1, 'Attendance' => 2, 'Workflow' => 3, 'System' => 4];
+        usort($navLinks, fn ($a, $b) => ($navGroupOrder[$a['group'] ?? ''] ?? 9) <=> ($navGroupOrder[$b['group'] ?? ''] ?? 9));
 
         // Everyone can manage their own profile (photo, info, password).
         $navLinks[] = ['route' => 'profile', 'match' => 'profile', 'icon' => 'user', 'label' => 'Profile', 'group' => 'Account'];

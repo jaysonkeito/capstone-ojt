@@ -1303,14 +1303,15 @@ test('the retired office scanner role is no longer provisionable', function () {
 
     $this->actingAs($admin)
         ->post(route('admin.staff.store'), [
-            'role' => 'office',
+            'roles' => ['office'],
+            'primary_role' => 'office',
             'office_id' => $office->id,
             'first_name' => 'Front',
             'last_name' => 'Desk',
             'email' => 'scanner.mis@norsubscojt.online',
             'password' => 'password',
         ])
-        ->assertSessionHasErrors('role');
+        ->assertSessionHasErrors('roles.0');
 
     expect(User::where('role', 'office')->count())->toBe(0);
 });

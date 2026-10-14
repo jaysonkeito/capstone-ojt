@@ -7,26 +7,40 @@ use App\Models\College;
 use App\Models\Office;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class StaffController extends Controller
 {
     /**
-     * OJT Coordinators, office Supervisors, and office Scanner accounts —
-     * provisioned here by the admin. Self-service staff sign-ups wait under
-     * Account Approvals first; only after they are approved do they become
-     * part of this managed list.
+     * The monitoring accounts — coordinators, supervisors, deans, and
+     * Program Chairs, including multi-role ones (matched by their primary
+     * role OR any extra one). Pending self-service sign-ups wait under
+     * Account Approvals first; only after they are approved do they join
+     * this managed list.
      */
     public function index(Request $request)
     {
-        $staff = User::whereIn('role', ['coordinator', 'supervisor', 'chair'])
+        $roleFilter = $request->get('role');
+
+        $staff = User::where(function ($q) {
+                // Every account that holds ANY staff role, primary or extra.
+                $q->whereIn('role', User::STAFF_ROLES)
+                    ->orWhereHas('roles', fn ($r) => $r->whereIn('role', User::STAFF_ROLES));
+            })
             // Pending self-service sign-ups live in Approvals, not here.
             ->where(function ($q) {
                 $q->where('is_active', true)->orWhereNotNull('approved_at');
             })
-            ->with('office')
+            ->with(['office', 'roles'])
             ->withCount('coordinatedInterns')
-            ->when($request->get('role'), fn ($q, $role) => $q->where('role', $role))
+            ->when($roleFilter, function ($q) use ($roleFilter) {
+                $q->where(function ($qq) use ($roleFilter) {
+                    $qq->where('role', $roleFilter)
+                        ->orWhereHas('roles', fn ($r) => $r->where('role', $roleFilter));
+                });
+            })
             ->orderBy('last_name')
             ->paginate(30)
             ->withQueryString();
@@ -49,69 +63,43 @@ class StaffController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'role' => ['required', Rule::in(['coordinator', 'supervisor', 'dean', 'chair'])],
-            'first_name' => ['required', 'string', 'max:255'],
-            'middle_name' => ['nullable', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'title' => ['nullable', 'string', 'max:50'],
-            'position' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
-            // A supervisor represents exactly one office — the desk station
-            // and the intern list resolve to it. A coordinator, dean, or
-            // Program Chair may also hold an office they supervise, or stay
-            // college-wide with none.
-            'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
-            // Coordinators, deans, and Program Chairs belong to a college; a
-            // supervisor's college is optional — external offices may host
-            // interns from any college, so their sign-ups fall to the System
-            // Admin.
-            'college_code' => [
-                'nullable', 'string', 'max:20', 'exists:colleges,code',
-                'required_if:role,coordinator',
-                'required_if:role,dean',
-                'required_if:role,chair',
-            ],
-            'is_active' => ['sometimes', 'boolean'],
-        ]);
+        $validated = $this->validatedStaffData($request);
 
-        $user = User::create([
-            'role' => $validated['role'],
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'title' => $validated['title'] ?? null,
-            'position' => $validated['position'] ?? null,
-            'email' => $validated['email'],
-            'password' => $validated['password'],
-            'password_changed_at' => now(),
-            'office_id' => in_array($validated['role'], ['coordinator', 'supervisor', 'dean', 'chair'], true) ? ($validated['office_id'] ?? null) : null,
-            'student_id' => null,
-            'target_hours' => 0,
-            // Admin-provisioned staff skip the self-service approval gate and
-            // the first-login profile completion wall — the admin already
-            // filled their record.
-            'is_active' => $request->boolean('is_active', true),
-            'approved_at' => now(),
-            'profile_completed_at' => now(),
-        ]);
+        $user = DB::transaction(function () use ($validated, $request) {
+            $user = User::create([
+                'role' => $validated['primary_role'],
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'title' => $validated['title'] ?? null,
+                'position' => $validated['position'] ?? null,
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+                'password_changed_at' => now(),
+                'office_id' => $validated['office_id'] ?? null,
+                'student_id' => null,
+                'target_hours' => 0,
+                // Admin-provisioned staff skip the self-service approval gate and
+                // the first-login profile completion wall — the admin already
+                // filled their record.
+                'is_active' => $request->boolean('is_active', true),
+                'approved_at' => now(),
+                'profile_completed_at' => now(),
+            ]);
 
-        // Save middle name + college to the staff profile
-        $user->staffProfile()->create([
-            'middle_name' => $validated['middle_name'] ?? null,
-            'college_code' => $validated['college_code'] ?? null,
-        ]);
+            $this->syncRoles($user, $validated['roles'], $validated['primary_role']);
 
-        $label = match ($validated['role']) {
-            'supervisor' => 'Supervisor',
-            'dean' => 'College Dean',
-            'chair' => 'Program Chair',
-            default => 'OJT Coordinator',
-        };
+            // Save middle name + college to the staff profile
+            $user->staffProfile()->create([
+                'middle_name' => $validated['middle_name'] ?? null,
+                'college_code' => $validated['college_code'] ?? null,
+            ]);
+
+            return $user;
+        });
 
         $displayName = trim("{$validated['first_name']} {$validated['last_name']}");
 
-        return redirect()->route('admin.staff.index')->with('status', "{$label} account created for {$displayName}.");
+        return redirect()->route('admin.staff.index')->with('status', "{$user->role_label} account created for {$displayName}.");
     }
 
     public function edit(User $staff)
@@ -129,41 +117,107 @@ class StaffController extends Controller
     {
         abort_unless($this->isManagedStaff($staff), 404);
 
+        $validated = $this->validatedStaffData($request, $staff->id);
+
+        DB::transaction(function () use ($validated, $request, $staff) {
+            $staff->update([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'title' => $validated['title'] ?? null,
+                'position' => $validated['position'] ?? null,
+                'email' => $validated['email'],
+                'office_id' => $validated['office_id'] ?? null,
+                'is_active' => $request->boolean('is_active', false),
+                'approved_at' => now(),
+            ]);
+
+            $this->syncRoles($staff, $validated['roles'], $validated['primary_role']);
+
+            // Update middle name + college in the staff profile
+            $profile = $staff->staffProfile ?? $staff->staffProfile()->create([]);
+            $profile->middle_name = $validated['middle_name'] ?? null;
+            $profile->college_code = $validated['college_code'] ?? null;
+            $profile->save();
+        });
+
+        return redirect()->route('admin.staff.index')->with('status', "{$staff->refresh()->role_label} {$staff->full_name} updated.");
+    }
+
+    /**
+     * Shared validation for create and update. Roles arrive as a checkbox
+     * set (roles[]) plus the priority role (primary_role) — the primary
+     * must be among the checked roles, and the office/college requirements
+     * follow the selected roles.
+     */
+    private function validatedStaffData(Request $request, ?int $uniqueIgnore = null): array
+    {
         $validated = $request->validate([
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => [Rule::in(User::STAFF_ROLES)],
+            'primary_role' => ['required', Rule::in(User::STAFF_ROLES)],
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'title' => ['nullable', 'string', 'max:50'],
             'position' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($staff->id)],
-            'office_id' => ['required_if:role,supervisor', 'nullable', 'exists:offices,id'],
-            // Role isn't editable here — the account's current role decides
-            // whether the college is required.
-            'college_code' => [
-                'nullable', 'string', 'max:20', 'exists:colleges,code',
-                $staff->isCoordinator() || $staff->isDean() || $staff->isChair() ? 'required' : 'nullable',
-            ],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($uniqueIgnore)],
+            'password' => $uniqueIgnore === null ? ['required', 'string', 'min:8'] : ['sometimes'],
+            // A supervisor represents exactly one office — the desk station
+            // and the intern list resolve to it. A coordinator, dean, or
+            // Program Chair may also hold an office they supervise, or stay
+            // college-wide with none.
+            'office_id' => ['nullable', 'exists:offices,id'],
+            // Coordinators, deans, and Program Chairs belong to a college; a
+            // supervisor's college is optional — external offices may host
+            // interns from any college, so their sign-ups fall to the System
+            // Admin.
+            'college_code' => ['nullable', 'string', 'max:20', 'exists:colleges,code'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $staff->update([
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'title' => $validated['title'] ?? null,
-            'position' => $validated['position'] ?? null,
-            'email' => $validated['email'],
-            'office_id' => in_array($staff->role, ['coordinator', 'supervisor', 'dean', 'chair'], true) ? ($validated['office_id'] ?? null) : null,
-            'is_active' => $request->boolean('is_active', false),
-            'approved_at' => now(),
-        ]);
+        $roles = array_values($validated['roles']);
 
-        // Update middle name + college in the staff profile
-        $profile = $staff->staffProfile ?? $staff->staffProfile()->create([]);
-        $profile->middle_name = $validated['middle_name'] ?? null;
-        $profile->college_code = $validated['college_code'];
-        $profile->save();
+        if (! in_array($validated['primary_role'], $roles, true)) {
+            throw ValidationException::withMessages([
+                'primary_role' => 'The priority role must be one of the selected roles.',
+            ]);
+        }
 
-        return redirect()->route('admin.staff.index')->with('status', "{$staff->role_label} {$staff->full_name} updated.");
+        // required_if across an array field needs the manual check — a
+        // supervisor always needs an office; college roles always need a
+        // college.
+        if (in_array('supervisor', $roles, true) && empty($validated['office_id'])) {
+            throw ValidationException::withMessages([
+                'office_id' => 'An office is required for supervisors.',
+            ]);
+        }
+
+        if (array_intersect(['coordinator', 'dean', 'chair'], $roles) && empty($validated['college_code'])) {
+            throw ValidationException::withMessages([
+                'college_code' => 'A college is required for coordinators, deans, and Program Chairs.',
+            ]);
+        }
+
+        $validated['roles'] = $roles;
+
+        return $validated;
+    }
+
+    /**
+     * Write the full role set: users.role carries the priority role, the
+     * user_roles pivot mirrors every held role (primary included) so the
+     * account's capabilities are one query away.
+     */
+    private function syncRoles(User $staff, array $roles, string $primary): void
+    {
+        $staff->forceFill(['role' => $primary])->save();
+
+        $staff->roles()->delete();
+        $staff->roles()->createMany(
+            array_map(fn (string $role) => ['role' => $role], $roles)
+        );
+
+        $staff->refresh();
     }
 
     /**
@@ -183,7 +237,10 @@ class StaffController extends Controller
 
     public function restore($staffId)
     {
-        $staff = User::onlyTrashed()->whereIn('role', ['coordinator', 'supervisor', 'chair'])->findOrFail($staffId);
+        $staff = User::onlyTrashed()->where(function ($q) {
+            $q->whereIn('role', User::STAFF_ROLES)
+                ->orWhereHas('roles', fn ($r) => $r->whereIn('role', User::STAFF_ROLES));
+        })->findOrFail($staffId);
 
         $staff->restore();
         $staff->update(['is_active' => true]);
@@ -200,7 +257,10 @@ class StaffController extends Controller
      */
     public function forceDelete($staffId)
     {
-        $staff = User::onlyTrashed()->whereIn('role', ['coordinator', 'supervisor', 'chair'])->findOrFail($staffId);
+        $staff = User::onlyTrashed()->where(function ($q) {
+            $q->whereIn('role', User::STAFF_ROLES)
+                ->orWhereHas('roles', fn ($r) => $r->whereIn('role', User::STAFF_ROLES));
+        })->findOrFail($staffId);
 
         $label = $staff->role_label;
         $name = $staff->full_name;
@@ -211,13 +271,14 @@ class StaffController extends Controller
     }
 
     /**
-     * A staff account the admin manages here: a coordinator/supervisor/chair
-     * scanner who is either active or admin-provisioned. Pending self-service
-     * sign-ups are handled exclusively from the Approvals section.
+     * A staff account the admin manages here: any account holding a staff
+     * role (primary or extra) that is either active or admin-provisioned.
+     * Pending self-service sign-ups are handled exclusively from the
+     * Approvals section.
      */
     protected function isManagedStaff(User $staff): bool
     {
-        return in_array($staff->role, ['coordinator', 'supervisor', 'chair'])
+        return (in_array($staff->role, User::STAFF_ROLES, true) || $staff->roles->isNotEmpty())
             && ($staff->is_active || $staff->approved_at !== null);
     }
 }

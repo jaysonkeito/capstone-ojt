@@ -72,7 +72,8 @@ test('admin manages offices and staff accounts', function () {
 
     // Create a coordinator
     $this->actingAs($admin)->post(route('admin.staff.store'), [
-        'role' => 'coordinator',
+        'roles' => ['coordinator'],
+        'primary_role' => 'coordinator',
         'first_name' => 'Juan',
         'last_name' => 'Dela Cruz',
         'email' => 'juan@norsubscojt.online',
@@ -85,7 +86,8 @@ test('admin manages offices and staff accounts', function () {
     $office = Office::where('name', 'MIS Office')->first();
 
     $this->actingAs($admin)->post(route('admin.staff.store'), [
-        'role' => 'supervisor',
+        'roles' => ['supervisor'],
+        'primary_role' => 'supervisor',
         'first_name' => 'Maria',
         'last_name' => 'Santos',
         'email' => 'maria@norsubscojt.online',
@@ -104,7 +106,8 @@ test('supervisor requires an office at creation', function () {
     $admin = makeStaff(['role' => 'admin']);
 
     $this->actingAs($admin)->post(route('admin.staff.store'), [
-        'role' => 'supervisor',
+        'roles' => ['supervisor'],
+        'primary_role' => 'supervisor',
         'first_name' => 'No',
         'last_name' => 'Office',
         'email' => 'nooffice@norsubscojt.online',
@@ -118,7 +121,8 @@ test('admin sets and updates a staff position', function () {
     $admin = makeStaff(['role' => 'admin']);
 
     $this->actingAs($admin)->post(route('admin.staff.store'), [
-        'role' => 'coordinator',
+        'roles' => ['coordinator'],
+        'primary_role' => 'coordinator',
         'first_name' => 'Franco',
         'last_name' => 'Abequibel',
         'email' => 'franco@norsubscojt.online',
@@ -133,6 +137,8 @@ test('admin sets and updates a staff position', function () {
     $this->actingAs($admin)->get(route('admin.staff.index'))->assertSee('MIS, Campus Director');
 
     $this->actingAs($admin)->put(route('admin.staff.update', $staff), [
+        'roles' => ['coordinator'],
+        'primary_role' => 'coordinator',
         'first_name' => 'Franco',
         'last_name' => 'Abequibel',
         'email' => 'franco@norsubscojt.online',
@@ -149,6 +155,8 @@ test('admin can clear a staff position', function () {
         'position' => 'MIS, Campus Director']);
 
     $this->actingAs($admin)->put(route('admin.staff.update', $staff), [
+        'roles' => ['coordinator'],
+        'primary_role' => 'coordinator',
         'first_name' => $staff->first_name,
         'last_name' => $staff->last_name,
         'email' => $staff->email,
