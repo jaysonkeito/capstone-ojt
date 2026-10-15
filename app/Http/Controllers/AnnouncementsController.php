@@ -40,6 +40,11 @@ class AnnouncementsController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:150'],
             'body' => ['required', 'string', 'max:2000'],
+            // The display window: the banner shows from starts_at through
+            // ends_at (both dates inclusive), then disappears on its own.
+            // Leave them blank and the post shows immediately, open-ended.
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
         ]);
 
         $scope = self::audienceFor($user);
@@ -54,6 +59,8 @@ class AnnouncementsController extends Controller
             'coordinator_id' => $scope['coordinator_id'] ?? null,
             'title' => $validated['title'],
             'body' => $validated['body'],
+            'starts_at' => $validated['starts_at'] ?? today(),
+            'ends_at' => $validated['ends_at'] ?? null,
         ]);
 
         $interns = $announcement->interns()->get();

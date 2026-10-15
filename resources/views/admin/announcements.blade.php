@@ -26,6 +26,22 @@
                     class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm placeholder:text-gray-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">{{ old('body') }}</textarea>
                 @error('body') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
             </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="starts_at" class="block text-sm font-medium text-gray-700 mb-1.5">Show from <span class="text-gray-400 font-normal text-xs">(optional)</span></label>
+                    <input type="date" name="starts_at" id="starts_at" value="{{ old('starts_at') }}"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm text-gray-700 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <p class="text-[11px] text-gray-400 mt-1">Defaults to today — the banner appears on this date.</p>
+                    @error('starts_at') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="ends_at" class="block text-sm font-medium text-gray-700 mb-1.5">Show until <span class="text-gray-400 font-normal text-xs">(optional)</span></label>
+                    <input type="date" name="ends_at" id="ends_at" value="{{ old('ends_at') }}"
+                        class="w-full px-3 py-2 rounded-lg border-gray-200 text-sm text-gray-700 focus:border-brand-400 focus:ring-2 focus:ring-brand-500/15 transition">
+                    <p class="text-[11px] text-gray-400 mt-1">The banner disappears after this date — no need to delete the post.</p>
+                    @error('ends_at') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
             <div class="flex justify-end">
                 <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Publish</button>
             </div>
@@ -38,12 +54,32 @@
             <div class="px-5 py-4">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <p class="text-sm font-medium text-gray-900">{{ $announcement->title }}</p>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p class="text-sm font-medium text-gray-900">{{ $announcement->title }}</p>
+                            @php $scheduleState = $announcement->schedule_state; @endphp
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium
+                                {{ match($scheduleState) {
+                                    'showing' => 'bg-emerald-50 text-emerald-700',
+                                    'scheduled' => 'bg-amber-50 text-amber-700',
+                                    'ended' => 'bg-gray-100 text-gray-500',
+                                    default => 'bg-gray-100 text-gray-400',
+                                } }}">
+                                {{ match($scheduleState) {
+                                    'showing' => 'Showing',
+                                    'scheduled' => 'Scheduled',
+                                    'ended' => 'Ended',
+                                    default => 'Inactive',
+                                } }}
+                            </span>
+                        </div>
                         <p class="text-sm text-gray-600 mt-1 leading-relaxed whitespace-pre-line">{{ $announcement->body }}</p>
                         <p class="text-[11px] text-gray-400 mt-2">
                             {{ $announcement->created_at->format('M d, Y g:i A') }}
                             · {{ \App\Models\Announcement::AUDIENCE_LABELS[$announcement->audience] }}
                             @if(! $announcement->author->is(auth()->user())) · by {{ $announcement->author->full_name }} @endif
+                            @if($announcement->ends_at || $announcement->starts_at?->isFuture())
+                                · shows {{ $announcement->starts_at?->format('M d') ?? 'now' }} – {{ $announcement->ends_at?->format('M d, Y') ?? 'until removed' }}
+                            @endif
                         </p>
                     </div>
                     <form method="POST" action="{{ route('admin.announcements.destroy', $announcement) }}"

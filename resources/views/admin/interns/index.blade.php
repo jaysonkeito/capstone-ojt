@@ -8,8 +8,14 @@
         <h1 class="text-xl font-semibold tracking-tight text-gray-900">Interns</h1>
         <p class="text-sm text-gray-500 mt-0.5" id="internsCount">{{ $interns->total() }} intern{{ $interns->total() === 1 ? '' : 's' }}</p>
     </div>
-    <button type="button" onclick="document.getElementById('addInternModal').classList.remove('hidden')"
-        class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition">+ Add Intern</button>
+    <div class="flex gap-2">
+        @if(auth()->user()->isAdmin())
+            <a href="{{ route('admin.interns.qr-codes') }}"
+                class="inline-flex items-center gap-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium px-3.5 py-2 rounded-lg transition">Download All QR Codes</a>
+        @endif
+        <button type="button" onclick="document.getElementById('addInternModal').classList.remove('hidden')"
+            class="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg transition">+ Add Intern</button>
+    </div>
 </div>
 
 {{-- Filters --}}

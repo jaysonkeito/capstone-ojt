@@ -51,10 +51,11 @@ class DashboardController extends Controller
 
         // Announcements aimed at this intern: campus-wide posts, their
         // coordinator's class posts, their office's posts, and their
-        // coordinator college's posts. The three newest active ones banner
-        // the dashboard.
+        // coordinator college's posts. Only ones inside their display
+        // window show — an ended post leaves the banner by itself. The
+        // three newest banner the dashboard.
         $announcements = \App\Models\Announcement::query()
-            ->where('is_active', true)
+            ->currentlyShowing()
             ->where(function ($q) use ($intern) {
                 $q->where('audience', 'all')
                     ->orWhere(fn ($qq) => $qq->where('audience', 'class')->where('coordinator_id', $intern->coordinator_id))

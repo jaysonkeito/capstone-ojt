@@ -105,6 +105,35 @@ class InternController extends Controller
     }
 
     /**
+     * Every intern's personal QR in one printable PDF — each code on the
+     * same ID badge the profile page shows (name, student ID, the code),
+     * grouped by office with a shared "No Office" section for the
+     * unplaced. Reading each code lazily generates the intern's scan
+     * token, so the codes stay valid at the kiosk even for interns who
+     * never opened their own QR page.
+     */
+    public function downloadQrCodes()
+    {
+        $interns = User::where('role', 'intern')
+            ->with('office:id,name')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        abort_if($interns->isEmpty(), 404, 'No interns to download QR codes for.');
+
+        // Offices alphabetically; the unplaced share a section at the end.
+        $grouped = $interns->groupBy(fn ($intern) => $intern->office?->name);
+        $groups = $grouped->filter(fn ($_, $office) => $office !== null)->sortKeys()
+            ->put('No Office', $grouped->get(null, collect()));
+
+        $pdf = Pdf::loadView('admin.interns.qr-badges', ['groups' => $groups])
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download('Intern QR Codes '.today()->format('Y-m-d').'.pdf');
+    }
+
+    /**
      * Show the form to create a new intern account.
      */
     public function create()

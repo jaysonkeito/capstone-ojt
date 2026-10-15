@@ -144,6 +144,14 @@ Route::middleware(['auth', 'role:intern,coordinator,supervisor'])->group(functio
         Route::get('/interns', [InternController::class, 'index'])->name('interns.index');
         Route::get('/interns/create', [InternController::class, 'create'])->name('interns.create');
         Route::post('/interns', [InternController::class, 'store'])->name('interns.store');
+
+        // Bulk QR download — every intern's personal QR as a PNG, foldered
+        // by office (a shared "No Office" folder for the unplaced). System
+        // Admin only: it's a roster-wide export of badge-ready codes.
+        Route::get('/interns/qr-codes', [InternController::class, 'downloadQrCodes'])
+            ->name('interns.qr-codes')
+            ->middleware('role:admin');
+
         Route::get('/interns/{intern}', [InternController::class, 'show'])->name('interns.show');
         Route::get('/interns/{intern}/edit', [InternController::class, 'edit'])->name('interns.edit');
         Route::put('/interns/{intern}', [InternController::class, 'update'])->name('interns.update');
