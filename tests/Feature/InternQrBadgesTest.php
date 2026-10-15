@@ -5,7 +5,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('downloads every intern\'s badge QR as one PDF grouped by office', function () {
+it('downloads every intern\'s badge QR as a ZIP of PNGs grouped by office', function () {
     $admin = makeStaff(['role' => 'admin']);
     $office = Office::create(['name' => 'MIS Office', 'type' => 'internal']);
     $placed = makeIntern(['student_id' => 'T-9301', 'office_id' => $office->id, 'last_name' => 'Placed']);
@@ -15,10 +15,27 @@ it('downloads every intern\'s badge QR as one PDF grouped by office', function (
 
     $response->assertOk();
 
-    $pdf = $response->getContent();
+    // The download is a BinaryFileResponse — the bytes live in the
+    // response's file, not in getContent().
+    $zip = new ZipArchive;
+    $zip->open($response->getFile()->getPathname());
 
-    expect(substr($pdf, 0, 4))->toBe('%PDF')
-        ->and($response->headers->get('content-disposition'))->toContain('Intern QR Codes');
+    $entries = [];
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $entries[] = $zip->getNameIndex($i);
+    }
+
+    // Foldered by office, with the shared folder for the unplaced.
+    expect($entries)->toContain('MIS Office/Placed Test (T-9301).png')
+        ->and($entries)->toContain('No Office/Floating Test (T-9302).png');
+
+    // Every file is a real PNG image.
+    foreach ($entries as $entry) {
+        expect(substr((string) $zip->getFromName($entry), 0, 4))->toBe("\x89PNG");
+    }
+
+    $zip->close();
+    @unlink($response->getFile()->getPathname());
 
     // Reading the codes provisioned both interns' scan tokens.
     expect($placed->fresh()->scan_token)->not->toBeNull()

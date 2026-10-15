@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\DailyReportService;
 use App\Services\TimesheetReportService;
 use App\Support\OjtEnrollmentService;
+use App\Support\QrBadgeRenderer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -105,12 +106,12 @@ class InternController extends Controller
     }
 
     /**
-     * Every intern's personal QR in one printable PDF — each code on the
-     * same ID badge the profile page shows (name, student ID, the code),
-     * grouped by office with a shared "No Office" section for the
-     * unplaced. Reading each code lazily generates the intern's scan
-     * token, so the codes stay valid at the kiosk even for interns who
-     * never opened their own QR page.
+     * Every intern's personal QR in one download — each code as its own
+     * PNG badge (the same ID card the profile page shows: header,
+     * initials, name, student ID, the code), foldered by office with a
+     * shared "No Office" folder for the unplaced. Reading each code
+     * lazily generates the intern's scan token, so the codes stay valid
+     * at the kiosk even for interns who never opened their own QR page.
      */
     public function downloadQrCodes()
     {
@@ -122,15 +123,30 @@ class InternController extends Controller
 
         abort_if($interns->isEmpty(), 404, 'No interns to download QR codes for.');
 
-        // Offices alphabetically; the unplaced share a section at the end.
-        $grouped = $interns->groupBy(fn ($intern) => $intern->office?->name);
-        $groups = $grouped->filter(fn ($_, $office) => $office !== null)->sortKeys()
-            ->put('No Office', $grouped->get(null, collect()));
+        $zip = new \ZipArchive;
+        $temp = tempnam(sys_get_temp_dir(), 'ojt-qr-');
+        $zip->open($temp, \ZipArchive::OVERWRITE);
 
-        $pdf = Pdf::loadView('admin.interns.qr-badges', ['groups' => $groups])
-            ->setPaper('a4', 'portrait');
+        $used = [];
 
-        return $pdf->download('Intern QR Codes '.today()->format('Y-m-d').'.pdf');
+        foreach ($interns as $intern) {
+            $folder = preg_replace('/[^\w\s.-]/u', '', $intern->office?->name ?? 'No Office');
+            // The student ID keeps same-named interns' files apart.
+            $name = preg_replace('/[^\w\s.-]/u', '', $intern->full_name)
+                .' ('.($intern->student_id ?: 'id-'.$intern->id).').png';
+
+            if (isset($used["{$folder}/{$name}"])) {
+                $name = preg_replace('/\.png$/', '', $name).'-'.$intern->id.'.png';
+            }
+            $used["{$folder}/{$name}"] = true;
+
+            $zip->addFromString($folder.'/'.$name, QrBadgeRenderer::render($intern));
+        }
+
+        $zip->close();
+
+        return response()->download($temp, 'Intern QR Codes '.today()->format('Y-m-d').'.zip')
+            ->deleteFileAfterSend(true);
     }
 
     /**
