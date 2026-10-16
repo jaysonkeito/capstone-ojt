@@ -137,6 +137,19 @@ class HoursCalculator
     }
 
     /**
+     * The latest arrival that still counts as on-time for an intern: their
+     * office's AM-in (campus default when unplaced) plus the campus grace
+     * period. Anything after it is Late — the dashboards' On-Duty rows and
+     * the morning late counts all measure against this.
+     */
+    public static function arrivalBoundary(?Office $office, OjtSetting $settings): string
+    {
+        return Carbon::parse(self::hoursFor($office)['am_start'])
+            ->addMinutes($settings->grace_period_minutes)
+            ->format('H:i:s');
+    }
+
+    /**
      * @return array{am_start: string, am_end: string, pm_start: string, pm_end: string}
      */
     private static function standardHours(): array

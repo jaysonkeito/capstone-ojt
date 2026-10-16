@@ -69,8 +69,8 @@ test('dashboard shows the live today board', function () {
         ->assertOk()
         ->assertSee('On duty now')
         ->assertSee($intern->full_name)
-        ->assertSee('Top 3 highest hours')
-        ->assertSee('Top 3 least hours');
+        ->assertSee('Top 5 highest hours')
+        ->assertSee('Top 5 least hours');
 });
 
 test('the intern timesheet is unavailable until an admin uploads a template', function () {

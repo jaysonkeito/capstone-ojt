@@ -64,29 +64,52 @@ class MonitorController extends Controller
         ];
 
         // --- Today board: live duty state ---
-        $todayLogQuery = OjtLog::with('user')->whereDate('date', today());
+        $todayLogs = OjtLog::with(['user.office'])->whereDate('date', today())->get();
 
-        // On-duty: anyone in today's logs with AM clock-in but no PM clock-out yet
-        $onDuty = $todayLogQuery->clone()->get()
+        // On-duty: anyone in today's logs with AM clock-in but no PM
+        // clock-out yet — INCLUDING interns who already hit their hours
+        // (they still punch; the board shows everyone on the clock).
+        // Each arrival is marked Late / On-time against the intern's own
+        // office window.
+        $onDuty = $todayLogs
             ->filter(fn ($l) => $l->am_time_in && ! $l->pm_time_out)
             ->sortBy('am_time_in')
+            ->values()
+            ->each(fn ($l) => $l->arrival_status = $l->am_time_in > \App\Support\HoursCalculator::arrivalBoundary($l->user->office, \App\Models\OjtSetting::current()) ? 'late' : 'on-time');
+
+        // The boards between them, computed over the FULL scope (the
+        // table below paginates; the boards must not): top/bottom 5
+        // among ongoing interns with hours, 75%+ near completion, and
+        // everyone who has hit their target hours.
+        $scopedAll = $this->scopedInterns($user)
+            ->with(['office:id,name,type', 'coordinator:id,first_name,last_name', 'currentEnrollment'])
+            ->get();
+
+        $withHours = $scopedAll->filter(fn ($i) => $i->accumulated_hours > 0 && ! $i->is_complete);
+        $topHighest = $withHours->sortByDesc('accumulated_hours')->take(5)->values();
+        $topLeast = $withHours->sortBy('accumulated_hours')->take(5)->values();
+
+        $nearCompletion = $scopedAll
+            ->filter(fn ($i) => ! $i->is_complete && $i->completion_percentage >= 75)
+            ->sortByDesc('completion_percentage')
+            ->take(5)
             ->values();
 
-        // Top/bottom 3 by hours rendered — only interns who have
-        // actually logged at least 1 hour so the lists are meaningful.
-        $withHours = $collection->filter(fn ($i) => $i->accumulated_hours > 0);
-        $top3Highest = $withHours->sortByDesc('accumulated_hours')->take(3)->values();
-        $top3Least = $withHours->sortBy('accumulated_hours')->take(3)->values();
-
-        // The Completed board: everyone in scope who has hit their target
-        // hours, heaviest finishers first. Computed over the full scope
-        // (the table above paginates, this board must not).
-        $completedList = $this->scopedInterns($user)
-            ->with('office:id,name,type')
-            ->get()
+        $completedList = $scopedAll
             ->filter(fn ($intern) => $intern->is_complete)
             ->sortByDesc('accumulated_hours')
             ->values();
+
+        // Absent: ongoing interns in scope with no scan at all today.
+        $settings = \App\Models\OjtSetting::current();
+        $workingDay = $settings->isWorkingDay(today());
+        $scannedToday = $todayLogs->pluck('user_id')->flip();
+        $absent = $workingDay
+            ? $scopedAll
+                ->filter(fn ($i) => $i->is_active && ! $i->is_complete && ! $scannedToday->has($i->id))
+                ->sortBy(fn ($i) => [$i->last_name, $i->first_name])
+                ->values()
+            : collect();
 
         return view('monitor.dashboard', [
             'role' => $user->role,
@@ -96,8 +119,11 @@ class MonitorController extends Controller
             'completedList' => $completedList,
             'dir' => $dir,
             'onDuty' => $onDuty,
-            'top3Highest' => $top3Highest,
-            'top3Least' => $top3Least,
+            'topHighest' => $topHighest,
+            'topLeast' => $topLeast,
+            'nearCompletion' => $nearCompletion,
+            'absent' => $absent,
+            'workingDay' => $workingDay,
         ]);
     }
 

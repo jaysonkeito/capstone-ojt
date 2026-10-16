@@ -48,37 +48,52 @@ class DashboardController extends Controller
 
         // --- Today board: live duty state --------------------------------
         $settings = OjtSetting::current();
-        $todayLogs = OjtLog::with('user')
+        $todayLogs = OjtLog::with(['user.office'])
             ->whereDate('date', today())
             ->whereIn('user_id', User::where('role', 'intern')->forStaff(auth()->user())->select('id'))
             ->get();
 
-        $graceEnd = Carbon::parse($settings->am_time_in)
-            ->addMinutes($settings->grace_period_minutes)
-            ->format('H:i:s');
-
-        // Started the day but hasn't clocked out for good yet.
+        // Started the day but hasn't clocked out for good yet — INCLUDING
+        // interns who already hit their hours (they still punch; the board
+        // shows everyone on the clock). Each arrival is marked Late /
+        // On-time against the intern's own office window (campus when
+        // unplaced).
         $onDuty = $todayLogs
             ->filter(fn ($l) => $l->am_time_in && ! $l->pm_time_out)
             ->sortBy('am_time_in')
-            ->values();
+            ->values()
+            ->each(fn ($l) => $l->arrival_status = $l->am_time_in > \App\Support\HoursCalculator::arrivalBoundary($l->user->office, $settings) ? 'late' : 'on-time');
 
         $doneToday = $todayLogs->filter(fn ($l) => $l->pm_time_out)->count();
 
         $lateToday = $todayLogs
-            ->filter(fn ($l) => $l->am_time_in && $l->am_time_in > $graceEnd)
+            ->filter(fn ($l) => $l->am_time_in && $l->am_time_in > \App\Support\HoursCalculator::arrivalBoundary($l->user->office, $settings))
             ->values();
 
-        // Active interns with no entry at all today (working days only).
-        $noScanYet = $settings->isWorkingDay(today())
-            ? max($stats['active_interns'] - $todayLogs->count(), 0)
-            : null;
+        $workingDay = $settings->isWorkingDay(today());
 
-        // Top/bottom 3 by hours rendered — only interns who have
+        // Ongoing interns with no entry at all today — the Absent board
+        // (completed interns are done and no longer expected to scan).
+        $scannedToday = $todayLogs->pluck('user_id')->flip();
+        $absent = $settings->isWorkingDay(today())
+            ? $activeInterns
+                ->filter(fn ($i) => ! $i->is_complete && ! $scannedToday->has($i->id))
+                ->sortBy(fn ($i) => [$i->last_name, $i->first_name])
+                ->values()
+            : collect();
+
+        // Top/bottom 5 by hours rendered — only ongoing interns who have
         // actually logged at least 1 hour so the lists are meaningful.
-        $withHours = $activeInterns->filter(fn ($i) => $i->accumulated_hours > 0);
-        $top3Highest = $withHours->sortByDesc('accumulated_hours')->take(3)->values();
-        $top3Least = $withHours->sortBy('accumulated_hours')->take(3)->values();
+        $withHours = $activeInterns->filter(fn ($i) => $i->accumulated_hours > 0 && ! $i->is_complete);
+        $topHighest = $withHours->sortByDesc('accumulated_hours')->take(5)->values();
+        $topLeast = $withHours->sortBy('accumulated_hours')->take(5)->values();
+
+        // The Near-completion board: 75%+ and not finished yet.
+        $nearCompletion = $interns
+            ->filter(fn ($i) => ! $i->is_complete && $i->completion_percentage >= 75)
+            ->sortByDesc('completion_percentage')
+            ->take(5)
+            ->values();
 
         return view('admin.dashboard', compact(
             'stats',
@@ -87,9 +102,11 @@ class DashboardController extends Controller
             'onDuty',
             'doneToday',
             'lateToday',
-            'noScanYet',
-            'top3Highest',
-            'top3Least',
+            'absent',
+            'workingDay',
+            'topHighest',
+            'topLeast',
+            'nearCompletion',
         ));
     }
 }

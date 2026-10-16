@@ -60,106 +60,25 @@
     </div>
 </div>
 
-{{-- Today board — live duty state + rankings --}}
+{{-- Today board — live duty state + rankings, same five boards as the
+     staff dashboard (On Duty / Top 5 Highest / Top 5 Least / Near
+     Completion / Completed). --}}
 <div class="mb-8">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-sm font-semibold text-gray-900">Today</h2>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {{-- On duty now --}}
-        <div class="bg-white border border-gray-200 rounded-xl">
-            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="text-xs font-medium uppercase tracking-widest text-gray-400">On duty now</h3>
-                <span class="text-xs text-gray-400 tabular-nums">{{ $onDuty->count() }}</span>
-            </div>
-            <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-                @forelse($onDuty as $log)
-                    <div class="px-5 py-2.5 flex items-center justify-between text-sm">
-                        <a href="{{ route('monitor.intern', $log->user) }}" class="text-gray-900 hover:text-brand-700">{{ $log->user->full_name }}</a>
-                        <span class="text-xs text-gray-400 tabular-nums">in {{ \Illuminate\Support\Carbon::parse($log->am_time_in)->format('g:i A') }}</span>
-                    </div>
-                @empty
-                    <p class="px-5 py-6 text-center text-sm text-gray-400">Nobody is on duty right now.</p>
-                @endforelse
-            </div>
-        </div>
-
-        {{-- Top 3 highest hours --}}
-        <div class="bg-white border border-gray-200 rounded-xl">
-            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="text-xs font-medium uppercase tracking-widest text-gray-400">Top 3 highest hours</h3>
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            </div>
-            <div class="divide-y divide-gray-100">
-                @forelse($top3Highest as $intern)
-                    <div class="px-5 py-2.5 flex items-center justify-between text-sm">
-                        <div class="flex items-center gap-2.5">
-                            <span class="text-xs font-semibold text-emerald-600 tabular-nums w-4">#{{ $loop->iteration }}</span>
-                            <a href="{{ route('monitor.intern', $intern) }}" class="text-gray-900 hover:text-brand-700">{{ $intern->full_name }}</a>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-medium text-emerald-600 tabular-nums">{{ number_format($intern->accumulated_hours, 1) }}h</span>
-                            <span class="text-[10px] text-gray-400 tabular-nums">{{ $intern->completion_percentage }}%</span>
-                        </div>
-                    </div>
-                @empty
-                    <p class="px-5 py-6 text-center text-sm text-gray-400">No active interns yet.</p>
-                @endforelse
-            </div>
-        </div>
-
-        {{-- Top 3 least hours --}}
-        <div class="bg-white border border-gray-200 rounded-xl">
-            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="text-xs font-medium uppercase tracking-widest text-gray-400">Top 3 least hours</h3>
-                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-            </div>
-            <div class="divide-y divide-gray-100">
-                @forelse($top3Least as $intern)
-                    <div class="px-5 py-2.5 flex items-center justify-between text-sm">
-                        <div class="flex items-center gap-2.5">
-                            <span class="text-xs font-semibold text-amber-600 tabular-nums w-4">#{{ $loop->iteration }}</span>
-                            <a href="{{ route('monitor.intern', $intern) }}" class="text-gray-900 hover:text-brand-700">{{ $intern->full_name }}</a>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-medium text-amber-600 tabular-nums">{{ number_format($intern->accumulated_hours, 1) }}h</span>
-                            <span class="text-[10px] text-gray-400 tabular-nums">{{ $intern->completion_percentage }}%</span>
-                        </div>
-                    </div>
-                @empty
-                    <p class="px-5 py-6 text-center text-sm text-gray-400">No active interns yet.</p>
-                @endforelse
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- Completed OJT — everyone in scope who has hit their target hours --}}
-<div class="bg-white border border-gray-200 rounded-xl mb-8">
-    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h3 class="text-xs font-medium uppercase tracking-widest text-gray-400">Completed OJT</h3>
-        <span class="text-xs text-gray-400 tabular-nums">{{ $completedList->count() }}</span>
-    </div>
-    <div class="p-3 max-h-72 overflow-y-auto">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
-            @forelse($completedList as $intern)
-                <a href="{{ route('monitor.intern', $intern) }}"
-                    class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-emerald-50/60 transition">
-                    <span class="flex items-center gap-2.5 min-w-0">
-                        @include('partials.avatar', ['user' => $intern, 'class' => 'w-7 h-7 text-[9px]'])
-                        <span class="text-sm text-gray-900 truncate">{{ $intern->full_name }}</span>
-                    </span>
-                    <span class="flex items-center gap-1.5 shrink-0">
-                        <span class="text-xs font-medium text-emerald-600 tabular-nums">{{ number_format($intern->accumulated_hours, 1) }}h</span>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20 6 9 17l-5-5"/></svg>
-                    </span>
-                </a>
-            @empty
-                <p class="px-3 py-6 text-center text-sm text-gray-400 sm:col-span-2 lg:col-span-3">No intern has completed their hours yet.</p>
-            @endforelse
-        </div>
-    </div>
+    @include('partials.duty-boards', [
+        'onDuty' => $onDuty,
+        'topHighest' => $topHighest,
+        'topLeast' => $topLeast,
+        'nearCompletion' => $nearCompletion,
+        'completedList' => $completedList,
+        'absent' => $absent,
+        'workingDay' => $workingDay,
+        'internRoute' => 'monitor.intern',
+        'logRoute' => 'monitor.intern',
+    ])
 </div>
 
 {{-- Sortable headers — every header sorts by progress (hours). --}}
