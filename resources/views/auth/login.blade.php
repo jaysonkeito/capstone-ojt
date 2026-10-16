@@ -8,7 +8,10 @@
          panel is hidden. --}}
     <div class="form-brand">
         <div class="form-brand-icon">N</div>
-        <p style="font-weight:600;letter-spacing:-0.01em;margin:0;">NORSU OJT Tracker</p>
+        <div style="line-height:1.15;">
+            <p style="font-weight:600;letter-spacing:-0.01em;margin:0;">OJT TRACKER</p>
+            <p style="font-size:.7rem;color:var(--text-muted);margin:.1rem 0 0;letter-spacing:.08em;">NORSU BSC</p>
+        </div>
         <p style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0 0;">Time in, time out, done with a scan.</p>
     </div>
 

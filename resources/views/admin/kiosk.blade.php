@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Time In / Out Station — NORSU OJT</title>
+    <title>Time In / Out Station — OJT Tracker · NORSU BSC</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,8 +42,8 @@
             <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-sm font-bold">N</div>
                 <div class="leading-tight">
-                    <p class="font-semibold text-sm tracking-tight">NORSU CAS — OJT</p>
-                    <p class="text-[10px] text-gray-400 uppercase tracking-widest">Time In / Out Station</p>
+                    <p class="font-semibold text-sm tracking-tight">OJT TRACKER</p>
+                    <p class="text-[10px] text-gray-400 uppercase tracking-widest">NORSU BSC · Time In / Out Station</p>
                 </div>
             </div>
             <div class="flex items-center gap-6">

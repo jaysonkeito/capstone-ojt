@@ -22,7 +22,7 @@
          panel is hidden. --}}
     <div class="form-brand">
         <div class="form-brand-icon">N</div>
-        <p style="font-weight:600;letter-spacing:-0.01em;margin:0;">NORSU OJT Tracker</p>
+        <p style="font-weight:600;letter-spacing:-0.01em;margin:0;">OJT TRACKER <span style="font-size:.7rem;font-weight:500;color:var(--text-muted);letter-spacing:.08em;">NORSU BSC</span></p>
         <p style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0 0;">Create your account to get started.</p>
     </div>
 
@@ -193,7 +193,7 @@
             <label class="checkbox-row">
                 <input type="checkbox" name="agree_terms" value="1" {{ old('agree_terms') ? 'checked' : '' }} required
                        aria-describedby="err_agree_terms">
-                <span>I agree to the Terms of Use and Privacy Policy of the NORSU OJT Tracker.</span>
+                <span>I agree to the Terms of Use and Privacy Policy of the OJT Tracker (NORSU BSC).</span>
             </label>
             <span class="field-error" id="err_agree_terms" style="margin-top:-.6rem;">@error('agree_terms'){{ $message }}@enderror</span>
         </div>
@@ -215,7 +215,7 @@
     <div class="welcome-inner">
         <div class="welcome-brand-icon">N</div>
         <h2>Hello, friend!</h2>
-        <p>Set up your NORSU OJT Tracker account to start logging duty hours and keeping your OJT records in order.</p>
+        <p>Set up your OJT Tracker account to start logging duty hours and keeping your OJT records in order.</p>
         <p class="welcome-cta-hint">Already registered?</p>
         <a href="{{ route('login') }}" class="btn-welcome-cta">Sign in</a>
     </div>

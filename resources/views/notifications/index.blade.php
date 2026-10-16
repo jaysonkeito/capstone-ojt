@@ -94,7 +94,23 @@
     @endphp
 
     @forelse($notifications as $notification)
-        @php [$summary, $comment] = $summaryFor($notification->data); $link = $linkFor($notification->data); @endphp
+        @php
+            [$summary, $comment] = $summaryFor($notification->data);
+            $link = $linkFor($notification->data);
+            // The full-content panel shows every field of the notification,
+            // labeled in plain words — click a row to read the whole thing.
+            $fieldLabels = [
+                'reviewer' => 'Reviewed by', 'decision' => 'Decision', 'comment' => 'Comment',
+                'date' => 'Duty date', 'intern' => 'Intern', 'supervisor' => 'Supervisor',
+                'hours' => 'Hours', 'flagged_by' => 'Flagged by', 'period' => 'Period',
+                'certified_by' => 'Certified by', 'coordinator' => 'Coordinator',
+                'subject' => 'Subject', 'request_kind' => 'Request type',
+                'decided_by' => 'Decided by', 'reason' => 'Reason',
+                'request_type' => 'Request type', 'slot' => 'Recorded slot',
+                'recorded_at' => 'Recorded at', 'reporter' => 'Reported by',
+            ];
+            $details = collect($notification->data)->except(['kind', 'intern_id', 'capture']);
+        @endphp
         {{-- Swipe row: the red delete zone sits behind the content, which
              slides left under a finger on phones. On wide screens the zone
              doesn't exist at all — the plain trash button does the job. --}}
@@ -109,18 +125,14 @@
                 @method('DELETE')
                 <span class="text-xs font-semibold text-red-600">Delete</span>
             </form>
-            <div class="swipe-content relative px-5 py-4 flex items-start gap-3 {{ $notification->unread() ? 'bg-brand-50' : 'bg-white' }}">
-                <span class="mt-1 w-2 h-2 rounded-full shrink-0 {{ $notification->unread() ? 'bg-brand-500' : 'bg-gray-200' }}"></span>
+            <div class="swipe-content relative px-5 py-4 flex items-start gap-3 cursor-pointer select-none {{ $notification->unread() ? 'bg-brand-50' : 'bg-white' }}"
+                data-notification-row
+                data-read-url="{{ $notification->unread() ? route('notifications.read', $notification) : '' }}">
+                <span data-role="dot" class="mt-1 w-2 h-2 rounded-full shrink-0 {{ $notification->unread() ? 'bg-brand-500' : 'bg-gray-200' }}"></span>
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm text-gray-900 {{ $notification->unread() ? 'font-medium' : '' }}">
-                        @if($link)
-                            <a href="{{ $link }}" class="hover:text-brand-700">{{ $summary }}</a>
-                        @else
-                            {{ $summary }}
-                        @endif
-                    </p>
+                    <p data-role="summary" class="text-sm text-gray-900 {{ $notification->unread() ? 'font-medium' : '' }}">{{ $summary }}</p>
                     @if($comment)
-                        <p class="text-sm text-gray-500 mt-0.5">“{{ $comment }}”</p>
+                        <p class="text-sm text-gray-500 mt-0.5 line-clamp-1">“{{ $comment }}”</p>
                     @endif
                     @if(($notification->data['kind'] ?? null) === 'scan_recorded' && ($notification->data['capture'] ?? null))
                         {{-- The kiosk's verification photo of the scan —
@@ -138,11 +150,11 @@
                             </a>
                         </div>
                     @endif
-                    <p class="text-[11px] text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }}</p>
+                    <p class="text-[11px] text-gray-400 mt-1">{{ $notification->created_at->diffForHumans() }} — click to view full content</p>
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0">
                     @if($notification->unread())
-                        <form method="POST" action="{{ route('notifications.read', $notification) }}">
+                        <form data-role="mark-read" method="POST" action="{{ route('notifications.read', $notification) }}">
                             @csrf
                             <button type="submit" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-brand-700 px-2 py-1.5 rounded-md hover:bg-brand-50 transition">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -161,7 +173,30 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
                     </form>
+                    <svg data-role="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 transition-transform mt-1"><path d="m6 9 6 6 6-6"/></svg>
                 </div>
+            </div>
+            {{-- Full content — revealed by clicking the row. --}}
+            <div data-notif-details class="hidden bg-gray-50 border-t border-gray-100 px-5 py-4">
+                <p class="text-[10px] font-medium uppercase tracking-widest text-gray-400 mb-2.5">Full content</p>
+                <dl class="space-y-1.5">
+                    @foreach($details as $key => $value)
+                        <div class="flex gap-3 text-sm">
+                            <dt class="w-32 shrink-0 text-gray-500">{{ $fieldLabels[$key] ?? ucfirst(str_replace('_', ' ', $key)) }}</dt>
+                            <dd class="text-gray-900 min-w-0 break-words">{{ is_array($value) ? implode(', ', $value) : (string) $value }}</dd>
+                        </div>
+                    @endforeach
+                    <div class="flex gap-3 text-sm">
+                        <dt class="w-32 shrink-0 text-gray-500">Received</dt>
+                        <dd class="text-gray-900">{{ $notification->created_at->format('M d, Y g:i A') }}</dd>
+                    </div>
+                </dl>
+                @if($link)
+                    <a href="{{ $link }}" class="mt-3.5 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700">
+                        Open related page
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </a>
+                @endif
             </div>
         </div>
     @empty
@@ -228,6 +263,58 @@
             if (openRow === row) { close(row); }
         });
     });
+})();
+
+// Click a notification to read its full content: the row expands into a
+// details panel (every field, labeled) and — the first time an unread
+// row is opened — quietly marks it read so the inbox stays honest.
+(function () {
+    document.querySelectorAll('[data-notification-row]').forEach(function (row) {
+        row.addEventListener('click', function (e) {
+            // Buttons, links, and forms keep their own behavior.
+            if (e.target.closest('button, a, form, input, img')) { return; }
+
+            // A swipe-open row closes on tap instead — let that handler win.
+            if (row.style.transform) { return; }
+
+            var panel = row.parentElement.querySelector('[data-notif-details]');
+            var chevron = row.querySelector('[data-role="chevron"]');
+            if (! panel) { return; }
+
+            var expanding = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            if (chevron) { chevron.classList.toggle('rotate-180', expanding); }
+
+            if (expanding && row.dataset.readUrl) {
+                markRead(row);
+            }
+        });
+    });
+
+    function markRead(row) {
+        var url = row.dataset.readUrl;
+        row.dataset.readUrl = ''; // once only, even if the request is slow
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+        }).catch(function () { /* read-state syncs on next full load anyway */ });
+
+        row.classList.replace('bg-brand-50', 'bg-white');
+
+        var dot = row.querySelector('[data-role="dot"]');
+        if (dot) { dot.classList.replace('bg-brand-500', 'bg-gray-200'); }
+
+        var summary = row.querySelector('[data-role="summary"]');
+        if (summary) { summary.classList.remove('font-medium'); }
+
+        var markReadForm = row.querySelector('[data-role="mark-read"]');
+        if (markReadForm) { markReadForm.remove(); }
+    }
 })();
 </script>
 @endpush

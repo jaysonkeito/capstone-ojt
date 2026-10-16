@@ -3,7 +3,7 @@
      lanyard-sized. Expects $intern and $qrDataUri. --}}
 <div class="badge w-[18rem] rounded-2xl overflow-hidden bg-white border border-gray-200 shadow-sm">
     <div class="bg-gray-900 text-white text-center px-4 py-3">
-        <p class="text-[8px] uppercase tracking-[0.2em] text-gray-400">NORSU CAS — OJT Tracker</p>
+        <p class="text-[8px] uppercase tracking-[0.2em] text-gray-400">OJT Tracker — NORSU BSC</p>
         <p class="text-sm font-semibold tracking-tight mt-0.5">Time In / Out</p>
     </div>
 

@@ -46,7 +46,7 @@
         <table>
             <tr>
                 <td>
-                    <div class="brand">NORSU CAS — OJT Tracker</div>
+                    <div class="brand">OJT Tracker — NORSU BSC</div>
                     <h1>Monthly OJT Summary</h1>
                     <div class="subtitle">{{ $month->format('F Y') }}</div>
                 </td>
@@ -126,7 +126,7 @@
         </tbody>
     </table>
 
-    <div class="footer">Generated {{ $generatedAt->format('M j, Y g:i A') }} — NORSU CAS OJT Tracker</div>
+    <div class="footer">Generated {{ $generatedAt->format('M j, Y g:i A') }} — OJT Tracker · NORSU BSC</div>
 
 </body>
 </html>

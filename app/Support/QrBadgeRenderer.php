@@ -67,7 +67,7 @@ class QrBadgeRenderer
 
         // Header band.
         $cx = $W / 2;
-        self::trackedText($img, $cx, 25 * $s, 'NORSU CAS — OJT TRACKER', $gray400, 8, true, 1.5, $s);
+        self::trackedText($img, $cx, 25 * $s, 'OJT TRACKER — NORSU BSC', $gray400, 8, true, 1.5, $s);
         self::text($img, $cx, 44 * $s, 'Time In / Out', $white, 14, true, $s, 'middle');
 
         // Avatar — initials fallback, the same one the on-screen badge

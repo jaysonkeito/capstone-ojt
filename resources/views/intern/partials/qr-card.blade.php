@@ -132,7 +132,7 @@
         ctx.fillStyle = '#9ca3af';
         ctx.font = '600 8px ' + FONT;
         try { ctx.letterSpacing = '1.5px'; } catch (e) {}
-        ctx.fillText('NORSU CAS — OJT TRACKER', cx, 25);
+        ctx.fillText('OJT TRACKER — NORSU BSC', cx, 25);
         try { ctx.letterSpacing = '0px'; } catch (e) {}
 
         ctx.fillStyle = '#ffffff';

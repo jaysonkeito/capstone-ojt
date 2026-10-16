@@ -25,7 +25,7 @@
     <div class="card">
         <h2>What this system is</h2>
         <p>OJT Tracker records On-the-Job Training attendance and documentation for student
-        interns of NORSU CAS. It is operated by the University's Management Information System
+        interns of NORSU BSC. It is operated by the University's Management Information System
         Office for official internship records.</p>
 
         <h2>Data we process</h2>

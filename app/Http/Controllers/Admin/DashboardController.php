@@ -42,6 +42,10 @@ class DashboardController extends Controller
         // Interns sorted by completion percentage (highest first)
         $internProgress = $interns->sortByDesc('completion_percentage')->values();
 
+        // The Completed board: everyone who has hit their target hours,
+        // heaviest finishers first.
+        $completedList = $completedInterns->sortByDesc('accumulated_hours')->values();
+
         // --- Today board: live duty state --------------------------------
         $settings = OjtSetting::current();
         $todayLogs = OjtLog::with('user')
@@ -79,6 +83,7 @@ class DashboardController extends Controller
         return view('admin.dashboard', compact(
             'stats',
             'internProgress',
+            'completedList',
             'onDuty',
             'doneToday',
             'lateToday',

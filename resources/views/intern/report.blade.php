@@ -51,7 +51,7 @@
         <table>
             <tr>
                 <td>
-                    <div class="brand">NORSU CAS — OJT Tracker</div>
+                    <div class="brand">OJT Tracker — NORSU BSC</div>
                     <h1>Daily Duty Report</h1>
                     <div class="subtitle">{{ $log->date->format('l, F j, Y') }}</div>
                 </td>

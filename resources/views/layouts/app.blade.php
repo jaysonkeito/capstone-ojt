@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
     <link rel="icon" href="{{ asset('favicon.ico') }}">
-    <title>@yield('title', 'OJT Management System') — NORSU CAS</title>
+    <title>@yield('title', 'OJT Management System') — OJT Tracker · NORSU BSC</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -194,8 +194,8 @@
             <div class="px-5 py-5 flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white text-sm font-bold">N</div>
                 <div class="leading-tight">
-                    <p class="font-semibold text-sm tracking-tight">NORSU OJT</p>
-                    <p class="text-[10px] text-gray-400 uppercase tracking-widest">CAS</p>
+                    <p class="font-semibold text-sm tracking-tight">OJT TRACKER</p>
+                    <p class="text-[10px] text-gray-400 uppercase tracking-widest">NORSU BSC</p>
                 </div>
             </div>
 
@@ -252,7 +252,7 @@
                     </button>
                     <a href="{{ url('/') }}" class="flex items-center gap-2">
                         <span class="w-6 h-6 rounded-md bg-gray-900 flex items-center justify-center text-white text-[11px] font-bold">N</span>
-                        <span class="font-semibold text-sm tracking-tight">NORSU OJT</span>
+                        <span class="font-semibold text-sm tracking-tight">OJT TRACKER <span class="text-[10px] font-medium text-gray-400 uppercase tracking-widest">NORSU BSC</span></span>
                     </a>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
@@ -268,7 +268,10 @@
                     <div class="px-5 py-5 flex items-center justify-between">
                         <div class="flex items-center gap-2.5">
                             <div class="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white text-sm font-bold">N</div>
-                            <p class="font-semibold text-sm tracking-tight">NORSU OJT</p>
+                            <div class="leading-tight">
+                                <p class="font-semibold text-sm tracking-tight">OJT TRACKER</p>
+                                <p class="text-[10px] text-gray-400 uppercase tracking-widest">NORSU BSC</p>
+                            </div>
                         </div>
                         <button type="button" onclick="document.getElementById('mobileSidebar').classList.add('hidden')" class="text-gray-400 hover:text-gray-900">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>

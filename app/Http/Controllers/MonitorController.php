@@ -78,11 +78,22 @@ class MonitorController extends Controller
         $top3Highest = $withHours->sortByDesc('accumulated_hours')->take(3)->values();
         $top3Least = $withHours->sortBy('accumulated_hours')->take(3)->values();
 
+        // The Completed board: everyone in scope who has hit their target
+        // hours, heaviest finishers first. Computed over the full scope
+        // (the table above paginates, this board must not).
+        $completedList = $this->scopedInterns($user)
+            ->with('office:id,name,type')
+            ->get()
+            ->filter(fn ($intern) => $intern->is_complete)
+            ->sortByDesc('accumulated_hours')
+            ->values();
+
         return view('monitor.dashboard', [
             'role' => $user->role,
             'office' => $user->office,
             'interns' => $interns,
             'stats' => $stats,
+            'completedList' => $completedList,
             'dir' => $dir,
             'onDuty' => $onDuty,
             'top3Highest' => $top3Highest,

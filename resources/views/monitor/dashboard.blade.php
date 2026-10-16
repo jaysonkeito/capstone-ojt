@@ -135,6 +135,33 @@
     </div>
 </div>
 
+{{-- Completed OJT — everyone in scope who has hit their target hours --}}
+<div class="bg-white border border-gray-200 rounded-xl mb-8">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="text-xs font-medium uppercase tracking-widest text-gray-400">Completed OJT</h3>
+        <span class="text-xs text-gray-400 tabular-nums">{{ $completedList->count() }}</span>
+    </div>
+    <div class="p-3 max-h-72 overflow-y-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
+            @forelse($completedList as $intern)
+                <a href="{{ route('monitor.intern', $intern) }}"
+                    class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-emerald-50/60 transition">
+                    <span class="flex items-center gap-2.5 min-w-0">
+                        @include('partials.avatar', ['user' => $intern, 'class' => 'w-7 h-7 text-[9px]'])
+                        <span class="text-sm text-gray-900 truncate">{{ $intern->full_name }}</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 shrink-0">
+                        <span class="text-xs font-medium text-emerald-600 tabular-nums">{{ number_format($intern->accumulated_hours, 1) }}h</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20 6 9 17l-5-5"/></svg>
+                    </span>
+                </a>
+            @empty
+                <p class="px-3 py-6 text-center text-sm text-gray-400 sm:col-span-2 lg:col-span-3">No intern has completed their hours yet.</p>
+            @endforelse
+        </div>
+    </div>
+</div>
+
 {{-- Sortable headers — every header sorts by progress (hours). --}}
 @php
     $nextDir = $dir === 'asc' ? 'desc' : 'asc';
