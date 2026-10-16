@@ -70,18 +70,6 @@ class DashboardController extends Controller
             ->filter(fn ($l) => $l->am_time_in && $l->am_time_in > \App\Support\HoursCalculator::arrivalBoundary($l->user->office, $settings))
             ->values();
 
-        $workingDay = $settings->isWorkingDay(today());
-
-        // Ongoing interns with no entry at all today — the Absent board
-        // (completed interns are done and no longer expected to scan).
-        $scannedToday = $todayLogs->pluck('user_id')->flip();
-        $absent = $settings->isWorkingDay(today())
-            ? $activeInterns
-                ->filter(fn ($i) => ! $i->is_complete && ! $scannedToday->has($i->id))
-                ->sortBy(fn ($i) => [$i->last_name, $i->first_name])
-                ->values()
-            : collect();
-
         // Top/bottom 5 by hours rendered — only ongoing interns who have
         // actually logged at least 1 hour so the lists are meaningful.
         $withHours = $activeInterns->filter(fn ($i) => $i->accumulated_hours > 0 && ! $i->is_complete);
@@ -102,8 +90,6 @@ class DashboardController extends Controller
             'onDuty',
             'doneToday',
             'lateToday',
-            'absent',
-            'workingDay',
             'topHighest',
             'topLeast',
             'nearCompletion',

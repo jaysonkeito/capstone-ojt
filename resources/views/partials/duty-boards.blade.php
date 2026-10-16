@@ -1,10 +1,9 @@
 {{-- The six live boards as vertical cards, three across on wide screens
-     (two rows), stacked on narrow ones: On Duty Now, Top 5 Highest
-     Hours, Top 5 Least Hours, Near Completion, Completed OJT, and
-     Absent. Shared by the staff dashboard (admin/coordinator/supervisor)
-     and the monitor dashboard (dean/chairs); the caller supplies
-     $internRoute / $logRoute since the deep links differ, plus the
-     $absent list and whether today is a $workingDay. --}}
+     (two rows), stacked on narrow ones: On Duty Now, Late Today, Top 5
+     Highest Hours, Top 5 Least Hours, Near Completion, Completed OJT.
+     Shared by the staff dashboard (admin/coordinator/supervisor) and the
+     monitor dashboard (dean/chairs); the caller supplies $internRoute /
+     $logRoute since the deep links differ. --}}
 
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
@@ -33,29 +32,25 @@
         </div>
     </div>
 
-    {{-- Absent today — right beside On Duty: everyone expected today who
-         hasn't scanned at all. --}}
+    {{-- Late today — right beside On Duty: everyone whose morning
+         arrival landed past their office's grace window. --}}
     <div class="bg-white border border-gray-200 rounded-xl">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-xs font-medium uppercase tracking-widest text-gray-400">Absent today</h3>
-            <span class="text-xs text-gray-400 tabular-nums">{{ $absent->count() }}</span>
+            <h3 class="text-xs font-medium uppercase tracking-widest text-gray-400">Late today</h3>
+            <span class="text-xs text-gray-400 tabular-nums">{{ $lateToday->count() }}</span>
         </div>
         <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
-            @if(! $workingDay)
-                <p class="px-5 py-6 text-center text-sm text-gray-400">Not a working day — no absences counted.</p>
-            @else
-                @forelse($absent as $intern)
-                    <div class="px-5 py-2.5 flex items-center justify-between gap-2 text-sm">
-                        <span class="flex items-center gap-2.5 min-w-0">
-                            @include('partials.avatar', ['user' => $intern, 'class' => 'w-7 h-7 text-[9px]'])
-                            <a href="{{ route($internRoute, $intern) }}" class="text-gray-900 hover:text-brand-700 truncate">{{ $intern->full_name }}</a>
-                        </span>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600 shrink-0">No scan</span>
-                    </div>
-                @empty
-                    <p class="px-5 py-6 text-center text-sm text-gray-400">Everyone expected today has scanned.</p>
-                @endforelse
-            @endif
+            @forelse($lateToday as $log)
+                <div class="px-5 py-2.5 flex items-center justify-between gap-2 text-sm">
+                    <a href="{{ route($logRoute, $log->user) }}" class="text-gray-900 hover:text-brand-700 truncate">{{ $log->user->full_name }}</a>
+                    <span class="flex items-center gap-2 shrink-0">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 shrink-0">Late</span>
+                        <span class="text-xs text-gray-400 tabular-nums">in {{ \Illuminate\Support\Carbon::parse($log->am_time_in)->format('g:i A') }}</span>
+                    </span>
+                </div>
+            @empty
+                <p class="px-5 py-6 text-center text-sm text-gray-400">No late arrivals today.</p>
+            @endforelse
         </div>
     </div>
 

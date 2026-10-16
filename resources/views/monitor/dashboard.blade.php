@@ -70,12 +70,11 @@
 
     @include('partials.duty-boards', [
         'onDuty' => $onDuty,
+        'lateToday' => $lateToday,
         'topHighest' => $topHighest,
         'topLeast' => $topLeast,
         'nearCompletion' => $nearCompletion,
         'completedList' => $completedList,
-        'absent' => $absent,
-        'workingDay' => $workingDay,
         'internRoute' => 'monitor.intern',
         'logRoute' => 'monitor.intern',
     ])

@@ -100,16 +100,10 @@ class MonitorController extends Controller
             ->sortByDesc('accumulated_hours')
             ->values();
 
-        // Absent: ongoing interns in scope with no scan at all today.
-        $settings = \App\Models\OjtSetting::current();
-        $workingDay = $settings->isWorkingDay(today());
-        $scannedToday = $todayLogs->pluck('user_id')->flip();
-        $absent = $workingDay
-            ? $scopedAll
-                ->filter(fn ($i) => $i->is_active && ! $i->is_complete && ! $scannedToday->has($i->id))
-                ->sortBy(fn ($i) => [$i->last_name, $i->first_name])
-                ->values()
-            : collect();
+        // Late today: arrivals past each intern's office grace window.
+        $lateToday = $todayLogs
+            ->filter(fn ($l) => $l->am_time_in && $l->am_time_in > \App\Support\HoursCalculator::arrivalBoundary($l->user->office, \App\Models\OjtSetting::current()))
+            ->values();
 
         return view('monitor.dashboard', [
             'role' => $user->role,
@@ -119,11 +113,10 @@ class MonitorController extends Controller
             'completedList' => $completedList,
             'dir' => $dir,
             'onDuty' => $onDuty,
+            'lateToday' => $lateToday,
             'topHighest' => $topHighest,
             'topLeast' => $topLeast,
             'nearCompletion' => $nearCompletion,
-            'absent' => $absent,
-            'workingDay' => $workingDay,
         ]);
     }
 

@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Office;
-use App\Models\OjtSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -109,21 +108,19 @@ it('keeps completed interns off the On Duty board and marks arrivals Late or On-
         ->assertSee('in 8:01 AM');
 });
 
-it('lists the ongoing interns who have not scanned today on the Absent board', function () {
+it('lists late arrivals on the Late-today board beside On Duty', function () {
     $admin = makeStaff(['role' => 'admin']);
-    // Make today a working day regardless of which weekday the test runs on.
-    OjtSetting::current()->update(['working_days' => [today()->dayOfWeek]]);
-
-    $scanned = makeIntern(['student_id' => 'T-9411', 'last_name' => 'Present']);
-    makeLog($scanned, makeActiveEnrollment($scanned), null, ['am_time_in' => '08:00']);
-    makeIntern(['student_id' => 'T-9412', 'last_name' => 'Missing']);
+    // Grace is 15 minutes past the campus 8:00 AM-in: 08:40 is late, 08:02 is not.
+    $late = makeIntern(['student_id' => 'T-9411', 'last_name' => 'Latecomer']);
+    makeLog($late, makeActiveEnrollment($late), null, ['am_time_in' => '08:40']);
+    $ontime = makeIntern(['student_id' => 'T-9412', 'last_name' => 'Earlybird']);
+    makeLog($ontime, makeActiveEnrollment($ontime), null, ['am_time_in' => '08:02']);
 
     $this->actingAs($admin)->get(route('admin.dashboard'))
         ->assertOk()
-        ->assertSee('Absent today')
-        ->assertSee('Missing')
-        // The absent board carries the No-scan chip, and only Missing gets one.
-        ->assertSee('No scan');
+        ->assertSee('Late today')
+        ->assertSee('Latecomer')
+        ->assertSee('in 8:40 AM');
 });
 
 it('lists five names on the Top boards', function () {

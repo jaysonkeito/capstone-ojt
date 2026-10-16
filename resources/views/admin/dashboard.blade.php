@@ -44,12 +44,11 @@
 
     @include('partials.duty-boards', [
         'onDuty' => $onDuty,
+        'lateToday' => $lateToday,
         'topHighest' => $topHighest,
         'topLeast' => $topLeast,
         'nearCompletion' => $nearCompletion,
         'completedList' => $completedList,
-        'absent' => $absent,
-        'workingDay' => $workingDay,
         'internRoute' => 'admin.interns.show',
         'logRoute' => 'admin.logs.show',
     ])
